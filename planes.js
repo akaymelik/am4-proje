@@ -1,6 +1,6 @@
 /**
- * planes.js: Airline Manager 4 Uçak Veritabanı
- * Bu dosya Yolcu (PAX) ve Kargo uçaklarının teknik özelliklerini içerir.
+ * planes.js: Airline Manager 4 Kapsamlı Uçak Veritabanı
+ * Bu dosya hem Yolcu (PAX) hem de Kargo uçaklarını içerir.
  */
 
 const aircraftData = {
@@ -8,8 +8,8 @@ const aircraftData = {
     "ATR-42": { type: "passenger", capacity: 50, fuel_consumption: 0.25, range: 1500, cruise_speed: 400, price: 1200000 },
     "ATR-72": { type: "passenger", capacity: 70, fuel_consumption: 0.35, range: 1500, cruise_speed: 510, price: 2100000 },
     "Dash 8-Q400": { type: "passenger", capacity: 78, fuel_consumption: 0.45, range: 2500, cruise_speed: 667, price: 3500000 },
-    "Bombardier CRJ-900": { type: "passenger", capacity: 85, fuel_consumption: 0.35, range: 3200, cruise_speed: 860, price: 2400000 },
     "Embraer 190": { type: "passenger", capacity: 114, fuel_consumption: 0.55, range: 4500, cruise_speed: 830, price: 3800000 },
+    "Bombardier CRJ-900": { type: "passenger", capacity: 85, fuel_consumption: 0.35, range: 3200, cruise_speed: 860, price: 2400000 },
 
     // --- ORTA MESAFE YOLCU UÇAKLARI (Dar Gövde) ---
     "Boeing 737-700": { type: "passenger", capacity: 149, fuel_consumption: 0.75, range: 6200, cruise_speed: 839, price: 4100000 },

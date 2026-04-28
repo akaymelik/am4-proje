@@ -1,85 +1,77 @@
 /**
- * ui.js: Kullanıcı arayüzü etkileşimleri, sayfa yönetimi ve veri görselleştirme.
+ * ui.js: Kullanıcı etkileşimleri, sayfa yönetimi ve verilerin görselleştirilmesi.
+ * Bu dosya logic.js ve configurator.js ile tam entegre çalışır.
  */
 
 /**
- * Sayfalar arasında geçiş yapar.
- * @param {string} pageId - Gösterilecek sayfanın ID değeri.
+ * Sayfalar arası geçişi sağlar.
  */
 function showPage(pageId) {
-    // Tüm sayfaları gizle
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    
-    // Hedef sayfayı aktif et
     const target = document.getElementById(pageId);
     if (target) {
         target.classList.add('active');
     }
     
-    // Eğer bir rota analiz sayfasına geçildiyse uçak listelerini tazele
+    // Rota analiz sayfalarında uçak listesini doldur
     if (pageId.includes('route')) {
         fillRouteSelects();
     }
 }
 
 /**
- * Rota analizi bölümlerindeki uçak seçim kutularını (select) doldurur.
+ * Uçak seçim kutularını (select) veritabanına göre doldurur.
  */
 function fillRouteSelects() {
     const paxSelect = document.getElementById('paxRouteSelect');
     const cargoSelect = document.getElementById('cargoRouteSelect');
 
-    // Yolcu uçaklarını doldur
     if (paxSelect && paxSelect.options.length <= 1) {
         for (let name in aircraftData) {
             if (aircraftData[name].type === "passenger") {
-                let opt = new Option(name, name);
-                paxSelect.add(opt);
+                paxSelect.add(new Option(name, name));
             }
         }
     }
 
-    // Kargo uçaklarını doldur
     if (cargoSelect && cargoSelect.options.length <= 1) {
         for (let name in aircraftData) {
             if (aircraftData[name].type === "cargo") {
-                let opt = new Option(name, name);
-                cargoSelect.add(opt);
+                cargoSelect.add(new Option(name, name));
             }
         }
     }
 }
 
 /**
- * Bütçeye göre en verimli (Efficiency odaklı) uçak önerilerini listeler.
- * @param {string} category - 'pax' (Yolcu) veya 'cargo' (Kargo)
+ * Bütçeye göre en verimli uçakları ve kârlı oldukları ana rotayı listeler.
  */
 function renderSuggestions(category) {
     const budgetInput = document.getElementById(category + 'BudgetInput');
     const container = document.getElementById(category + 'PlaneResult');
     
     if (!budgetInput || !budgetInput.value) {
-        return alert("Lütfen analize başlamak için bütçenizi girin!");
+        return; // Bütçe girilmemişse işlem yapma
     }
     
     const budget = Number(budgetInput.value);
     const typeKey = category === 'pax' ? 'passenger' : 'cargo';
     
-    // logic.js'den en verimli uçak listesini al
+    // logic.js'den en verimli uçakları getir
     const results = getBestPlanesByType(budget, typeKey);
     
     if (results.length === 0) {
-        container.innerHTML = `<p style="margin-top:20px; color: var(--text-muted);">Bu bütçeye uygun uçak bulunamadı.</p>`;
+        container.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Bu bütçeye uygun uçak bulunamadı.</p>`;
         return;
     }
 
-    // Sonuçları HTML olarak oluştur
+    // "Nereden ➔ Nereye" formatında rotayı gösteren liste
     container.innerHTML = results.map(p => `
         <div class="result-item">
             <div>
-                <strong style="font-size: 1.1rem; color: var(--text);">${p.name}</strong><br>
+                <strong style="font-size: 1.1rem;">${p.name}</strong><br>
                 <small style="color: var(--success); font-weight: 600;">
-                    En Karlı Rota: ${p.origin} ➔ ${p.destination}
+                    En Karlı Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}
                 </small>
             </div>
             <div style="text-align: right;">
@@ -91,8 +83,7 @@ function renderSuggestions(category) {
 }
 
 /**
- * Seçilen uçak ve koltuk düzeni için en karlı 10 rotayı detaylı listeler.
- * @param {string} category - 'pax' veya 'cargo'
+ * Seçilen uçak ve koltuk yapılandırması için Excel'deki en kârlı 10 rotayı analiz eder.
  */
 function renderRouteAnalysis(category) {
     const selectElement = document.getElementById(category + 'RouteSelect');
@@ -100,50 +91,51 @@ function renderRouteAnalysis(category) {
     const planeName = selectElement.value;
     
     if (!planeName) {
-        return alert("Lütfen analiz edilecek bir uçak seçin!");
+        return;
     }
     
     let customSeats = null;
     
-    // Yolcu uçuşu ise koltuk düzenini Configurator'dan al ve kontrol et
+    // Yolcu uçuşu ise koltuk düzenini kontrol et
     if (category === 'pax') {
         if (typeof Configurator !== 'undefined') {
             const isCapacityOk = Configurator.updateCapacityCheck();
             if (!isCapacityOk) {
-                return alert("Hata: Girdiğiniz koltuk sayıları uçak kapasitesini aşıyor!");
+                container.innerHTML = `<p style="color: var(--danger); padding: 10px; font-weight: bold;">Hata: Koltuk sayısı kapasiteyi aşıyor!</p>`;
+                return;
             }
             customSeats = Configurator.getSeatConfig();
         }
     }
 
-    // logic.js üzerinden en iyi 10 rotayı hesapla
+    // logic.js üzerinden en iyi 10 rotayı getir
     const topRoutes = analyzeTopRoutesForPlane(planeName, 10, customSeats);
     
     if (topRoutes.length === 0) {
-        container.innerHTML = `<p style="color: var(--danger); margin-top: 20px;">Uçağın menziline uygun rota bulunamadı.</p>`;
+        container.innerHTML = `<p style="color: var(--danger); padding: 20px;">Uçağın menziline veya pazar talebine uygun rota bulunamadı.</p>`;
         return;
     }
 
-    // Rota kartlarını oluştur
+    // Sonuç kartlarını oluştur
     container.innerHTML = `<h3>En Karlı 10 Rota (Günlük Kar Odaklı)</h3>` + topRoutes.map((r, index) => `
-        <div class="route-card" style="border-left: 5px solid ${index === 0 ? 'var(--success)' : 'var(--border)'};">
+        <div class="route-card" style="border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-bottom: 10px; background: #fff;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <strong style="font-size: 1.05rem;">#${index + 1} ${r.origin} ➔ ${r.destination}</strong>
-                <span style="color: var(--success); font-weight: 700; font-size: 1.1rem;">
+                <strong>#${index + 1} ${r.origin} ➔ ${r.destination}</strong>
+                <span style="color: var(--success); font-weight: 700;">
                     $${Math.floor(r.dailyProfit).toLocaleString()} / Gün
                 </span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 0.85rem; color: var(--text-muted);">
-                <span><strong>Mesafe:</strong> ${r.distance} km</span>
-                <span><strong>Günlük Sefer:</strong> ${r.dailyTrips}x</span>
-                <span><strong>Yatırım Verimi:</strong> %${r.efficiency}</span>
+                <span>Mesafe: ${r.distance} km</span>
+                <span>Sefer: ${r.dailyTrips}x</span>
+                <span>Verim: %${r.efficiency}</span>
             </div>
         </div>
     `).join('');
 }
 
 /**
- * Koltuk inputları değiştikçe kapasite kontrolünü tetikler (Configurator ile bağlantılı).
+ * Koltuk sayısı değişimlerinde kapasite kontrolünü tetikler.
  */
 window.updateCapacityCheck = function() {
     if (typeof Configurator !== 'undefined') {
@@ -152,7 +144,7 @@ window.updateCapacityCheck = function() {
 };
 
 /**
- * Sayfa yüklendiğinde gerekli başlangıç ayarlarını yapar.
+ * Başlangıç ayarları
  */
 window.onload = function() {
     fillRouteSelects();

@@ -1,47 +1,50 @@
 /**
- * logic.js: AM4 Pazar Talebi (Demand) Kısıtlamalı Hesaplama Motoru.
- * HATA DÜZELTMESİ: Kısa rotalardaki "aşırı sefer sayısı" hatası giderildi.
- * AM4'te her uçuş için zorunlu olan hazırlık süresi (0.5sa) kontrol altına alındı.
+ * logic.js: Süre gösterimi ve sefer sayısı limitlerini birbirinden ayıran güncel motor.
  */
 
 const Logic = {
     /**
-     * Uçuş süresini hesaplar.
-     * AM4 Kuralı: (Mesafe / Hız) + En az 30 dakika (0.5sa) yer hazırlığı.
+     * Sadece gerçek uçuş süresini hesaplar (Arayüzde gösterilecek olan).
+     * Formül: Mesafe / Hız
      */
     calculateFlightTime: function(distance, speed) {
         if (!speed || speed <= 0) return 0;
-        // 0.5sa (30dk) AM4 için standart minimum hazırlık süresidir.
-        return (distance / speed) + 0.5;
+        return (distance / speed);
     },
 
     /**
-     * Tek bir uçuşun net kârını hesaplar.
+     * Sefer başına net kârı ve operasyonel döngüyü hesaplar.
      */
     calculateProfit: function(plane, route, seats = null, manualTrips = null) {
         const currentMode = typeof window.gameMode !== 'undefined' ? window.gameMode : 'realism';
         const multiplier = currentMode === 'easy' ? 1.1 : 1.0;
 
-        const flightTime = this.calculateFlightTime(route.distance, plane.cruise_speed);
-        // Günde yapılabilecek maksimum sefer sayısı (24 / uçuş süresi)
-        const maxTrips = Math.floor(24 / flightTime);
+        // 1. Havada geçen süre (Görsel süre)
+        const airTime = this.calculateFlightTime(route.distance, plane.cruise_speed);
         
-        // Kullanıcı girişi olsa bile uçağın fiziksel hız sınırını (maxTrips) aşamaz.
+        // 2. AM4 Hazırlık dahil toplam döngü süresi (Sefer sayısı hesabı için)
+        // 0.5 saat (30dk) zorunlu hazırlık payıdır.
+        const cycleTime = airTime + 0.5; 
+        
+        // 3. Günde yapılabilecek fiziksel maksimum sefer sayısı
+        const maxTrips = Math.floor(24 / cycleTime);
         let trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
         
-        if (trips <= 0) return { profitPerFlight: 0, appliedTrips: 0, duration: flightTime };
+        if (trips <= 0) return { profitPerFlight: 0, appliedTrips: 0, duration: airTime };
 
         let grossRevenue = 0;
 
+        // --- KARGO GELİR HESABI ---
         if (plane.type === "cargo") {
             let coef = route.distance > 5000 ? 0.47 : (route.distance > 2000 ? 0.52 : 0.56);
             const totalDailyCapacity = plane.capacity * trips;
             const totalDailyDemand = route.demand.c || (route.demand.y * 500) || 0;
             const actualDailyCarry = Math.min(totalDailyCapacity, totalDailyDemand);
             grossRevenue = (actualDailyCarry * (route.distance * coef / 100) * multiplier) / trips;
-        } else {
+        } 
+        // --- YOLCU (PAX) GELİR HESABI ---
+        else {
             const prices = Configurator.getTicketMultipliers(route.distance);
-            // Eğer koltuk girilmemişse uçağı o rotada en verimli hale getir (F > J > Y)
             const activeSeats = (seats && (seats.y + seats.j + seats.f > 0)) 
                 ? seats 
                 : Configurator.calculateOptimalSeats(plane, route, trips);
@@ -60,7 +63,7 @@ const Logic = {
         return {
             profitPerFlight: netProfitPerFlight,
             appliedTrips: trips,
-            duration: flightTime
+            duration: airTime // Burada artık hazırlık süresi OLMAYAN gerçek uçuş süresini döndürüyoruz
         };
     },
 
@@ -80,7 +83,7 @@ const Logic = {
                         profitPerFlight: calculation.profitPerFlight,
                         dailyProfit: dailyProfit,
                         dailyTrips: calculation.appliedTrips,
-                        duration: calculation.duration,
+                        duration: calculation.duration, // Gerçek süre
                         efficiency: (dailyProfit / plane.price) * 100,
                         roiDays: (plane.price / dailyProfit).toFixed(1)
                     });
@@ -111,7 +114,7 @@ const Logic = {
                         bestRouteOrigin: best.origin,
                         bestRouteName: best.destination,
                         price: p.price,
-                        appliedTrips: best.dailyTrips // UI için eklendi
+                        appliedTrips: best.dailyTrips
                     });
                 }
             }

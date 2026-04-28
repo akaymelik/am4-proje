@@ -1,12 +1,11 @@
 /**
- * configurator.js: Rota bazlı dinamik koltuk optimizasyonu ve mod yönetimi.
+ * configurator.js: Rota bazlı dinamik koltuk optimizasyonu ve fiyat yönetimi.
  * AM4 Standartları: Economy (Y)=1, Business (J)=2, First (F)=3 birim yer kaplar.
  */
 
 const Configurator = {
     /**
-     * Kullanıcının arayüzden girdiği mevcut koltuk sayılarını çeker.
-     * @returns {Object} {y: Economy, j: Business, f: First}
+     * Kullanıcının arayüzden girdiği koltuk sayılarını çeker.
      */
     getSeatConfig: function() {
         return {
@@ -19,20 +18,15 @@ const Configurator = {
     /**
      * Belirli bir uçak ve rota için en kârlı koltuk dağılımını hesaplar.
      * AM4 Kar Önceliği: First (3x) > Business (2x) > Economy (1x)
-     * @param {Object} plane - Uçak nesnesi
-     * @param {Object} route - Rota nesnesi
-     * @param {number} manualTrips - Hedeflenen günlük sefer sayısı
-     * @returns {Object} {y, j, f} ideal dağılım
      */
     calculateOptimalSeats: function(plane, route, manualTrips = null) {
-        // Logic modülü üzerinden uçuş süresi ve sefer sayısını al
         const flightTime = Logic.calculateFlightTime(route.distance, plane.cruise_speed);
         const maxTrips = Math.floor(24 / flightTime);
         const trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
 
         if (trips <= 0) return { y: 0, j: 0, f: 0 };
 
-        // Sefer başına düşen maksimum pazar talebi (Darboğaz kontrolü)
+        // Sefer başına düşen maksimum pazar talebi
         const maxF = Math.floor((route.demand.f || 0) / trips);
         const maxJ = Math.floor((route.demand.j || 0) / trips);
         const maxY = Math.floor((route.demand.y || 0) / trips);
@@ -40,15 +34,15 @@ const Configurator = {
         let remCap = plane.capacity;
         let sF = 0, sJ = 0, sY = 0;
 
-        // 1. Öncelik: First Class (En kârlı, 3 birim yer kaplar)
+        // 1. Öncelik: First Class (3 birim)
         sF = Math.min(maxF, Math.floor(remCap / 3));
         remCap -= (sF * 3);
 
-        // 2. Öncelik: Business Class (2 birim yer kaplar)
+        // 2. Öncelik: Business Class (2 birim)
         sJ = Math.min(maxJ, Math.floor(remCap / 2));
         remCap -= (sJ * 2);
 
-        // 3. Öncelik: Economy Class (1 birim yer kaplar)
+        // 3. Öncelik: Economy Class (1 birim)
         sY = Math.min(maxY, remCap);
         
         return { y: sY, j: sJ, f: sF };
@@ -64,7 +58,7 @@ const Configurator = {
         if (!planeName || !aircraftData[planeName]) {
             if (infoDiv) {
                 infoDiv.className = "status-box status-neutral";
-                infoDiv.innerText = "Lütfen önce bir uçak seçin.";
+                infoDiv.innerText = "Lütfen bir uçak seçin.";
             }
             return false;
         }
@@ -87,37 +81,29 @@ const Configurator = {
     },
 
     /**
-     * Rota analizinden gelen ideal değerleri inputlara aktarır ve ekranı kaydırır.
+     * Analizden gelen ideal koltukları inputlara aktarır.
      */
     applySuggestion: function(y, j, f) {
-        const inputs = { 'seatsY': y, 'seatsJ': j, 'seatsF': f };
-        
-        for (let id in inputs) {
-            const el = document.getElementById(id);
-            if (el) el.value = inputs[id];
-        }
+        document.getElementById('seatsY').value = y;
+        document.getElementById('seatsJ').value = j;
+        document.getElementById('seatsF').value = f;
 
         this.updateCapacityCheck();
         
-        // Kullanıcıyı ayarlar kısmına yumuşak bir geçişle odakla
+        // Kullanıcıyı ayarlar kısmına odakla
         const anchor = document.getElementById('paxRouteSelect');
         if (anchor) {
-            const navOffset = 85; // Üst bar payı
+            const navOffset = 90;
             const elementPosition = anchor.getBoundingClientRect().top + window.pageYOffset;
-            window.scrollTo({
-                top: elementPosition - navOffset,
-                behavior: 'smooth'
-            });
+            window.scrollTo({ top: elementPosition - navOffset, behavior: 'smooth' });
         }
     },
 
     /**
-     * Aktif oyun moduna (Easy/Realism) göre bilet fiyat çarpanlarını döndürür.
-     * Easy: 1.1x | Realism: 1.0x
+     * Aktif oyun moduna göre bilet fiyatlarını döndürür.
      */
     getTicketMultipliers: function(distance) {
-        // window.gameMode global değişkeni UI üzerinden kontrol edilir.
-        const mode = window.gameMode || 'easy';
+        const mode = window.gameMode || 'realism';
         const multiplier = mode === 'easy' ? 1.1 : 1.0;
         
         return {

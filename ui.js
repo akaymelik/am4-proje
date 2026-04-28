@@ -1,6 +1,6 @@
 /**
  * ui.js: Ekran geçişleri, mod yönetimi ve analiz sonuçlarının görselleştirilmesi.
- * Güncelleme: Hibrit puanlama (%30 Verim + %70 Kâr) arayüze entegre edildi.
+ * Güncelleme: Uçak önerilerinde fiyat bilgisi günlük kârdan önceye eklendi.
  */
 
 const UI = {
@@ -59,6 +59,7 @@ const UI = {
 
     /**
      * Hibrit puanlamaya göre uçak önerilerini listeler.
+     * Fiyat bilgisi Günlük Kâr'dan önce gösterilir.
      */
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
@@ -71,7 +72,6 @@ const UI = {
         const mTrips = Number(mTripsInput.value) || null;
         const typeKey = cat === 'pax' ? 'passenger' : 'cargo';
 
-        // Logic modülünden hibrit skorlu adayları getir
         const matches = Logic.getBestPlanesByType(budget, typeKey, mTrips);
         
         if (matches.length === 0) {
@@ -91,7 +91,10 @@ const UI = {
                     <small style="color: var(--success); font-weight: 600; display: block; margin-top: 4px;">
                         Rota: ${m.bestRouteOrigin} ➔ ${m.bestRouteName}
                     </small>
-                    <small style="color: var(--text-muted)">Günlük Kâr: <strong>${Utils.formatCurrency(m.dailyProfit)}</strong></small>
+                    <small style="color: var(--text-muted)">
+                        Fiyat: <strong>${Utils.formatCurrency(m.price)}</strong> | 
+                        Günlük Kâr: <strong>${Utils.formatCurrency(m.dailyProfit)}</strong>
+                    </small>
                 </div>
                 <div style="text-align: right; flex: 1;">
                     <span style="color: var(--primary); font-weight: bold; font-size: 1rem;">

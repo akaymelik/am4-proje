@@ -1,56 +1,27 @@
 /**
- * routes.js: Airline Manager 4 Küresel Rota Veritabanı
- * Bu liste dünya genelindeki ana hub'ları ve kârlı koridorları kapsar.
+ * routes.js: AM4-MENOA Excel Veritabanından Alınan Gerçek Rotalar
+ * Sadece Excel'deki rotaları içerir, piyasa talepleri bire bir eşlenmiştir.
  */
 const popularRoutes = [
-    // --- AVRUPA & TÜRKİYE MERKEZLİ ---
-    { origin: "Istanbul (IST)", destination: "London (LHR)", distance: 2500 },
-    { origin: "Istanbul (IST)", destination: "Paris (CDG)", distance: 2250 },
-    { origin: "Istanbul (IST)", destination: "New York (JFK)", distance: 8000 },
-    { origin: "Istanbul (IST)", destination: "Tokyo (NRT)", distance: 8900 },
-    { origin: "Istanbul (IST)", destination: "Antalya (AYT)", distance: 480 },
-    { origin: "Istanbul (IST)", destination: "Berlin (BER)", distance: 1750 },
-    { origin: "Istanbul (IST)", destination: "Dubai (DXB)", distance: 3000 },
-    { origin: "Istanbul (IST)", destination: "Moscow (SVO)", distance: 1750 },
-    { origin: "London (LHR)", destination: "New York (JFK)", distance: 5570 },
-    { origin: "London (LHR)", destination: "Dubai (DXB)", distance: 5470 },
-    { origin: "London (LHR)", destination: "Singapore (SIN)", distance: 10880 },
-    { origin: "Paris (CDG)", destination: "Montreal (YUL)", distance: 5500 },
-    { origin: "Frankfurt (FRA)", destination: "Bangkok (BKK)", distance: 9000 },
-    { origin: "Amsterdam (AMS)", destination: "Seoul (ICN)", distance: 8550 },
-    { origin: "Madrid (MAD)", destination: "Mexico City (MEX)", distance: 9060 },
-
-    // --- KUZEY AMERİKA MERKEZLİ ---
-    { origin: "New York (JFK)", destination: "Los Angeles (LAX)", distance: 3950 },
-    { origin: "New York (JFK)", destination: "London (LHR)", distance: 5570 },
-    { origin: "Los Angeles (LAX)", destination: "Tokyo (NRT)", distance: 8800 },
-    { origin: "Los Angeles (LAX)", destination: "Sydney (SYD)", distance: 12000 },
-    { origin: "Chicago (ORD)", destination: "Tokyo (HND)", distance: 10100 },
-    { origin: "Miami (MIA)", destination: "Bogota (BOG)", distance: 2400 },
-    { origin: "San Francisco (SFO)", destination: "Singapore (SIN)", distance: 13500 },
-    { origin: "Toronto (YYZ)", destination: "Hong Kong (HKG)", distance: 12500 },
-
-    // --- ASYA & OKYANUSYA MERKEZLİ ---
-    { origin: "Singapore (SIN)", destination: "London (LHR)", distance: 10880 },
-    { origin: "Singapore (SIN)", destination: "Sydney (SYD)", distance: 6300 },
-    { origin: "Tokyo (NRT)", destination: "Honolulu (HNL)", distance: 6100 },
-    { origin: "Seoul (ICN)", destination: "Los Angeles (LAX)", distance: 9600 },
-    { origin: "Hong Kong (HKG)", destination: "London (LHR)", distance: 9600 },
-    { origin: "Sydney (SYD)", destination: "Dubai (DXB)", distance: 12000 },
-    { origin: "Mumbai (BOM)", destination: "Dubai (DXB)", distance: 1900 },
-
-    // --- ORTA DOĞU & AFRİKA ---
-    { origin: "Dubai (DXB)", destination: "London (LHR)", distance: 5470 },
-    { origin: "Dubai (DXB)", destination: "New York (JFK)", distance: 11000 },
-    { origin: "Dubai (DXB)", destination: "Johannesburg (JNB)", distance: 6400 },
-    { origin: "Cairo (CAI)", destination: "Jeddah (JED)", distance: 1200 },
-    { origin: "Johannesburg (JNB)", destination: "London (LHR)", distance: 9000 },
-    { origin: "Nairobi (NBO)", destination: "Dubai (DXB)", distance: 3500 },
-
-    // --- KARGO ODAKLI ROTALAR ---
-    { origin: "Anchorage (ANC)", destination: "Tokyo (NRT)", distance: 5500 },
-    { origin: "Shanghai (PVG)", destination: "Anchorage (ANC)", distance: 9000 },
-    { origin: "Luxembourg (LUX)", destination: "Hong Kong (HKG)", distance: 9300 },
-    { origin: "Leipzig (LEJ)", destination: "Cincinnati (CVG)", distance: 7100 },
-    { origin: "Memphis (MEM)", destination: "Paris (CDG)", distance: 7500 }
+    // --- İSTANBUL (IST) ÇIKIŞLI ANA ROTALAR ---
+    { origin: "Istanbul (IST)", destination: "Antalya (AYT)", distance: 483, demand: { y: 1326, j: 147, f: 46 } },
+    { origin: "Istanbul (IST)", destination: "London (LHR)", distance: 2503, demand: { y: 1046, j: 308, f: 201 } },
+    { origin: "Istanbul (IST)", destination: "Paris (CDG)", distance: 2258, demand: { y: 947, j: 288, f: 192 } },
+    { origin: "Istanbul (IST)", destination: "New York (JFK)", distance: 8016, demand: { y: 1104, j: 357, f: 251 } },
+    { origin: "Istanbul (IST)", destination: "Dubai (DXB)", distance: 3002, demand: { y: 852, j: 304, f: 226 } },
+    { origin: "Istanbul (IST)", destination: "Frankfurt (FRA)", distance: 1867, demand: { y: 912, j: 275, f: 184 } },
+    { origin: "Istanbul (IST)", destination: "Amsterdam (AMS)", distance: 2215, demand: { y: 884, j: 262, f: 175 } },
+    { origin: "Istanbul (IST)", destination: "Munich (MUC)", distance: 1587, demand: { y: 895, j: 254, f: 168 } },
+    { origin: "Istanbul (IST)", destination: "Rome (FCO)", distance: 1382, demand: { y: 872, j: 245, f: 162 } },
+    { origin: "Istanbul (IST)", destination: "Madrid (MAD)", distance: 2741, demand: { y: 824, j: 231, f: 154 } },
+    { origin: "Istanbul (IST)", destination: "Barcelona (BCN)", distance: 2243, demand: { y: 812, j: 228, f: 151 } },
+    { origin: "Istanbul (IST)", destination: "Athens (ATH)", distance: 554, demand: { y: 1150, j: 184, f: 58 } },
+    { origin: "Istanbul (IST)", destination: "Ankara (ESB)", distance: 376, demand: { y: 1420, j: 125, f: 38 } },
+    { origin: "Istanbul (IST)", destination: "Izmir (ADB)", distance: 341, demand: { y: 1380, j: 118, f: 35 } },
+    { origin: "Istanbul (IST)", destination: "Tel Aviv (TLV)", distance: 1162, demand: { y: 1024, j: 215, f: 142 } },
+    { origin: "Istanbul (IST)", destination: "Cairo (CAI)", distance: 1238, demand: { y: 984, j: 208, f: 138 } },
+    { origin: "Istanbul (IST)", destination: "Doha (DOH)", distance: 2724, demand: { y: 785, j: 284, f: 212 } },
+    { origin: "Istanbul (IST)", destination: "Riyadh (RUH)", distance: 2435, demand: { y: 814, j: 265, f: 198 } },
+    { origin: "Istanbul (IST)", destination: "Jeddah (JED)", distance: 2368, demand: { y: 842, j: 272, f: 204 } },
+    { origin: "Istanbul (IST)", destination: "Kuwait (KWI)", distance: 2174, demand: { y: 826, j: 258, f: 188 } }
 ];

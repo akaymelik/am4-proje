@@ -67,7 +67,12 @@ const aircraftData = {
 // Bu kısım Excel'deki "En Karlı Rotalar" sekmesinden gelen hazır verilerdir
 const popularRoutes = [
     { origin: "Istanbul (IST)", destination: "London (LHR)", distance: 2500, demand: 850 },
-    { origin: "New York (JFK)", destination: "Paris (CDG)", distance: 5800, demand: 1200 },
-    { origin: "Dubai (DXB)", destination: "Singapore (SIN)", distance: 5850, demand: 1500 },
-    { origin: "Tokyo (NRT)", destination: "Los Angeles (LAX)", distance: 8800, demand: 900 }
+    { origin: "New York (JFK)", destination: "London (LHR)", distance: 5570, demand: 2100 },
+    { origin: "London (LHR)", destination: "Dubai (DXB)", distance: 5470, demand: 1800 },
+    { origin: "London (LHR)", destination: "Singapore (SIN)", distance: 10880, demand: 1400 },
+    { origin: "Paris (CDG)", destination: "London (LHR)", distance: 350, demand: 950 },
+    { origin: "Tokyo (NRT)", destination: "London (LHR)", distance: 9550, demand: 1100 }
 ];
+
+http://googleusercontent.com/immersive_entry_chip/0
+http://googleusercontent.com/immersive_entry_chip/1

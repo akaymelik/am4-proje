@@ -22,6 +22,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent; /* Mobil tıklama efektini temizle */
 }
 
 body {
@@ -54,16 +55,15 @@ nav {
 }
 
 nav a, .nav-label {
-    padding: 10px 15px;
+    padding: 10px 12px;
     border-radius: 8px;
     font-weight: 600;
     color: var(--text);
     text-decoration: none;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     user-select: none;
-    -webkit-tap-highlight-color: transparent;
 }
 
 nav a:hover, .nav-label:hover {
@@ -82,7 +82,7 @@ nav a:hover, .nav-label:hover {
     top: 100%;
     left: 0;
     background: var(--card);
-    min-width: 220px;
+    min-width: 200px;
     border: 1px solid var(--border);
     border-radius: 12px;
     box-shadow: var(--shadow-lg);
@@ -91,7 +91,7 @@ nav a:hover, .nav-label:hover {
     z-index: 1001;
 }
 
-/* Masaüstü için üzerine gelince açılma */
+/* Masaüstü Hover Desteği */
 @media (min-width: 769px) {
     .dropdown:hover .dropdown-content {
         display: block;
@@ -99,7 +99,7 @@ nav a:hover, .nav-label:hover {
     }
 }
 
-/* Mobil ve JS kontrolü için açık menü sınıfı */
+/* Mobil ve JS ile açılan menü durumu */
 .dropdown.open .dropdown-content {
     display: block;
     animation: menuFade 0.2s ease-out;
@@ -112,16 +112,12 @@ nav a:hover, .nav-label:hover {
 
 .dropdown-content a {
     padding: 12px 16px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     display: block;
     border-bottom: 1px solid var(--neutral-bg);
 }
 
-.dropdown-content a:last-child {
-    border-bottom: none;
-}
-
-/* --- MOD SEÇİCİ (GÜNCEL: SADECE AKTİF MAVİ) --- */
+/* --- MOD SEÇİCİ (Görsel Düzeltme) --- */
 .mode-selector {
     display: flex;
     gap: 4px;
@@ -138,18 +134,18 @@ nav a:hover, .nav-label:hover {
     cursor: pointer;
     font-weight: 700;
     font-size: 0.8rem;
-    background: transparent; /* Seçili olmayan şeffaf */
+    background: transparent; /* Seçili olmayan butonlar şeffaf */
     color: var(--text-muted);
     transition: all 0.2s ease;
 }
 
 .mode-btn.active {
-    background: var(--primary) !important; /* Seçilen mavi */
+    background: var(--primary) !important; /* Sadece seçili olan mavi */
     color: white !important;
     box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
-/* --- SAYFA VE KONTEYNER --- */
+/* --- SAYFA YAPISI --- */
 .container {
     max-width: 960px;
     margin: 2rem auto;
@@ -180,9 +176,10 @@ label {
     display: block;
     margin-bottom: 8px;
     font-weight: 700;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 input, select {
@@ -192,31 +189,36 @@ input, select {
     border-radius: 10px;
     border: 1px solid var(--border);
     font-size: 1rem;
+    background: var(--bg);
     outline: none;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
 }
 
 input:focus, select:focus {
     border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 4px var(--primary-light);
 }
 
 button {
     background: var(--primary);
     color: white;
     border: none;
-    padding: 15px;
+    padding: 14px 20px;
     border-radius: 12px;
     cursor: pointer;
     font-weight: 700;
+    font-size: 1rem;
     width: 100%;
-    transition: background 0.2s;
+    transition: all 0.2s;
 }
 
 button:hover {
     background: var(--primary-hover);
+    transform: translateY(-1px);
 }
 
-/* --- ANALİZ KARTLARI --- */
+/* --- ANALİZ SONUÇLARI --- */
 .result-item {
     background: white;
     border: 1px solid var(--border);
@@ -226,7 +228,11 @@ button:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-left: 5px solid var(--primary);
+    transition: transform 0.2s;
+}
+
+.result-item:hover {
+    transform: scale(1.01);
 }
 
 .route-card {
@@ -243,7 +249,7 @@ button:hover {
     padding: 4px 10px;
     border-radius: 8px;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     margin: 0 2px;
 }
 
@@ -251,15 +257,16 @@ button:hover {
     padding: 14px;
     border-radius: 12px;
     font-weight: 700;
-    margin-bottom: 20px;
+    font-size: 0.85rem;
     text-align: center;
+    margin-bottom: 20px;
 }
 
 .status-success { background: var(--success-bg); color: var(--success); }
 .status-danger { background: var(--danger-bg); color: var(--danger); }
 .status-neutral { background: var(--neutral-bg); color: var(--text-muted); }
 
-/* --- MOBİL ÖZEL AYARLAR --- */
+/* --- MOBİL UYARLAMA --- */
 @media (max-width: 768px) {
     nav {
         flex-direction: column;
@@ -271,6 +278,7 @@ button:hover {
     .nav-links {
         width: 100%;
         justify-content: space-around;
+        flex-wrap: wrap;
     }
 
     .dropdown-content {
@@ -278,11 +286,23 @@ button:hover {
         top: 140px;
         left: 5%;
         width: 90%;
+        max-height: 50vh;
+        overflow-y: auto;
+    }
+
+    .container {
+        margin: 1rem auto;
     }
 
     .result-item {
         flex-direction: column;
-        gap: 15px;
         text-align: center;
+        gap: 15px;
+    }
+
+    .result-item div {
+        text-align: center !important;
+        border-left: none !important;
+        padding-left: 0 !important;
     }
 }

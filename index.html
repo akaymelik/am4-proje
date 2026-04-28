@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title>AM4 Proje Merkezi</title>
+    <!-- Google Fonts üzerinden Inter yazı tipini çekiyoruz -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<!-- Üst Menü Navigasyonu -->
 <nav>
     <a onclick="showPage('home')">Ana Sayfa</a>
     <a onclick="showPage('karlı-uçak')">En Karlı Uçak</a>
@@ -15,11 +17,13 @@
 </nav>
 
 <div class="container">
+    <!-- ANA SAYFA PANELİ -->
     <div id="home" class="page active">
         <h2>Hoş Geldiniz</h2>
         <p>AM4 analizleri için modüler sistem aktif.</p>
     </div>
 
+    <!-- EN KARLI UÇAK PANELİ -->
     <div id="karlı-uçak" class="page">
         <h2>En Karlı Uçak (ROI Bazlı)</h2>
         <input type="number" id="budgetInput" placeholder="Bütçenizi girin">
@@ -27,11 +31,22 @@
         <div id="ucakSonuc"></div>
     </div>
 
+    <!-- EN KARLI ROTA PANELİ -->
     <div id="karlı-rota" class="page">
         <h2>En Karlı Rota</h2>
-        </div>
+        <!-- Uçak seçimi için etiket ve açılır menü -->
+        <label>Uçağınızı Seçin:</label>
+        <select id="rotaUcaks">
+            <option value="">-- Seçiniz --</option>
+        </select>
+        <!-- Analiz tetikleme butonu -->
+        <button onclick="renderBestRoute()">En İyi Rotaları Analiz Et</button>
+        <!-- Analiz sonuçlarının yazdırılacağı alan -->
+        <div id="rotaSonuc"></div>
+    </div>
 </div>
 
+<!-- Modüler JavaScript dosyalarını sırasıyla bağlıyoruz -->
 <script src="planes.js"></script>
 <script src="logic.js"></script>
 <script src="ui.js"></script>

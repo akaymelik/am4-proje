@@ -1,5 +1,5 @@
 /**
- * routes.js: Word belgesindeki tüm verileri ve ana hub rotalarını içeren genişletilmiş liste.
+ * routes.js: Word belgesindeki tüm verileri ve stratejik hub rotalarını içeren tam liste.
  * Format: "Havalimanı Adı (KOD), Ülke"
  * Veriler: Mesafe ve Sınıf Bazlı Günlük Pazar Talebi (Demand).
  */
@@ -157,5 +157,9 @@ const popularRoutes = [
     { origin: "Wallis Island (WLS), Wallis and Futuna", destination: "Luanda (LAD), Angola", distance: 17347, demand: { y: 1075, j: 237, f: 538 } },
     { origin: "Barcelona (BCN), Spain", destination: "Tunis (TUN), Tunisia", distance: 859, demand: { y: 1243, j: 244, f: 506 } },
     { origin: "Grand Case (SFG), Saint Martin", destination: "Saint Martin (SXM), Sint Maarten", distance: 9, demand: { y: 1012, j: 278, f: 506 } },
-    { origin: "Zandery (PBM), Suriname", destination: "Harare (HRE), Zimbabwe", distance: 9802, demand: { y: 1089, j: 247, f: 501 } }
+    { origin: "Zandery (PBM), Suriname", destination: "Harare (HRE), Zimbabwe", distance: 9802, demand: { y: 1089, j: 247, f: 501 } },
+    // --- ÖZEL KARGO ODAKLI (YÜKSEK HACİMLİ) ROTALAR ---
+    { origin: "Shanghai Pudong (PVG), China", destination: "Anchorage (ANC), USA", distance: 9100, demand: { y: 3500, j: 100, f: 50, c: 500000 } },
+    { origin: "Memphis (MEM), USA", destination: "Cologne (CGN), Germany", distance: 7400, demand: { y: 3200, j: 120, f: 40, c: 450000 } },
+    { origin: "Zhengzhou (CGO), China", destination: "Liege (LGG), Belgium", distance: 8300, demand: { y: 3800, j: 80, f: 20, c: 600000 } }
 ];

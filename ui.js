@@ -1,41 +1,60 @@
 /**
  * ui.js: AM4 Strateji Merkezi Arayüz Motoru.
- * GÜNCELLEME: 
+ * Güncellemeler: 
  * - Splash Screen (Yükleme Ekranı) takılma sorunu için "Fail-safe" eklendi.
  * - Hata yakalama (try-catch) ile sistem stabilitesi artırıldı.
- * - Mod gösterimi ve menü geçişleri optimize edildi.
+ * - iPhone/Mobil için dokunmatik menü (toggleDropdown) desteği.
+ * - ROI doğrulaması için "Günlük Sefer" ve "Uçuş Başı Kâr" bilgileri entegre edildi.
  */
 
 const UI = {
     /**
      * Sayfalar arasında geçiş yapar.
+     * @param {string} pageId - Aktif edilecek sayfa ID'si.
      */
     showPage: function(pageId) {
         try {
+            // Tüm sayfaları gizle
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            
+            // Hedef sayfayı göster
             const target = document.getElementById(pageId);
             if (target) {
                 target.classList.add('active');
             }
+            
+            // Menü geçişlerinde açık dropdownları kapat
             this.closeAllDropdowns();
-            window.scrollTo(0, 0);
-
+            
+            // Rota analizi sayfalarındaysak uçak listelerini doldur
             if (pageId.includes('route')) {
                 this.fillSelects();
             }
+            
+            // Sayfa başına yumuşak kaydır
+            window.scrollTo(0, 0);
         } catch (error) {
             console.error("Sayfa geçişi sırasında hata:", error);
+            // Hata durumunda ana sayfayı kurtar
+            const home = document.getElementById('home');
+            if (home) home.classList.add('active');
         }
     },
 
     /**
-     * Mobil cihazlar için dropdown yönetimi.
+     * Mobil cihazlarda menü başlıklarına tıklandığında alt menüyü açar/kapatır.
+     * @param {string} id - Dropdown kapsayıcısının ID'si.
      */
     toggleDropdown: function(id) {
         const drop = document.getElementById(id);
         if (!drop) return;
+        
         const isOpen = drop.classList.contains('open');
+        
+        // Diğer açık menüleri temizle
         this.closeAllDropdowns();
+        
+        // Hedef menüyü aç veya kapat
         if (!isOpen) {
             drop.classList.add('open');
         }
@@ -49,31 +68,35 @@ const UI = {
     },
 
     /**
-     * Oyun modunu (Easy/Realism) ayarlar.
+     * Oyun modunu (Easy/Realism) değiştirir ve arayüzdeki buton stillerini günceller.
      */
     setGameMode: function(mode) {
         window.gameMode = mode; 
+        
+        // Butonların görsel durumunu güncelle (Sadece aktif olan mavi olur)
         document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
         const targetId = mode === 'easy' ? 'btn-easy' : 'id-real';
         const activeBtn = document.getElementById(targetId);
-        if (activeBtn) activeBtn.classList.add('active');
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
 
+        // Ana sayfadaki aktif mod bilgisini güncelle (Sade metin)
         const display = document.getElementById('modeDisplay');
         if (display) {
             display.innerText = mode === 'easy' ? "Aktif Mod: Easy" : "Aktif Mod: Realism";
             display.className = "status-box " + (mode === 'easy' ? "status-success" : "status-danger");
         }
 
-        // Mod değişince eski sonuçları temizle
-        const results = ['paxRouteResult', 'cargoRouteResult', 'paxPlaneResult', 'cargoPlaneResult'];
-        results.forEach(id => {
+        // Mod değiştiğinde eski sonuçları temizle
+        ['paxRouteResult', 'cargoRouteResult', 'paxPlaneResult', 'cargoPlaneResult'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = "";
         });
     },
 
     /**
-     * Uçak seçim listelerini doldurur.
+     * Uçak seçim listelerini planes.js verileriyle doldurur.
      */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
@@ -96,7 +119,7 @@ const UI = {
     },
 
     /**
-     * Bütçeye göre uçak önerilerini listeler.
+     * Bütçeye göre en verimli uçakları Hibrit Skor ile listeler.
      */
     renderSuggestions: function(cat) {
         try {
@@ -113,7 +136,7 @@ const UI = {
             const matches = Logic.getBestPlanesByType(budget, typeKey, mTrips);
             
             if (matches.length === 0) {
-                resultDiv.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Uygun uçak bulunamadı.</p>`;
+                resultDiv.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Bu bütçeye uygun uçak bulunamadı.</p>`;
                 return;
             }
 
@@ -126,12 +149,16 @@ const UI = {
                                 Skor: %${(m.finalScore * 100).toFixed(0)}
                             </span>
                         </div>
-                        <small style="color: var(--success); font-weight: 700;">Rota: ${m.bestRouteOrigin} ➔ ${m.bestRouteName}</small><br>
-                        <div style="font-size: 0.85rem; margin-top: 5px; color: var(--text);">
+                        <small style="color: var(--success); font-weight: 700; display: block; margin-bottom: 5px;">
+                            Rota: ${m.bestRouteOrigin} ➔ ${m.bestRouteName}
+                        </small>
+                        <div style="font-size: 0.85rem; color: var(--text);">
                             Fiyat: <strong>${Utils.formatCurrency(m.price)}</strong> | 
                             Kâr: <strong style="color: var(--primary);">${Utils.formatCurrency(m.profitPerFlight)}</strong>
                         </div>
-                        <small style="color: var(--text-muted); font-size: 0.75rem;">Operasyon: <strong>Günde ${m.appliedTrips} Sefer</strong></small>
+                        <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 3px;">
+                            Operasyon: <strong>Günde ${m.appliedTrips} Sefer</strong>
+                        </small>
                     </div>
                     <div style="text-align: right; flex: 1; border-left: 1px solid var(--border); padding-left: 10px;">
                         <div style="color: var(--primary); font-weight: 800; font-size: 1.1rem;">
@@ -142,17 +169,17 @@ const UI = {
                 </div>
             `).join('');
         } catch (e) {
-            console.error("Öneri hatası:", e);
+            console.error("Öneri render hatası:", e);
         }
     },
 
     /**
-     * Rota analizini listeler.
+     * Seçilen uçak için en kârlı rotaları analiz eder.
      */
     renderRouteAnalysis: function(cat) {
         try {
             const select = document.getElementById(cat + 'RouteSelect');
-            const mTripsInput = document.getElementById(cat + (cat === 'pax' ? 'RouteManualTrips' : 'RouteManualTrips'));
+            const mTripsInput = document.getElementById(cat + 'RouteManualTrips');
             const resultDiv = document.getElementById(cat + 'RouteResult');
             
             const planeName = select.value;
@@ -183,7 +210,7 @@ const UI = {
                     </div>
                     
                     ${cat === 'pax' ? `
-                    <div style="background: var(--primary-light); padding: 12px; border-radius: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="background: var(--primary-light); padding: 12px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(37, 99, 235, 0.1);">
                         <div style="text-align: left;">
                             <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem; margin-right: 8px;">İDEAL:</span> 
                             <span class="suggest-badge">Y:${opt.y}</span>
@@ -196,8 +223,8 @@ const UI = {
                         </button>
                     </div>
                     ` : `
-                    <div style=\"font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; text-align: left;\">
-                        <span style=\"font-weight: 700; color: var(--text);\">Talep:</span> ${r.demand.c || (r.demand.y * 500)} birim
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; text-align: left;">
+                        <span style="font-weight: 700; color: var(--text);">Kargo Talebi:</span> ${r.demand.c || (r.demand.y * 500)} birim
                     </div>
                     `}
 
@@ -225,18 +252,30 @@ const hideSplashScreen = () => {
     }
 };
 
-// Sayfa tamamen yüklendiğinde (Resimler, fontlar dahil)
-window.addEventListener('load', () => {
-    UI.fillSelects();
-    UI.setGameMode('realism');
-    setTimeout(hideSplashScreen, 1200); // 1.2 saniye sonra pürüzsüzce kapat
-});
+/**
+ * Global başlatıcılar ve Pencere (Window) olayları.
+ */
+window.updateCapacityCheck = function() { 
+    if (typeof Configurator !== 'undefined') Configurator.updateCapacityCheck(); 
+};
 
-// GÜVENLİK ÖNLEMİ: Eğer 3.5 saniye içinde sayfa yüklenemezse ekranı zorla kapat.
-// Bilgisayarlardaki takılmayı bu satır çözer.
-setTimeout(hideSplashScreen, 3500);
+window.onload = function() { 
+    try {
+        UI.fillSelects(); 
+        UI.setGameMode('realism'); 
 
-// Global tıklama dinleyici
+        // Sayfa kaynakları tamamen yüklendikten 1.5 sn sonra kapat
+        setTimeout(hideSplashScreen, 1500);
+    } catch (e) {
+        console.error("Başlatma hatası:", e);
+        hideSplashScreen(); // Hata olsa bile ekranı aç
+    }
+};
+
+// GÜVENLİK ÖNLEMİ: Eğer sayfa kaynakları (font, resim vb) takılırsa ekranı 4 saniye sonra zorla aç.
+setTimeout(hideSplashScreen, 4000);
+
+// Global tıklama dinleyici (Dropdown kapatmak için)
 document.addEventListener('click', function(e) {
     if (!e.target.closest('.dropdown')) {
         UI.closeAllDropdowns();

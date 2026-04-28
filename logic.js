@@ -1,6 +1,9 @@
 /**
  * logic.js: AM4 Pazar Talebi (Demand) Kısıtlamalı ve Hibrit Puanlama Destekli Hesaplama Motoru.
- * Güncelleme: analyzeTopRoutesForPlane fonksiyonuna profitPerFlight verisi eklendi.
+ * Güncelleme: 
+ * - Kargo ve Yolcu için manuel sefer sayısı (manualTrips) tam uyumlu hale getirildi.
+ * - Hibrit puanlama normalizasyon hataları giderildi.
+ * - Rota analizine uçuş başı kâr (profitPerFlight) verisi eklendi.
  */
 
 const Logic = {
@@ -9,35 +12,44 @@ const Logic = {
      */
     calculateFlightTime: function(distance, speed) {
         if (!speed || speed <= 0) return 0;
-        return (distance / speed) + 0.5;
+        return (distance / speed) ;
     },
 
     /**
-     * Tek bir uçuşun net kârını hesaplar.
+     * Tek bir uçuşun net kârını, süresini ve uygulanabilir sefer sayısını hesaplar.
      */
     calculateProfit: function(plane, route, seats = null, manualTrips = null) {
-        const currentMode = typeof window.gameMode !== 'undefined' ? window.gameMode : 'easy';
+        // Global gameMode değişkenini kontrol et (Varsayılan: realism)
+        const currentMode = typeof window.gameMode !== 'undefined' ? window.gameMode : 'realism';
         const multiplier = currentMode === 'easy' ? 1.1 : 1.0;
 
         const flightTime = this.calculateFlightTime(route.distance, plane.cruise_speed);
         const maxTrips = Math.floor(24 / flightTime);
+        // Eğer kullanıcı manuel sefer girdiyse onu kullan, girmediyse veya sınır dışıysa maksimumu kullan
         let trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
         
         if (trips <= 0) return { profitPerFlight: 0, appliedTrips: 0, duration: flightTime };
 
         let grossRevenue = 0;
 
+        // --- KARGO GELİR HESABI ---
         if (plane.type === "cargo") {
+            // AM4 Standart Kargo Katsayıları
             let coef = route.distance > 5000 ? 0.47 : (route.distance > 2000 ? 0.52 : 0.56);
+            
             const totalDailyCapacity = plane.capacity * trips;
+            // Kargo verisi yoksa yolcu talebinden simüle et (Y * 500)
             const totalDailyDemand = route.demand.c || (route.demand.y * 500) || 0;
             const actualDailyCarry = Math.min(totalDailyCapacity, totalDailyDemand);
+            
             grossRevenue = (actualDailyCarry * (route.distance * coef / 100) * multiplier) / trips;
-        } else {
+        } 
+        // --- YOLCU (PAX) GELİR HESABI ---
+        else {
             const prices = Configurator.getTicketMultipliers(route.distance);
             const activeSeats = (seats && (seats.y + seats.j + seats.f > 0)) 
                 ? seats 
-                : { y: plane.capacity, j: 0, f: 0 };
+                : Configurator.calculateOptimalSeats(plane, route, trips);
 
             const carryY = Math.min(activeSeats.y * trips, route.demand.y || 0) / trips;
             const carryJ = Math.min(activeSeats.j * trips, route.demand.j || 0) / trips;
@@ -46,8 +58,10 @@ const Logic = {
             grossRevenue = (carryY * prices.y) + (carryJ * prices.j) + (carryF * prices.f);
         }
 
-        const fuelCost = route.distance * plane.fuel_consumption * 1.1;
+        // --- GİDERLER ---
+        const fuelCost = route.distance * plane.fuel_consumption * 1.1; // Ortalama yakıt maliyeti
         const staffCost = plane.type === "cargo" ? plane.capacity * 0.01 : plane.capacity * 2.5;
+        
         const netProfitPerFlight = grossRevenue - (fuelCost + staffCost);
 
         return {
@@ -65,22 +79,15 @@ const Logic = {
         if (!plane) return [];
 
         let results = [];
-        const isSeatsEmpty = !customSeats || (customSeats.y + customSeats.j + customSeats.f === 0);
-
         popularRoutes.forEach(route => {
             if (route.distance <= plane.range) {
-                let seatsToUse = customSeats;
-                if (plane.type === "passenger" && isSeatsEmpty) {
-                    seatsToUse = Configurator.calculateOptimalSeats(plane, route, manualTrips);
-                }
-
-                const calculation = this.calculateProfit(plane, route, seatsToUse, manualTrips);
+                const calculation = this.calculateProfit(plane, route, customSeats, manualTrips);
                 
                 if (calculation.profitPerFlight > 0) {
                     const dailyProfit = calculation.profitPerFlight * calculation.appliedTrips;
                     results.push({
                         ...route,
-                        profitPerFlight: calculation.profitPerFlight, // Rota kartında gösterilecek uçuş başı kâr
+                        profitPerFlight: calculation.profitPerFlight,
                         dailyProfit: dailyProfit,
                         dailyTrips: calculation.appliedTrips,
                         duration: calculation.duration,
@@ -95,7 +102,7 @@ const Logic = {
     },
 
     /**
-     * Hibrit Puanlama Sistemi (%30 Verimlilik + %70 Günlük Kâr)
+     * Bütçeye göre en iyi uçakları bulur (%30 Verim + %70 Kâr).
      */
     getBestPlanesByType: function(budget, type, manualTrips = null) {
         const numericBudget = Number(budget);
@@ -104,6 +111,7 @@ const Logic = {
         for (let name in aircraftData) {
             const p = aircraftData[name];
             if (p.price <= numericBudget && p.type === type) {
+                // Her uçak için en iyi rotasını bul
                 const topResults = this.analyzeTopRoutesForPlane(name, 1, null, manualTrips);
                 if (topResults.length > 0) {
                     const best = topResults[0];
@@ -124,12 +132,14 @@ const Logic = {
 
         if (candidates.length === 0) return [];
 
-        const maxEff = Math.max(...candidates.map(c => c.efficiency));
-        const maxProfit = Math.max(...candidates.map(c => c.dailyProfit));
+        // --- HİBRİT PUANLAMA VE NORMALİZASYON ---
+        const maxEff = Math.max(...candidates.map(c => c.efficiency)) || 1;
+        const maxProfit = Math.max(...candidates.map(c => c.dailyProfit)) || 1;
 
         candidates.forEach(c => {
-            const normEff = maxEff > 0 ? c.efficiency / maxEff : 0;
-            const normProfit = maxProfit > 0 ? c.dailyProfit / maxProfit : 0;
+            const normEff = c.efficiency / maxEff;
+            const normProfit = c.dailyProfit / maxProfit;
+            // %30 Verimlilik (Hızlı para dönüşü) + %70 Toplam Kâr (Kasa dolumu)
             c.finalScore = (normEff * 0.3) + (normProfit * 0.7);
         });
 

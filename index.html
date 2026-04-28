@@ -2,65 +2,94 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>AM4 Rota ve Kar Analizi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AM4 Proje Merkezi</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a2e; color: white; display: flex; justify-content: center; padding: 20px; }
-        .container { background-color: #16213e; padding: 30px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.5); width: 400px; }
-        h1 { text-align: center; color: #e94560; }
-        select, input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
-        .result-box { background-color: #0f3460; padding: 15px; border-radius: 10px; margin-top: 20px; display: none; }
-        .btn { background-color: #e94560; color: white; border: none; width: 100%; padding: 12px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        :root { --primary: #e94560; --bg: #1a1a2e; --card: #16213e; --text: #ffffff; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; }
+        
+        /* Menü Tasarımı */
+        nav { background: #0f3460; padding: 15px; display: flex; justify-content: center; gap: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        nav a { color: white; text-decoration: none; font-weight: bold; cursor: pointer; padding: 5px 10px; border-radius: 5px; transition: 0.3s; }
+        nav a:hover { background: var(--primary); }
+
+        .container { max-width: 800px; margin: 40px auto; padding: 20px; }
+        .page { display: none; background: var(--card); padding: 30px; border-radius: 15px; animation: fadeIn 0.5s; }
+        .active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        h2 { color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        .input-group { margin: 15px 0; }
+        input, select { width: 100%; padding: 12px; margin-top: 5px; border-radius: 5px; border: none; }
+        button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
+<nav>
+    <a onclick="showPage('home')">Ana Sayfa</a>
+    <a onclick="showPage('karlı-uçak')">En Karlı Uçak</a>
+    <a onclick="showPage('karlı-rota')">En Karlı Rota</a>
+    <a onclick="showPage('hesaplayıcı')">Hızlı Hesapla</a>
+</nav>
+
 <div class="container">
-    <h1>AM4 Analiz Paneli</h1>
-    
-    <label>Uçak Seçin:</label>
-    <select id="planeSelect">
-        <option value="">-- Uçak Seçiniz --</option>
-    </select>
-
-    <label>Mesafe (km):</label>
-    <input type="number" id="distance" placeholder="Örn: 5500">
-
-    <button class="btn" onclick="hesapla()">Analiz Et</button>
-
-    <div id="result" class="result-box">
-        <h3>Sonuçlar:</h3>
-        <p id="fuelRes"></p>
-        <p id="profitRes"></p>
+    <div id="home" class="page active">
+        <h2>AM4 Yönetim Paneline Hoş Geldiniz</h2>
+        <p>Excel verilerinizle desteklenen interaktif analiz araçlarını kullanmak için yukarıdaki menüyü kullanın.</p>
+        <p><i>İpucu: En karlı rotayı bulmak için uçağınızı seçip bütçenizi girmeniz yeterlidir.</i></p>
     </div>
+
+    <div id="karlı-uçak" class="page">
+        <h2>Yatırım Danışmanı: En Karlı Uçak</h2>
+        <div class="input-group">
+            <label>Mevcut Bakiyeniz ($):</label>
+            <input type="number" id="budgetInput" placeholder="Örn: 50000000">
+        </div>
+        <button onclick="enKarliUcagiBul()">Uçak Önerilerini Listele</button>
+        <div id="ucakSonuc"></div>
+    </div>
+
+    <div id="karlı-rota" class="page">
+        <h2>Rota Optimizasyonu</h2>
+        <div class="input-group">
+            <label>Uçağınızı Seçin:</label>
+            <select id="rotaUcaks"></select>
+        </div>
+        <button onclick="enKarliRotayiBul()">En İyi Rotaları Getir</button>
+        <div id="rotaSonuc"></div>
+    </div>
+
+    <div id="hesaplayıcı" class="page">
+        <h2>Hızlı Kar Hesapla</h2>
+        </div>
 </div>
 
 <script src="planes.js"></script>
 <script>
-    // Uçak listesini doldur
-    const select = document.getElementById('planeSelect');
-    for (let plane in aircraftData) {
-        let opt = document.createElement('option');
-        opt.value = plane;
-        opt.innerHTML = plane;
-        select.appendChild(opt);
+    function showPage(pageId) {
+        // Tüm sayfaları gizle
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        // Seçilen sayfayı göster
+        document.getElementById(pageId).classList.add('active');
     }
 
-    function hesapla() {
-        const planeName = document.getElementById('planeSelect').value;
-        const dist = document.getElementById('distance').value;
-        const resBox = document.getElementById('result');
+    // Planes.js'den verileri çekip menüleri doldurma
+    window.onload = () => {
+        const rotaSelect = document.getElementById('rotaUcaks');
+        for (let p in aircraftData) {
+            let opt = document.createElement('option');
+            opt.value = p;
+            opt.innerText = p;
+            rotaSelect.appendChild(opt);
+        }
+    }
 
-        if (!planeName || !dist) return alert("Lütfen bilgileri girin!");
-
-        const plane = aircraftData[planeName];
-        
-        // Basit AM4 Hesaplama Mantığı (Excel'den alınan mantık)
-        const fuelUsed = (dist * plane.fuel_consumption).toFixed(2);
-        const estimatedRevenue = (plane.capacity * (dist * 0.4)).toFixed(2); // Örnek katsayı
-        
-        document.getElementById('fuelRes').innerHTML = "Harcanacak Yakıt: " + fuelUsed + " Litre";
-        document.getElementById('profitRes').innerHTML = "Tahmini Brüt Gelir: $" + estimatedRevenue;
-        resBox.style.display = "block";
+    function enKarliUcagiBul() {
+        const bakiye = document.getElementById('budgetInput').value;
+        // Excel verilerine göre filtreleme mantığı buraya yazılacak 
+        alert("Bütçenize göre en iyi uçak: MC-21-400 (Yakında tam liste aktif olacak)");
     }
 </script>
 

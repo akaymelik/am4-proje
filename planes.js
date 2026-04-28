@@ -1,5 +1,5 @@
 /**
- * planes.js: Genişletilmiş AM4 Küresel Uçak ve Rota Veritabanı
+ * planes.js: AM4 Genişletilmiş Küresel Uçak ve Rota Veritabanı
  */
 const aircraftData = {
     // --- YOLCU UÇAKLARI (PAX) ---
@@ -26,47 +26,38 @@ const aircraftData = {
     "Antonov An-225": { type: "cargo", capacity: 550000, fuel_consumption: 25.0, range: 15400, cruise_speed: 800, price: 450000000 }
 };
 
-/**
- * Küresel Rota Veritabanı
- */
 const popularRoutes = [
-    // --- AVRUPA MERKEZLİ ---
+    // --- AVRUPA VE TÜRKİYE ---
     { origin: "Istanbul (IST)", destination: "London (LHR)", distance: 2500, demand: 850 },
-    { origin: "Istanbul (IST)", destination: "Paris (CDG)", distance: 2250, demand: 880 },
-    { origin: "Istanbul (IST)", destination: "Antalya (AYT)", distance: 480, demand: 1500 },
-    { origin: "London (LHR)", destination: "New York (JFK)", distance: 5570, demand: 2100 },
+    { origin: "Istanbul (IST)", destination: "New York (JFK)", distance: 8000, demand: 1200 },
     { origin: "London (LHR)", destination: "Dubai (DXB)", distance: 5470, demand: 1800 },
-    { origin: "Paris (CDG)", destination: "Montreal (YUL)", distance: 5500, demand: 1400 },
-    { origin: "Frankfurt (FRA)", destination: "Bangkok (BKK)", distance: 9000, demand: 1100 },
-    { origin: "Madrid (MAD)", destination: "Mexico City (MEX)", distance: 9000, demand: 950 },
-    { origin: "Berlin (BER)", destination: "Rome (FCO)", distance: 1100, demand: 1200 },
+    { origin: "Paris (CDG)", destination: "Singapore (SIN)", distance: 10700, demand: 950 },
+    { origin: "Frankfurt (FRA)", destination: "Tokyo (NRT)", distance: 9300, demand: 880 },
+    { origin: "Moscow (SVO)", destination: "Beijing (PEK)", distance: 5800, demand: 1100 },
+    { origin: "Oslo (OSL)", destination: "Bangkok (BKK)", distance: 8600, demand: 700 },
 
     // --- KUZEY VE GÜNEY AMERİKA ---
     { origin: "New York (JFK)", destination: "Los Angeles (LAX)", distance: 3950, demand: 2500 },
-    { origin: "New York (JFK)", destination: "London (LHR)", distance: 5570, demand: 2100 },
-    { origin: "Miami (MIA)", destination: "Sao Paulo (GRU)", distance: 6500, demand: 1100 },
-    { origin: "Chicago (ORD)", destination: "Tokyo (NRT)", distance: 10100, demand: 850 },
-    { origin: "Toronto (YYZ)", destination: "Vancouver (YVR)", distance: 3350, demand: 1500 },
-    { origin: "Los Angeles (LAX)", destination: "Sydney (SYD)", distance: 12000, demand: 750 },
-    { origin: "San Francisco (SFO)", destination: "Seoul (ICN)", distance: 9000, demand: 900 },
+    { origin: "Miami (MIA)", destination: "Buenos Aires (EZE)", distance: 7100, demand: 900 },
+    { origin: "Sao Paulo (GRU)", destination: "Madrid (MAD)", distance: 8300, demand: 1100 },
+    { origin: "Mexico City (MEX)", destination: "Chicago (ORD)", distance: 2700, demand: 1400 },
+    { origin: "Bogota (BOG)", destination: "Miami (MIA)", distance: 2450, demand: 1600 },
+    { origin: "Santiago (SCL)", destination: "Sydney (SYD)", distance: 11300, demand: 650 },
 
-    // --- ASYA VE PASİFİK ---
-    { origin: "Singapore (SIN)", destination: "London (LHR)", distance: 10880, demand: 1400 },
+    // --- ASYA VE OKYANUSYA ---
     { origin: "Singapore (SIN)", destination: "Sydney (SYD)", distance: 6300, demand: 1200 },
-    { origin: "Tokyo (NRT)", destination: "Los Angeles (LAX)", distance: 8800, demand: 1550 },
-    { origin: "Hong Kong (HKG)", destination: "London (LHR)", distance: 9600, demand: 1300 },
-    { origin: "Seoul (ICN)", destination: "Paris (CDG)", distance: 8900, demand: 880 },
-    { origin: "Shanghai (PVG)", destination: "San Francisco (SFO)", distance: 9800, demand: 1000 },
-    { origin: "Sydney (SYD)", destination: "Dubai (DXB)", distance: 12000, demand: 1300 },
-    { origin: "Melbourne (MEL)", destination: "Auckland (AKL)", distance: 2600, demand: 1100 },
+    { origin: "Tokyo (NRT)", destination: "Honolulu (HNL)", distance: 6100, demand: 1400 },
+    { origin: "Seoul (ICN)", destination: "San Francisco (SFO)", distance: 9000, demand: 950 },
+    { origin: "Hong Kong (HKG)", destination: "Melbourne (MEL)", distance: 7400, demand: 1100 },
+    { origin: "Mumbai (BOM)", destination: "Dubai (DXB)", distance: 1900, demand: 2400 },
+    { origin: "Jakarta (CGK)", destination: "Amsterdam (AMS)", distance: 11300, demand: 750 },
+    { origin: "Auckland (AKL)", destination: "Los Angeles (LAX)", distance: 10500, demand: 800 },
 
-    // --- ORTA DOĞU VE AFRİKA ---
-    { origin: "Dubai (DXB)", destination: "Istanbul (IST)", distance: 3000, demand: 1600 },
-    { origin: "Dubai (DXB)", destination: "Mumbai (BOM)", distance: 1900, demand: 2200 },
-    { origin: "Dubai (DXB)", destination: "London (LHR)", distance: 5470, demand: 1800 },
-    { origin: "Doha (DOH)", destination: "New York (JFK)", distance: 10700, demand: 900 },
-    { origin: "Abu Dhabi (AUH)", destination: "Sydney (SYD)", distance: 12000, demand: 850 },
-    { origin: "Johannesburg (JNB)", destination: "Perth (PER)", distance: 8300, demand: 600 },
+    // --- AFRİKA VE ORTA DOĞU ---
     { origin: "Cairo (CAI)", destination: "Jeddah (JED)", distance: 1200, demand: 2800 },
-    { origin: "Addis Ababa (ADD)", destination: "Guangzhou (CAN)", distance: 8000, demand: 750 }
+    { origin: "Johannesburg (JNB)", destination: "London (LHR)", distance: 9000, demand: 1300 },
+    { origin: "Addis Ababa (ADD)", destination: "Guangzhou (CAN)", distance: 8000, demand: 1100 },
+    { origin: "Nairobi (NBO)", destination: "Dubai (DXB)", distance: 3500, demand: 900 },
+    { origin: "Casablanca (CMN)", destination: "Montreal (YUL)", distance: 5600, demand: 850 },
+    { origin: "Doha (DOH)", destination: "Perth (PER)", distance: 9300, demand: 700 }
 ];

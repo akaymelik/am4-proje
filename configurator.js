@@ -1,6 +1,6 @@
 /**
  * configurator.js: Koltuk yapılandırması, kapasite yönetimi ve bilet fiyatlandırma katsayıları.
- * AM4-MENOA projesi standartlarına uygun olarak geliştirilmiştir.
+ * Bu modül, style.css içindeki durum sınıflarını kullanarak arayüzle haberleşir.
  */
 
 const Configurator = {
@@ -23,48 +23,33 @@ const Configurator = {
      */
     updateCapacityCheck: function() {
         const planeName = document.getElementById('paxRouteSelect')?.value;
+        const infoDiv = document.getElementById('capacityInfo');
+        
         if (!planeName || !aircraftData[planeName]) {
-            this.updateInfoDisplay("Lütfen bir uçak seçin.", "neutral");
+            if (infoDiv) {
+                infoDiv.className = "status-box status-neutral";
+                infoDiv.innerText = "Lütfen bir uçak seçin.";
+            }
             return false;
         }
 
         const plane = aircraftData[planeName];
         const config = this.getSeatConfig();
         
-        // Kapasite hesaplama mantığı
+        // Kapasite hesaplama mantığı (Y + J*2 + F*3)
         const usedCapacity = config.y + (config.j * 2) + (config.f * 3);
         const remaining = plane.capacity - usedCapacity;
         
+        if (!infoDiv) return usedCapacity <= plane.capacity;
+
         if (remaining < 0) {
-            this.updateInfoDisplay(`Kapasite Aşıldı! (${usedCapacity} / ${plane.capacity})`, "error");
+            infoDiv.className = "status-box status-danger";
+            infoDiv.innerText = `Kapasite Aşıldı! (${usedCapacity} / ${plane.capacity})`;
             return false;
         } else {
-            this.updateInfoDisplay(`Kapasite Uygun: ${usedCapacity} / ${plane.capacity} (Kalan: ${remaining})`, "success");
+            infoDiv.className = "status-box status-success";
+            infoDiv.innerText = `Kapasite Uygun: ${usedCapacity} / ${plane.capacity} (Kalan Boş: ${remaining})`;
             return true;
-        }
-    },
-
-    /**
-     * Arayüzdeki kapasite bilgi kutusunu günceller.
-     * @param {string} text - Mesaj
-     * @param {string} status - 'success', 'error' veya 'neutral'
-     */
-    updateInfoDisplay: function(text, status) {
-        const infoDiv = document.getElementById('capacityInfo');
-        if (!infoDiv) return;
-
-        infoDiv.innerText = text;
-        
-        // Renk kodları (style.css'den bağımsız olarak inline atanır)
-        if (status === "success") {
-            infoDiv.style.backgroundColor = "#dcfce7";
-            infoDiv.style.color = "#059669";
-        } else if (status === "error") {
-            infoDiv.style.backgroundColor = "#fee2e2";
-            infoDiv.style.color = "#ef4444";
-        } else {
-            infoDiv.style.backgroundColor = "#f1f5f9";
-            infoDiv.style.color = "#64748b";
         }
     },
 

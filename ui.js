@@ -1,6 +1,6 @@
 /**
  * ui.js: Ekran geçişleri, veri görselleştirme ve kullanıcı etkileşimlerini yöneten modül.
- * Bu modül Logic, Utils, Configurator ve AircraftData ile tam entegre çalışır.
+ * Rota bazlı koltuk önerilerini ve "Konfigi Yükle" butonlarını yönetir.
  */
 
 const UI = {
@@ -9,33 +9,29 @@ const UI = {
      * @param {string} pageId - Aktif edilecek sayfanın ID'si.
      */
     showPage: function(pageId) {
-        // Tüm sayfaları gizle
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         
-        // Hedef sayfayı göster
         const target = document.getElementById(pageId);
         if (target) {
             target.classList.add('active');
         }
         
-        // Eğer bir analiz sayfasına geçildiyse seçim kutularını doldur
+        // Rota sayfasına geçildiğinde uçak listesini yenile
         if (pageId.includes('route')) {
             this.fillSelects();
         }
     },
 
     /**
-     * Uçak seçim kutularını (select) veritabanındaki uçaklarla doldurur.
+     * Uçak seçim kutularını veritabanındaki (planes.js) güncel uçaklarla doldurur.
      */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
         const cargoSelect = document.getElementById('cargoRouteSelect');
 
-        // Kutuları temizle (varsayılan seçenek kalsın)
         if (paxSelect) paxSelect.innerHTML = '<option value="">-- Bir Uçak Seçin --</option>';
         if (cargoSelect) cargoSelect.innerHTML = '<option value="">-- Bir Uçak Seçin --</option>';
 
-        // planes.js'deki verileri kategorilerine göre kutulara ekle
         for (let name in aircraftData) {
             const plane = aircraftData[name];
             const option = new Option(name, name);
@@ -49,8 +45,7 @@ const UI = {
     },
 
     /**
-     * Bütçeye ve sefer hedefine göre en verimli uçakları listeler.
-     * @param {string} cat - 'pax' veya 'cargo'
+     * Bütçeye göre en verimli uçakları ve en kârlı rotalarını listeler.
      */
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
@@ -63,15 +58,13 @@ const UI = {
         const mTrips = Number(mTripsInput.value) || null;
         const typeKey = cat === 'pax' ? 'passenger' : 'cargo';
         
-        // Logic modülünden en iyi uçakları getir
         const matches = Logic.getBestPlanesByType(budget, typeKey, mTrips);
         
         if (matches.length === 0) {
-            resultDiv.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Bu bütçeye uygun kârlı bir uçak bulunamadı.</p>`;
+            resultDiv.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Bu bütçeye uygun uçak bulunamadı.</p>`;
             return;
         }
 
-        // Sonuçları ekrana bas (Süre ve Tam Rota - Nereden Nereye dahil)
         resultDiv.innerHTML = matches.map(m => `
             <div class="result-item">
                 <div>
@@ -92,8 +85,8 @@ const UI = {
     },
 
     /**
-     * Seçilen uçak ve koltuk düzeni için Excel rotalarını analiz eder.
-     * @param {string} cat - 'pax' veya 'cargo'
+     * Seçilen uçak için en kârlı 10 rotayı analiz eder.
+     * Yolcu uçakları için her rotaya özel ideal koltuk dağılımını gösterir.
      */
     renderRouteAnalysis: function(cat) {
         const select = document.getElementById(cat + 'RouteSelect');
@@ -103,53 +96,66 @@ const UI = {
         const planeName = select.value;
         if (!planeName) return;
         
+        const plane = aircraftData[planeName];
         const mTrips = Number(mTripsInput.value) || null;
-        let seats = null;
-        
-        // Yolcu uçağı ise koltuk kontrolü yap
-        if (cat === 'pax') {
-            const isOk = Configurator.updateCapacityCheck();
-            if (!isOk) return;
-            seats = Configurator.getSeatConfig();
-        }
+        let currentSeats = cat === 'pax' ? Configurator.getSeatConfig() : null;
 
-        // Logic modülü üzerinden en iyi 10 rotayı getir
-        const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, seats, mTrips);
+        // Mevcut koltuklara göre en iyi 10 rotayı getir
+        const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, currentSeats, mTrips);
         
         if (topRoutes.length === 0) {
-            resultDiv.innerHTML = `<p style="color: var(--danger); padding: 20px;">Uçağın menziline uygun rota bulunamadı.</p>`;
+            resultDiv.innerHTML = `<p style="color: var(--danger); padding: 20px;">Uygun rota bulunamadı.</p>`;
             return;
         }
 
-        // Rota kartlarını oluştur
-        resultDiv.innerHTML = `<h3>En Karlı 10 Rota (Günlük Kar Odaklı)</h3>` + topRoutes.map((r, i) => `
+        resultDiv.innerHTML = `<h3>En Karlı Rotalar (Rota Bazlı Optimizasyon)</h3>` + topRoutes.map((r, i) => {
+            // Her rota için o rotaya özel ideal koltuk yapılandırmasını hesapla
+            const opt = (cat === 'pax') ? Configurator.calculateOptimalSeats(plane, r, mTrips) : null;
+            
+            return `
             <div class="route-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <strong style="font-size: 1.05rem;">#${i + 1} ${r.origin} ➔ ${r.destination}</strong>
                     <span style="color: var(--success); font-weight: 700; font-size: 1.1rem;">
                         ${Utils.formatCurrency(r.dailyProfit)} / Gün
                     </span>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr) repeat(2, 1fr); gap: 10px; font-size: 0.85rem; color: var(--text-muted);">
+                
+                ${cat === 'pax' ? `
+                <div style="background: var(--info-bg); padding: 10px 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(37, 99, 235, 0.1);">
+                    <div>
+                        <span style="color: var(--primary); font-weight: 700; font-size: 0.85rem;">BU ROTA İÇİN İDEAL:</span> 
+                        <span class="suggest-badge" style="border:none; padding:0 5px">Y:${opt.y}</span>
+                        <span class="suggest-badge" style="border:none; padding:0 5px">J:${opt.j}</span>
+                        <span class="suggest-badge" style="border:none; padding:0 5px">F:${opt.f}</span>
+                    </div>
+                    <button onclick="Configurator.applySuggestion(${opt.y}, ${opt.j}, ${opt.f})" 
+                            style="width: auto; padding: 6px 14px; margin: 0; font-size: 0.75rem; background: var(--success);">
+                        Konfigi Yükle
+                    </button>
+                </div>
+                ` : ''}
+
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 0.8rem; color: var(--text-muted);">
                     <span><strong>Mesafe:</strong> ${r.distance} km</span>
                     <span><strong>Süre:</strong> ${Utils.formatDuration(r.duration)}</span>
                     <span><strong>Sefer:</strong> ${r.dailyTrips}x</span>
                     <span><strong>Verim:</strong> ${Utils.formatPercent(r.efficiency)}</span>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
     }
 };
 
 /**
- * Kapasite kontrolünü global kapsamda (input oninput) çalıştırabilmek için pencereye bağla.
+ * Kapasite kontrolünü global kapsamda (input tetiklemeleri) çalıştırmak için pencereye bağla.
  */
 window.updateCapacityCheck = function() {
     Configurator.updateCapacityCheck();
 };
 
 /**
- * Uygulama yüklendiğinde temel hazırlıkları yap.
+ * Uygulama başladığında uçak seçim listelerini hazırla.
  */
 window.onload = function() {
     UI.fillSelects();

@@ -59,7 +59,7 @@ nav a:hover, .dropdown:hover .nav-label {
     color: var(--primary);
 }
 
-/* --- DROPDOWN --- */
+/* --- DROPDOWN MENÜ --- */
 .dropdown {
     position: relative;
     display: inline-block;
@@ -94,14 +94,13 @@ nav a:hover, .dropdown:hover .nav-label {
     text-decoration: none;
     display: block;
     font-size: 0.9rem;
-    transition: background 0.2s;
 }
 
 .dropdown-content a:hover {
     background-color: var(--neutral-bg);
 }
 
-/* --- LAYOUT VE SAYFALAR --- */
+/* --- SAYFA YAPISI --- */
 .container {
     max-width: 900px;
     margin: 2rem auto;
@@ -127,7 +126,7 @@ nav a:hover, .dropdown:hover .nav-label {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- FORM ELEMANLARI --- */
+/* --- FORM VE INPUTLAR --- */
 label {
     display: block;
     margin-bottom: 8px;
@@ -176,7 +175,7 @@ button:active {
     transform: scale(0.98);
 }
 
-/* --- BİLGİ VE DURUM KUTULARI --- */
+/* --- DURUM VE BİLGİ KUTULARI --- */
 .info-box {
     margin-top: 30px;
     padding: 24px;
@@ -199,7 +198,18 @@ button:active {
 .status-danger { background: var(--danger-bg); color: var(--danger); }
 .status-neutral { background: var(--neutral-bg); color: var(--text-muted); }
 
-/* --- ANALİZ SONUÇLARI --- */
+/* --- AKILLI ÖNERİ ROZETLERİ --- */
+.suggest-badge {
+    background: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--success);
+    color: var(--success);
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+/* --- ANALİZ KARTLARI --- */
 .config-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -238,7 +248,7 @@ button:active {
 
 /* --- MOBİL UYUMLULUK --- */
 @media (max-width: 600px) {
-    .container { margin: 1rem auto; }
+    .container { margin: 1rem auto; padding: 0 10px; }
     .page { padding: 20px; }
     .config-grid { grid-template-columns: 1fr; }
     nav { height: auto; padding: 10px; flex-direction: column; }

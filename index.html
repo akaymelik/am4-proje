@@ -87,10 +87,38 @@
     }
 
     function enKarliUcagiBul() {
-        const bakiye = document.getElementById('budgetInput').value;
-        // Excel verilerine göre filtreleme mantığı buraya yazılacak 
-        alert("Bütçenize göre en iyi uçak: MC-21-400 (Yakında tam liste aktif olacak)");
+    const bakiye = parseFloat(document.getElementById('budgetInput').value);
+    const sonucDiv = document.getElementById('ucakSonuc');
+    
+    if (!bakiye) return alert("Lütfen bütçenizi girin!");
+
+    let oneriler = "<ul>";
+    for (let name in aircraftData) {
+        const ucak = aircraftData[name];
+        if (ucak.price <= bakiye) {
+            oneriler += `<li><strong>${name}</strong>: $${ucak.price.toLocaleString()} - Menzil: ${ucak.range}km</li>`;
+        }
     }
+    oneriler += "</ul>";
+    sonucDiv.innerHTML = oneriler;
+}
+
+function enKarliRotayiBul() {
+    const ucakName = document.getElementById('rotaUcaks').value;
+    const ucak = aircraftData[ucakName];
+    const sonucDiv = document.getElementById('rotaSonuc');
+
+    let rotalar = "<ul>";
+    popularRoutes.forEach(route => {
+        if (route.distance <= ucak.range) {
+            // Basit Kar Hesabı: (Talep x 0.4) - (Mesafe x Yakıt x 1.5)
+            const tahminiKar = ((route.demand * 0.4 * route.distance) - (route.distance * ucak.fuel_consumption * 1.5)).toFixed(0);
+            rotalar += `<li>${route.origin} -> ${route.destination} | Mesafe: ${route.distance}km | <strong>Potansiyel Kar: $${parseInt(tahminiKar).toLocaleString()}</strong></li>`;
+        }
+    });
+    rotalar += "</ul>";
+    sonucDiv.innerHTML = rotalar;
+}
 </script>
 
 </body>

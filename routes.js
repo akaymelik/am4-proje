@@ -1,5 +1,5 @@
 /**
- * routes.js: Genişletilmiş Küresel Rota Veritabanı (250+ Rota)
+ * routes.js: Airline Manager 4 Küresel Rota Veritabanı
  * Bu liste dünya genelindeki ana hub'ları ve kârlı koridorları kapsar.
  */
 const popularRoutes = [
@@ -15,88 +15,42 @@ const popularRoutes = [
     { origin: "London (LHR)", destination: "New York (JFK)", distance: 5570 },
     { origin: "London (LHR)", destination: "Dubai (DXB)", distance: 5470 },
     { origin: "London (LHR)", destination: "Singapore (SIN)", distance: 10880 },
-    { origin: "London (LHR)", destination: "Hong Kong (HKG)", distance: 9600 },
-    { origin: "London (LHR)", destination: "Los Angeles (LAX)", distance: 8750 },
-    { origin: "Paris (CDG)", destination: "New York (JFK)", distance: 5800 },
-    { origin: "Paris (CDG)", destination: "Tokyo (HND)", distance: 9700 },
     { origin: "Paris (CDG)", destination: "Montreal (YUL)", distance: 5500 },
     { origin: "Frankfurt (FRA)", destination: "Bangkok (BKK)", distance: 9000 },
-    { origin: "Frankfurt (FRA)", destination: "Shanghai (PVG)", distance: 8850 },
     { origin: "Amsterdam (AMS)", destination: "Seoul (ICN)", distance: 8550 },
     { origin: "Madrid (MAD)", destination: "Mexico City (MEX)", distance: 9060 },
-    { origin: "Madrid (MAD)", destination: "Buenos Aires (EZE)", distance: 10000 },
-    { origin: "Rome (FCO)", destination: "Chicago (ORD)", distance: 7700 },
 
     // --- KUZEY AMERİKA MERKEZLİ ---
-    { origin: "New York (JFK)", destination: "London (LHR)", distance: 5570 },
     { origin: "New York (JFK)", destination: "Los Angeles (LAX)", distance: 3950 },
-    { origin: "New York (JFK)", destination: "Paris (CDG)", distance: 5800 },
-    { origin: "New York (JFK)", destination: "Tel Aviv (TLV)", distance: 9100 },
-    { origin: "New York (JFK)", destination: "Sao Paulo (GRU)", distance: 7600 },
+    { origin: "New York (JFK)", destination: "London (LHR)", distance: 5570 },
     { origin: "Los Angeles (LAX)", destination: "Tokyo (NRT)", distance: 8800 },
     { origin: "Los Angeles (LAX)", destination: "Sydney (SYD)", distance: 12000 },
-    { origin: "Los Angeles (LAX)", destination: "London (LHR)", distance: 8750 },
     { origin: "Chicago (ORD)", destination: "Tokyo (HND)", distance: 10100 },
-    { origin: "Miami (MIA)", destination: "London (LHR)", distance: 7100 },
     { origin: "Miami (MIA)", destination: "Bogota (BOG)", distance: 2400 },
     { origin: "San Francisco (SFO)", destination: "Singapore (SIN)", distance: 13500 },
     { origin: "Toronto (YYZ)", destination: "Hong Kong (HKG)", distance: 12500 },
-    { origin: "Vancouver (YVR)", destination: "Tokyo (NRT)", distance: 7500 },
 
     // --- ASYA & OKYANUSYA MERKEZLİ ---
     { origin: "Singapore (SIN)", destination: "London (LHR)", distance: 10880 },
     { origin: "Singapore (SIN)", destination: "Sydney (SYD)", distance: 6300 },
-    { origin: "Singapore (SIN)", destination: "New York (JFK)", distance: 15300 },
-    { origin: "Tokyo (HND)", destination: "London (LHR)", distance: 9550 },
     { origin: "Tokyo (NRT)", destination: "Honolulu (HNL)", distance: 6100 },
     { origin: "Seoul (ICN)", destination: "Los Angeles (LAX)", distance: 9600 },
     { origin: "Hong Kong (HKG)", destination: "London (LHR)", distance: 9600 },
-    { origin: "Hong Kong (HKG)", destination: "San Francisco (SFO)", distance: 11000 },
-    { origin: "Bangkok (BKK)", destination: "London (LHR)", distance: 9500 },
-    { origin: "Bangkok (BKK)", destination: "Melbourne (MEL)", distance: 7300 },
-    { origin: "Mumbai (BOM)", destination: "London (LHR)", distance: 7200 },
-    { origin: "Sydney (SYD)", destination: "Dallas (DFW)", distance: 13800 },
-    { origin: "Melbourne (MEL)", destination: "Dubai (DXB)", distance: 11600 },
-    { origin: "Auckland (AKL)", destination: "Doha (DOH)", distance: 14500 },
+    { origin: "Sydney (SYD)", destination: "Dubai (DXB)", distance: 12000 },
+    { origin: "Mumbai (BOM)", destination: "Dubai (DXB)", distance: 1900 },
 
     // --- ORTA DOĞU & AFRİKA ---
     { origin: "Dubai (DXB)", destination: "London (LHR)", distance: 5470 },
-    { origin: "Dubai (DXB)", destination: "Sydney (SYD)", distance: 12000 },
-    { origin: "Dubai (DXB)", destination: "Johannesburg (JNB)", distance: 6400 },
     { origin: "Dubai (DXB)", destination: "New York (JFK)", distance: 11000 },
-    { origin: "Dubai (DXB)", destination: "Mumbai (BOM)", distance: 1900 },
-    { origin: "Doha (DOH)", destination: "London (LHR)", distance: 5200 },
-    { origin: "Abu Dhabi (AUH)", destination: "Paris (CDG)", distance: 5200 },
+    { origin: "Dubai (DXB)", destination: "Johannesburg (JNB)", distance: 6400 },
     { origin: "Cairo (CAI)", destination: "Jeddah (JED)", distance: 1200 },
     { origin: "Johannesburg (JNB)", destination: "London (LHR)", distance: 9000 },
-    { origin: "Addis Ababa (ADD)", destination: "Beijing (PEK)", distance: 8300 },
     { origin: "Nairobi (NBO)", destination: "Dubai (DXB)", distance: 3500 },
 
-    // --- KARGO ODAKLI ENDÜSTRİYEL ROTALAR ---
+    // --- KARGO ODAKLI ROTALAR ---
     { origin: "Anchorage (ANC)", destination: "Tokyo (NRT)", distance: 5500 },
-    { origin: "Anchorage (ANC)", destination: "Chicago (ORD)", distance: 4500 },
     { origin: "Shanghai (PVG)", destination: "Anchorage (ANC)", distance: 9000 },
     { origin: "Luxembourg (LUX)", destination: "Hong Kong (HKG)", distance: 9300 },
     { origin: "Leipzig (LEJ)", destination: "Cincinnati (CVG)", distance: 7100 },
-    { origin: "Memphis (MEM)", destination: "Paris (CDG)", distance: 7500 },
-    { origin: "Louisville (SDF)", destination: "Cologne (CGN)", distance: 7000 },
-
-    // --- EKSTRA POPÜLER ROTALAR ---
-    { origin: "Moscow (DME)", destination: "Dubai (DXB)", distance: 3700 },
-    { origin: "Moscow (SVO)", destination: "Phuket (HKT)", distance: 8000 },
-    { origin: "Barcelona (BCN)", destination: "New York (JFK)", distance: 6100 },
-    { origin: "Lisbon (LIS)", destination: "Sao Paulo (GRU)", distance: 7900 },
-    { origin: "Vienna (VIE)", destination: "Tokyo (NRT)", distance: 9100 },
-    { origin: "Zurich (ZRH)", destination: "Singapore (SIN)", distance: 10300 },
-    { origin: "Prague (PRG)", destination: "Seoul (ICN)", distance: 8200 },
-    { origin: "Warsaw (WAW)", destination: "Chicago (ORD)", distance: 7500 },
-    { origin: "Delhi (DEL)", destination: "San Francisco (SFO)", distance: 12300 },
-    { origin: "Jakarta (CGK)", destination: "Amsterdam (AMS)", distance: 11300 },
-    { origin: "Kuala Lumpur (KUL)", destination: "London (LHR)", distance: 10600 },
-    { origin: "Manila (MNL)", destination: "Los Angeles (LAX)", distance: 11700 },
-    { origin: "Ho Chi Minh City (SGN)", destination: "Paris (CDG)", distance: 10100 },
-    { origin: "Taipei (TPE)", destination: "San Francisco (SFO)", distance: 10400 },
-    { origin: "Osaka (KIX)", destination: "Paris (CDG)", distance: 9600 },
-    { origin: "Brisbane (BNE)", destination: "Los Angeles (LAX)", distance: 11500 },
-    { origin: "Perth (PER)", destination: "London (LHR)", distance: 14500 }
+    { origin: "Memphis (MEM)", destination: "Paris (CDG)", distance: 7500 }
 ];

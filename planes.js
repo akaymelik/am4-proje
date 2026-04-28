@@ -74,5 +74,3 @@ const popularRoutes = [
     { origin: "Tokyo (NRT)", destination: "London (LHR)", distance: 9550, demand: 1100 }
 ];
 
-http://googleusercontent.com/immersive_entry_chip/0
-http://googleusercontent.com/immersive_entry_chip/1

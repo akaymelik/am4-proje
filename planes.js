@@ -1,7 +1,3 @@
-/**
- * planes.js: ucak.docx dosyasındaki tüm uçakları içeren tam liste.
- * Veriler birebir dokümandaki değerleri yansıtır.
- */
 
 const aircraftData = {
     // --- YOLCU UÇAKLARI (PASSENGER) ---

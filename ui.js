@@ -1,16 +1,14 @@
 /**
  * ui.js: AM4 Strateji Merkezi Arayüz Motoru.
- * Güncellemeler:
- * - Mobil/iPhone için dokunmatik menü (toggleDropdown) desteği.
- * - Hibrit Puanlama (%30 Verimlilik + %70 Günlük Kâr) görselleştirme.
- * - Önerilerde ve Analizlerde "1 Uçuşta Kâr" ve "Fiyat" bilgisi.
- * - Başlangıç Modu: Realism.
+ * Güncelleme: 
+ * - iPhone/Mobil dokunmatik menü desteği.
+ * - Uçak önerilerinde bütçe ve manuel sefer parametrelerinin tam senkronizasyonu.
+ * - Analiz sonuçlarında "Uçuş Başı Kâr" ve "Fiyat" bilgilerinin gösterimi.
  */
 
 const UI = {
     /**
-     * Sayfalar arasında geçiş yapar ve açık menüleri kapatır.
-     * @param {string} pageId - Aktif edilecek sayfa ID'si.
+     * Sayfalar arasında geçiş yapar.
      */
     showPage: function(pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -19,40 +17,39 @@ const UI = {
             target.classList.add('active');
         }
         
-        // Bir sayfaya geçildiğinde açık olan dropdown menüleri kapat
-        document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
-        
+        // Menüyü kapat ve en üste çık
+        this.closeAllDropdowns();
+        window.scrollTo(0, 0);
+
         if (pageId.includes('route')) {
             this.fillSelects();
         }
-        // Sayfa başına kaydır
-        window.scrollTo(0, 0);
     },
 
     /**
-     * Mobil cihazlarda menü başlıklarına tıklandığında alt menüyü açar/kapatır.
-     * @param {string} id - Dropdown kapsayıcısının ID'si.
+     * Mobil cihazlar için dropdown aç/kapat yönetimi.
      */
     toggleDropdown: function(id) {
         const drop = document.getElementById(id);
         const isOpen = drop.classList.contains('open');
         
-        // Diğer açık menüleri kapat
-        document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
+        this.closeAllDropdowns();
         
-        // Hedef menüyü aç veya kapat
         if (!isOpen) {
             drop.classList.add('open');
         }
     },
 
+    closeAllDropdowns: function() {
+        document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
+    },
+
     /**
-     * Oyun modunu (Easy/Realism) değiştirir ve buton stillerini günceller.
+     * Oyun modunu (Easy/Realism) ayarlar ve UI renklerini günceller.
      */
     setGameMode: function(mode) {
         window.gameMode = mode; 
         
-        // Butonların görsel durumunu güncelle (Sadece seçili olan mavi olur)
         document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
         const targetId = mode === 'easy' ? 'btn-easy' : 'id-real';
         const activeBtn = document.getElementById(targetId);
@@ -60,7 +57,6 @@ const UI = {
             activeBtn.classList.add('active');
         }
 
-        // Bilgi kutusunu ve mod metnini güncelle
         const display = document.getElementById('modeDisplay');
         if (display) {
             display.innerText = mode === 'easy' 
@@ -69,7 +65,7 @@ const UI = {
             display.className = "status-box " + (mode === 'easy' ? "status-success" : "status-danger");
         }
 
-        // Mod değiştiğinde eski analiz sonuçlarını temizle
+        // Mod değişince eski sonuçları temizle (karışıklığı önlemek için)
         ['paxRouteResult', 'cargoRouteResult', 'paxPlaneResult', 'cargoPlaneResult'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = "";
@@ -77,7 +73,7 @@ const UI = {
     },
 
     /**
-     * Uçak seçim listelerini planes.js verileriyle doldurur.
+     * Uçak listelerini güncel verilerle doldurur.
      */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
@@ -98,7 +94,7 @@ const UI = {
     },
 
     /**
-     * Bütçeye göre uçak önerilerini hibrit skora göre listeler.
+     * Bütçeye göre en verimli uçakları listeler.
      */
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
@@ -122,8 +118,8 @@ const UI = {
             <div class="result-item" style="border-left: 5px solid ${index === 0 ? 'var(--success)' : 'var(--primary)'}">
                 <div style="flex: 2; text-align: left;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-                        <strong style="font-size: 1.1rem;">${m.name}</strong>
-                        <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;">
+                        <strong style="font-size: 1.15rem;">${m.name}</strong>
+                        <span style="background: var(--primary); color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">
                             Skor: %${(m.finalScore * 100).toFixed(0)}
                         </span>
                     </div>
@@ -146,11 +142,11 @@ const UI = {
     },
 
     /**
-     * Seçilen uçak için rota analizini yapar.
+     * Rota analizini listeler.
      */
     renderRouteAnalysis: function(cat) {
         const select = document.getElementById(cat + 'RouteSelect');
-        const mTripsInput = document.getElementById(cat + (cat === 'pax' ? 'RouteManualTrips' : 'RouteManualTrips'));
+        const mTripsInput = document.getElementById(cat + 'RouteManualTrips');
         const resultDiv = document.getElementById(cat + 'RouteResult');
         
         const planeName = select.value;
@@ -181,16 +177,16 @@ const UI = {
                 </div>
                 
                 ${cat === 'pax' ? `
-                <div style="background: var(--info-bg); padding: 12px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(37, 99, 235, 0.1);">
+                <div style="background: var(--primary-light); padding: 12px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
                     <div style="text-align: left;">
-                        <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem; margin-right: 8px;">İDEAL:</span> 
+                        <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem; margin-right: 8px;">İDEAL DİZİLİM:</span> 
                         <span class="suggest-badge">Y:${opt.y}</span>
                         <span class="suggest-badge">J:${opt.j}</span>
                         <span class="suggest-badge">F:${opt.f}</span>
                     </div>
                     <button onclick="Configurator.applySuggestion(${opt.y}, ${opt.j}, ${opt.f})" 
                             style="width: auto; padding: 6px 12px; margin: 0; font-size: 0.7rem; background: var(--success); border-radius: 8px;">
-                        Yükle
+                        Konfigi Yükle
                     </button>
                 </div>
                 ` : `
@@ -211,7 +207,7 @@ const UI = {
 };
 
 /**
- * Global başlatıcılar.
+ * Global Fonksiyonlar
  */
 window.updateCapacityCheck = function() { 
     if (typeof Configurator !== 'undefined') Configurator.updateCapacityCheck(); 
@@ -219,12 +215,12 @@ window.updateCapacityCheck = function() {
 
 window.onload = function() { 
     UI.fillSelects(); 
-    UI.setGameMode('realism'); // Uygulama Realism modunda başlar
+    UI.setGameMode('realism'); 
     
     // Sayfa dışına tıklandığında menüleri kapat
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.dropdown')) {
-            document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
+            UI.closeAllDropdowns();
         }
     });
 };

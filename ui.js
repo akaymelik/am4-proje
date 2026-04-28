@@ -1,70 +1,54 @@
 /**
  * ui.js: AM4 Strateji Merkezi Arayüz Motoru.
  * Güncellemeler:
- * - iPhone/Mobil uyumlu dokunmatik menü (toggleDropdown) sistemi.
- * - Hibrit Puanlama (%30 Verim + %70 Kâr) görselleştirme.
- * - ROI doğrulaması için "Günlük Sefer" ve "Uçuş Başı Kâr" bilgileri.
- * - Giriş animasyonu (Splash Screen) kontrolü.
+ * - Mod gösterimindeki bilet çarpanı bilgileri (parantez içleri) kaldırıldı.
+ * - iPhone/Mobil için dokunmatik menü desteği ve ROI doğrulaması korundu.
  */
 
 const UI = {
     /**
-     * Sayfalar arasında geçiş yapar ve menüleri temizler.
-     * @param {string} pageId - Aktif edilecek sayfa ID'si.
+     * Sayfalar arasında geçiş yapar.
      */
     showPage: function(pageId) {
-        // Tüm sayfaları gizle
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        
-        // Hedef sayfayı göster
         const target = document.getElementById(pageId);
         if (target) {
             target.classList.add('active');
         }
         
-        // Menü geçişlerinde açık dropdownları kapat
         this.closeAllDropdowns();
-        
-        // Rota analizi sayfalarındaysak uçak listelerini doldur
+        window.scrollTo(0, 0);
+
         if (pageId.includes('route')) {
             this.fillSelects();
         }
-        
-        // Sayfa başına yumuşak kaydır
-        window.scrollTo(0, 0);
     },
 
     /**
-     * Mobil cihazlarda menü başlıklarına tıklandığında alt menüyü açar/kapatır.
-     * @param {string} id - Dropdown kapsayıcısının ID'si.
+     * Mobil cihazlar için dropdown yönetimi.
      */
     toggleDropdown: function(id) {
         const drop = document.getElementById(id);
         const isOpen = drop.classList.contains('open');
-        
-        // Diğer açık menüleri temizle
         this.closeAllDropdowns();
-        
-        // Hedef menüyü aç veya kapat
         if (!isOpen) {
             drop.classList.add('open');
         }
     },
 
     /**
-     * Tüm açık dropdown menüleri kapatır.
+     * Tüm açık menüleri kapatır.
      */
     closeAllDropdowns: function() {
         document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
     },
 
     /**
-     * Oyun modunu (Easy/Realism) değiştirir ve arayüzdeki buton stillerini günceller.
+     * Oyun modunu değiştirir ve sadeleştirilmiş metni basar.
      */
     setGameMode: function(mode) {
         window.gameMode = mode; 
         
-        // Butonların görsel durumunu güncelle (Sadece aktif olan mavi olur)
         document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
         const targetId = mode === 'easy' ? 'btn-easy' : 'id-real';
         const activeBtn = document.getElementById(targetId);
@@ -72,16 +56,16 @@ const UI = {
             activeBtn.classList.add('active');
         }
 
-        // Ana sayfadaki aktif mod bilgisini güncelle
+        // --- GÜNCELLEME: Parantez içindeki çarpan bilgileri kaldırıldı ---
         const display = document.getElementById('modeDisplay');
         if (display) {
             display.innerText = mode === 'easy' 
-                ? "Aktif Mod: Easy Mode (1.1x Bilet Çarpanı)" 
-                : "Aktif Mod: Realism (1.0x Bilet Çarpanı)";
+                ? "Aktif Mod: Easy" 
+                : "Aktif Mod: Realism";
             display.className = "status-box " + (mode === 'easy' ? "status-success" : "status-danger");
         }
 
-        // Mod değiştiğinde eski sonuçları temizle
+        // Mod değişince eski sonuçları temizle
         ['paxRouteResult', 'cargoRouteResult', 'paxPlaneResult', 'cargoPlaneResult'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = "";
@@ -89,7 +73,7 @@ const UI = {
     },
 
     /**
-     * Uçak seçim listelerini planes.js verileriyle doldurur.
+     * Uçak seçim listelerini doldurur.
      */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
@@ -110,7 +94,7 @@ const UI = {
     },
 
     /**
-     * Bütçeye göre en verimli uçakları Hibrit Skor ile listeler.
+     * Bütçeye göre uçak önerilerini listeler.
      */
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
@@ -126,7 +110,7 @@ const UI = {
         const matches = Logic.getBestPlanesByType(budget, typeKey, mTrips);
         
         if (matches.length === 0) {
-            resultDiv.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Bu bütçeye uygun uçak bulunamadı.</p>`;
+            resultDiv.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Uygun uçak bulunamadı.</p>`;
             return;
         }
 
@@ -139,15 +123,15 @@ const UI = {
                             Skor: %${(m.finalScore * 100).toFixed(0)}
                         </span>
                     </div>
-                    <small style="color: var(--success); font-weight: 700; display: block; margin-bottom: 5px;">
+                    <small style="color: var(--success); font-weight: 700;">
                         Rota: ${m.bestRouteOrigin} ➔ ${m.bestRouteName}
-                    </small>
-                    <div style="font-size: 0.85rem; color: var(--text);">
+                    </small><br>
+                    <div style="font-size: 0.85rem; margin-top: 5px; color: var(--text);">
                         Fiyat: <strong>${Utils.formatCurrency(m.price)}</strong> | 
                         1 Uçuş Kârı: <strong style="color: var(--primary);">${Utils.formatCurrency(m.profitPerFlight)}</strong>
                     </div>
-                    <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 3px;">
-                        Operasyon: <strong>Günde ${m.appliedTrips} Sefer</strong> (ROI bu veriye dayanır)
+                    <small style="color: var(--text-muted); font-size: 0.75rem;">
+                        Günde <strong>${m.appliedTrips} Sefer</strong> üzerinden ROI hesaplanmıştır.
                     </small>
                 </div>
                 <div style="text-align: right; flex: 1; border-left: 1px solid var(--border); padding-left: 10px;">
@@ -161,7 +145,7 @@ const UI = {
     },
 
     /**
-     * Seçilen uçak için en kârlı rotaları analiz eder.
+     * Rota analizini listeler.
      */
     renderRouteAnalysis: function(cat) {
         const select = document.getElementById(cat + 'RouteSelect');
@@ -198,7 +182,7 @@ const UI = {
                 ${cat === 'pax' ? `
                 <div style="background: var(--primary-light); padding: 12px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(37, 99, 235, 0.1);">
                     <div style="text-align: left;">
-                        <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem; margin-right: 8px;">İDEAL DİZİLİM:</span> 
+                        <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem; margin-right: 8px;">İDEAL:</span> 
                         <span class="suggest-badge">Y:${opt.y}</span>
                         <span class="suggest-badge">J:${opt.j}</span>
                         <span class="suggest-badge">F:${opt.f}</span>
@@ -225,24 +209,10 @@ const UI = {
     }
 };
 
-/**
- * Global başlatıcılar ve Pencere (Window) olayları.
- */
-window.updateCapacityCheck = function() { 
-    if (typeof Configurator !== 'undefined') Configurator.updateCapacityCheck(); 
-};
-
 window.onload = function() { 
     UI.fillSelects(); 
-    UI.setGameMode('realism'); // Başlangıç modu Realism olarak ayarlandı.
-
-    // Giriş animasyonunu (Splash Screen) kaldır
-    setTimeout(() => {
-        const splash = document.getElementById('splash-screen');
-        if (splash) splash.classList.add('hidden');
-    }, 2500);
+    UI.setGameMode('realism'); 
     
-    // Mobil dışı tıklamalarda açık menüleri otomatik kapat.
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.dropdown')) {
             UI.closeAllDropdowns();

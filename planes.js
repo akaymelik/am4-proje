@@ -1,3 +1,7 @@
+/**
+ * planes.js: ucak.docx dosyasındaki tüm uçakları içeren tam liste.
+ * Kapasiteler: Yolcu uçakları için PAX, Kargo uçakları için H Cargo sütunu baz alınmıştır.
+ */
 
 const aircraftData = {
     // --- YOLCU UÇAKLARI (PASSENGER) ---
@@ -58,14 +62,14 @@ const aircraftData = {
     "B377 Strato": { type: "passenger", capacity: 117, fuel_consumption: 29, range: 6760, cruise_speed: 574, price: 788066 },
     "B727-100": { type: "passenger", capacity: 131, fuel_consumption: 13, range: 3056, cruise_speed: 1009, price: 1364217 },
     "B737-100": { type: "passenger", capacity: 118, fuel_consumption: 12.12, range: 3440, cruise_speed: 796, price: 1514699 },
-    "B737-200C (P)": { type: "passenger", capacity: 110, fuel_consumption: 13.44, range: 4622, cruise_speed: 772, price: 1580983 },
+    "B737-200C": { type: "passenger", capacity: 110, fuel_consumption: 13.44, range: 4622, cruise_speed: 772, price: 1580983 },
     "B737-500": { type: "passenger", capacity: 123, fuel_consumption: 11.7, range: 4449, cruise_speed: 718, price: 1856353 },
     "B737-200Adv": { type: "passenger", capacity: 102, fuel_consumption: 13.39, range: 5473, cruise_speed: 858, price: 1893733 },
     "B737-200": { type: "passenger", capacity: 130, fuel_consumption: 13.08, range: 4170, cruise_speed: 958, price: 2217362 },
     "B717-200": { type: "passenger", capacity: 134, fuel_consumption: 8.46, range: 3815, cruise_speed: 761, price: 2238611 },
     "B737-600": { type: "passenger", capacity: 110, fuel_consumption: 11.4, range: 5648, cruise_speed: 762, price: 2460985 },
     "B737-300": { type: "passenger", capacity: 128, fuel_consumption: 12, range: 4707, cruise_speed: 795, price: 2464401 },
-    "B737-700C (P)": { type: "passenger", capacity: 120, fuel_consumption: 11.11, range: 5940, cruise_speed: 831, price: 3118288 },
+    "B737-700C": { type: "passenger", capacity: 120, fuel_consumption: 11.11, range: 5940, cruise_speed: 831, price: 3118288 },
     "B737-400": { type: "passenger", capacity: 159, fuel_consumption: 14, range: 4010, cruise_speed: 733, price: 3282313 },
     "B737-700": { type: "passenger", capacity: 149, fuel_consumption: 10.45, range: 6230, cruise_speed: 762, price: 4085576 },
     "B707": { type: "passenger", capacity: 144, fuel_consumption: 18.36, range: 9913, cruise_speed: 1006, price: 4169974 },
@@ -94,7 +98,7 @@ const aircraftData = {
     "B777-200LR": { type: "passenger", capacity: 300, fuel_consumption: 19.19, range: 14500, cruise_speed: 986, price: 65912406 },
     "B777-300ER": { type: "passenger", capacity: 350, fuel_consumption: 19.19, range: 14685, cruise_speed: 1036, price: 68243786 },
     "B787-9": { type: "passenger", capacity: 290, fuel_consumption: 14.4, range: 14500, cruise_speed: 813, price: 69997851 },
-    "B747-400C (P)": { type: "passenger", capacity: 410, fuel_consumption: 22.05, range: 13360, cruise_speed: 1010, price: 72722924 },
+    "B747-400C": { type: "passenger", capacity: 410, fuel_consumption: 22.05, range: 13360, cruise_speed: 1010, price: 72722924 },
     "B787-10": { type: "passenger", capacity: 440, fuel_consumption: 18.05, range: 12000, cruise_speed: 860, price: 72795638 },
     "B777-8X": { type: "passenger", capacity: 350, fuel_consumption: 19.6, range: 16100, cruise_speed: 951, price: 77983382 },
     "B747-400D": { type: "passenger", capacity: 568, fuel_consumption: 23.98, range: 2905, cruise_speed: 1010, price: 80125136 },
@@ -103,7 +107,7 @@ const aircraftData = {
     "B777-9X": { type: "passenger", capacity: 406, fuel_consumption: 21.56, range: 14500, cruise_speed: 931, price: 91150989 },
     "B747-400": { type: "passenger", capacity: 416, fuel_consumption: 22.89, range: 14500, cruise_speed: 982, price: 92136845 },
     "B747-400ER": { type: "passenger", capacity: 416, fuel_consumption: 20.16, range: 14500, cruise_speed: 866, price: 97556659 },
-    "B747-8 Inter": { type: "passenger", capacity: 467, fuel_consumption: 21.84, range: 14815, cruise_speed: 1097, price: 121097727 },
+    "B747-8": { type: "passenger", capacity: 467, fuel_consumption: 21.84, range: 14815, cruise_speed: 1097, price: 121097727 },
     "B777-300LR": { type: "passenger", capacity: 451, fuel_consumption: 21.63, range: 14500, cruise_speed: 1026, price: 131844032 },
     "DHC-8-Q200": { type: "passenger", capacity: 37, fuel_consumption: 16.15, range: 1713, cruise_speed: 510, price: 124381 },
     "DHC-8-100": { type: "passenger", capacity: 37, fuel_consumption: 15.84, range: 1889, cruise_speed: 480, price: 127710 },
@@ -145,8 +149,8 @@ const aircraftData = {
     "Jetstream 41": { type: "passenger", capacity: 30, fuel_consumption: 14.4, range: 1433, cruise_speed: 541, price: 510000 },
     "BAe 146-300": { type: "passenger", capacity: 112, fuel_consumption: 17.67, range: 2400, cruise_speed: 702, price: 527912 },
     "BAe146": { type: "passenger", capacity: 85, fuel_consumption: 9.3, range: 2000, cruise_speed: 675, price: 762450 },
-    "Cessna 172": { type: "passenger", capacity: 3, fuel_consumption: 3.76, range: 1000, cruise_speed: 221, price: 51000 },
-    "Cessna 208B": { type: "passenger", capacity: 14, fuel_consumption: 10.7, range: 2000, cruise_speed: 327, price: 238000 },
+    "172": { type: "passenger", capacity: 3, fuel_consumption: 3.76, range: 1000, cruise_speed: 221, price: 51000 },
+    "208B": { type: "passenger", capacity: 14, fuel_consumption: 10.7, range: 2000, cruise_speed: 327, price: 238000 },
     "Citation X": { type: "passenger", capacity: 12, fuel_consumption: 7.68, range: 6020, cruise_speed: 947, price: 378968 },
     "ARJ21-700": { type: "passenger", capacity: 78, fuel_consumption: 9.27, range: 2200, cruise_speed: 930, price: 1028514 },
     "ARJ21-900": { type: "passenger", capacity: 98, fuel_consumption: 10.3, range: 2200, cruise_speed: 930, price: 1130706 },
@@ -255,7 +259,7 @@ const aircraftData = {
     "DC-8-73": { type: "passenger", capacity: 259, fuel_consumption: 16.74, range: 8650, cruise_speed: 808, price: 28278818 },
     "DC-10-30": { type: "passenger", capacity: 320, fuel_consumption: 19.4, range: 9493, cruise_speed: 872, price: 36409376 },
     "DC-10-40": { type: "passenger", capacity: 360, fuel_consumption: 21.2, range: 9322, cruise_speed: 972, price: 46926501 },
-    "MD-11C (P)": { type: "passenger", capacity: 410, fuel_consumption: 25.92, range: 12435, cruise_speed: 955, price: 56273548 },
+    "MD-11C": { type: "passenger", capacity: 410, fuel_consumption: 25.92, range: 12435, cruise_speed: 955, price: 56273548 },
     "MD-11": { type: "passenger", capacity: 410, fuel_consumption: 24.48, range: 12655, cruise_speed: 929, price: 57269139 },
     "MD-11ER": { type: "passenger", capacity: 410, fuel_consumption: 25.92, range: 13408, cruise_speed: 955, price: 60676778 },
     "340": { type: "passenger", capacity: 37, fuel_consumption: 13.65, range: 1730, cruise_speed: 425, price: 109241 },
@@ -331,6 +335,6 @@ const aircraftData = {
     "Bae-146-300QT": { type: "cargo", capacity: 26455, fuel_consumption: 20.46, range: 3340, cruise_speed: 672, price: 5800000 },
     "Il-76D": { type: "cargo", capacity: 90000, fuel_consumption: 34.04, range: 3650, cruise_speed: 846, price: 14598539 },
     "Il-96T": { type: "cargo", capacity: 202643, fuel_consumption: 35.88, range: 5000, cruise_speed: 853, price: 42065468 },
-    "DC3 (C)": { type: "cargo", capacity: 6900, fuel_consumption: 29, range: 1650, cruise_speed: 247, price: 850000 },
-    "DC9 (C)": { type: "cargo", capacity: 11950, fuel_consumption: 32.64, range: 3030, cruise_speed: 887, price: 1105000 }
+    "DC3": { type: "cargo", capacity: 6900, fuel_consumption: 29, range: 1650, cruise_speed: 247, price: 850000 },
+    "DC9": { type: "cargo", capacity: 11950, fuel_consumption: 32.64, range: 3030, cruise_speed: 887, price: 1105000 }
 };

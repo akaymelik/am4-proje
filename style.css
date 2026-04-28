@@ -22,7 +22,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    /* iPhone/Mobil cihazlarda tıklama sırasında çıkan mavi gölgeyi temizler */
+    /* Mobil cihazlarda tıklama sırasında oluşan vurgu rengini temizler */
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -34,13 +34,83 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* --- GİRİŞ EKRANI (SPLASH SCREEN) --- */
+#splash-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
+}
+
+#splash-screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.splash-content {
+    text-align: center;
+    color: white;
+    animation: splashPulse 2s ease-in-out infinite;
+}
+
+.splash-logo {
+    font-size: 3.5rem;
+    font-weight: 900;
+    letter-spacing: 4px;
+    margin-bottom: 5px;
+    text-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.splash-tagline {
+    font-size: 1.1rem;
+    font-weight: 500;
+    opacity: 0.9;
+    margin-bottom: 30px;
+}
+
+.splash-loader {
+    width: 200px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    margin: 0 auto;
+    overflow: hidden;
+    position: relative;
+}
+
+.splash-progress {
+    width: 0%;
+    height: 100%;
+    background: white;
+    box-shadow: 0 0 15px rgba(255,255,255,0.8);
+    animation: loadProgress 2.2s ease-in-out forwards;
+}
+
+@keyframes splashPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
+
+@keyframes loadProgress {
+    0% { width: 0%; }
+    40% { width: 75%; }
+    100% { width: 100%; }
+}
+
 /* --- NAVİGASYON --- */
 nav {
     background: var(--card);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 1.5rem;
+    padding: 0 2rem;
     height: 70px;
     border-bottom: 1px solid var(--border);
     position: sticky;
@@ -51,12 +121,12 @@ nav {
 
 .nav-links {
     display: flex;
-    gap: 5px;
+    gap: 8px;
     align-items: center;
 }
 
 nav a, .nav-label {
-    padding: 10px 15px;
+    padding: 10px 14px;
     border-radius: 8px;
     font-weight: 600;
     color: var(--text);
@@ -92,7 +162,7 @@ nav a:hover, .nav-label:hover {
     z-index: 1001;
 }
 
-/* Masaüstü için üzerine gelince açılma (hover) */
+/* Masaüstü için üzerine gelince açılma */
 @media (min-width: 769px) {
     .dropdown:hover .dropdown-content {
         display: block;
@@ -100,7 +170,7 @@ nav a:hover, .nav-label:hover {
     }
 }
 
-/* Mobil ve JS ile tetiklenen açık menü sınıfı */
+/* Mobil ve JS ile açılan menü durumu (iPhone fix) */
 .dropdown.open .dropdown-content {
     display: block;
     animation: menuFade 0.2s ease-out;
@@ -122,10 +192,10 @@ nav a:hover, .nav-label:hover {
     border-bottom: none;
 }
 
-/* --- MOD SEÇİCİ (DÜZELTME: SADECE AKTİF MAVİ) --- */
+/* --- MOD SEÇİCİ (Yalnızca Aktif Olan Mavi) --- */
 .mode-selector {
     display: flex;
-    gap: 4px;
+    gap: 5px;
     background: var(--neutral-bg);
     padding: 4px;
     border-radius: 10px;
@@ -133,19 +203,19 @@ nav a:hover, .nav-label:hover {
 }
 
 .mode-btn {
-    padding: 6px 14px;
+    padding: 6px 16px;
     border: none;
     border-radius: 7px;
     cursor: pointer;
     font-weight: 700;
-    font-size: 0.8rem;
-    background: transparent; /* Seçili olmayanlar şeffaf */
-    color: var(--text-muted);
+    font-size: 0.85rem;
     transition: all 0.2s ease;
+    background: transparent;
+    color: var(--text-muted);
 }
 
 .mode-btn.active {
-    background: var(--primary) !important; /* Seçilen mod belirgin mavi olur */
+    background: var(--primary) !important;
     color: white !important;
     box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
@@ -154,13 +224,13 @@ nav a:hover, .nav-label:hover {
 .container {
     max-width: 960px;
     margin: 2rem auto;
-    padding: 0 15px;
+    padding: 0 20px;
 }
 
 .page {
     display: none;
     background: var(--card);
-    padding: 30px;
+    padding: 40px;
     border-radius: 20px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
@@ -168,11 +238,11 @@ nav a:hover, .nav-label:hover {
 
 .page.active {
     display: block;
-    animation: pageSlide 0.3s ease-out;
+    animation: pageSlide 0.4s cubic-bezier(0, 0, 0.2, 1);
 }
 
 @keyframes pageSlide {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(15px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -193,69 +263,83 @@ input, select {
     border-radius: 10px;
     border: 1px solid var(--border);
     font-size: 1rem;
-    outline: none;
+    background: var(--bg);
     transition: all 0.2s;
 }
 
 input:focus, select:focus {
+    outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--primary-light);
+    background: white;
+    box-shadow: 0 0 0 4px var(--primary-light);
 }
 
 button {
     background: var(--primary);
     color: white;
     border: none;
-    padding: 15px;
+    padding: 14px 24px;
     border-radius: 12px;
     cursor: pointer;
     font-weight: 700;
-    width: 100%;
+    font-size: 1rem;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 button:hover {
     background: var(--primary-hover);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
-/* --- ANALİZ SONUÇLARI --- */
+/* --- ANALİZ KARTLARI --- */
 .result-item {
     background: white;
     border: 1px solid var(--border);
-    padding: 20px;
-    margin: 15px 0;
+    padding: 24px;
+    margin: 16px 0;
     border-radius: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-left: 5px solid var(--primary);
+    transition: transform 0.2s;
+}
+
+.result-item:hover {
+    transform: scale(1.01);
 }
 
 .route-card {
     background: white;
     border: 1px solid var(--border);
-    padding: 20px;
+    padding: 24px;
     border-radius: 16px;
-    margin-bottom: 15px;
+    margin-bottom: 16px;
 }
 
 .suggest-badge {
     background: var(--primary-light);
     color: var(--primary);
-    padding: 4px 10px;
+    padding: 4px 12px;
     border-radius: 8px;
     font-weight: 700;
     font-size: 0.85rem;
     margin: 0 2px;
 }
 
+/* --- DURUM KUTULARI --- */
 .status-box {
-    padding: 14px;
+    padding: 16px;
     border-radius: 12px;
     font-weight: 700;
-    margin-bottom: 20px;
+    font-size: 0.95rem;
     text-align: center;
+    margin-bottom: 25px;
 }
 
 .status-success { background: var(--success-bg); color: var(--success); }
@@ -281,7 +365,7 @@ button:hover {
         top: 140px;
         left: 5%;
         width: 90%;
-        max-height: 60vh;
+        max-height: 50vh;
         overflow-y: auto;
     }
 
@@ -289,5 +373,15 @@ button:hover {
         flex-direction: column;
         text-align: center;
         gap: 15px;
+    }
+
+    .result-item div {
+        text-align: center !important;
+        border-left: none !important;
+        padding-left: 0 !important;
+    }
+
+    .splash-logo {
+        font-size: 2.5rem;
     }
 }

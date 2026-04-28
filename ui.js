@@ -31,11 +31,11 @@ const UI = {
         const paxSelect = document.getElementById('paxRouteSelect');
         const cargoSelect = document.getElementById('cargoRouteSelect');
 
-        // Kutuları temizle (ilk seçenek hariç)
+        // Kutuları temizle (varsayılan seçenek kalsın)
         if (paxSelect) paxSelect.innerHTML = '<option value="">-- Bir Uçak Seçin --</option>';
         if (cargoSelect) cargoSelect.innerHTML = '<option value="">-- Bir Uçak Seçin --</option>';
 
-        // Uçak verilerini kategorilerine göre kutulara ekle
+        // planes.js'deki verileri kategorilerine göre kutulara ekle
         for (let name in aircraftData) {
             const plane = aircraftData[name];
             const option = new Option(name, name);
@@ -71,7 +71,7 @@ const UI = {
             return;
         }
 
-        // Sonuçları ekrana bas (Süre ve Tam Rota dahil)
+        // Sonuçları ekrana bas (Süre ve Tam Rota - Nereden Nereye dahil)
         resultDiv.innerHTML = matches.map(m => `
             <div class="result-item">
                 <div>
@@ -117,7 +117,7 @@ const UI = {
         const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, seats, mTrips);
         
         if (topRoutes.length === 0) {
-            resultDiv.innerHTML = `<p style="color: var(--danger); padding: 20px;">Uçağa uygun rota bulunamadı.</p>`;
+            resultDiv.innerHTML = `<p style="color: var(--danger); padding: 20px;">Uçağın menziline uygun rota bulunamadı.</p>`;
             return;
         }
 
@@ -142,14 +142,14 @@ const UI = {
 };
 
 /**
- * Kapasite kontrolünü global kapsamda çalıştırabilmek için pencereye bağla.
+ * Kapasite kontrolünü global kapsamda (input oninput) çalıştırabilmek için pencereye bağla.
  */
 window.updateCapacityCheck = function() {
     Configurator.updateCapacityCheck();
 };
 
 /**
- * Uygulama başladığında ilk hazırlıkları yap.
+ * Uygulama yüklendiğinde temel hazırlıkları yap.
  */
 window.onload = function() {
     UI.fillSelects();

@@ -22,7 +22,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    /* Mobil cihazlarda tıklama sırasında oluşan vurgu rengini temizler */
+    /* Mobil cihazlarda tıklama vurgusunu kaldırır */
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -46,18 +46,19 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 10000;
-    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
+    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
+    pointer-events: all; /* Aktifken her şeyi bloklar */
 }
 
 #splash-screen.hidden {
     opacity: 0;
     visibility: hidden;
+    pointer-events: none; /* Gizlendiğinde tıklamaları arkaya geçirir, takılmayı önler */
 }
 
 .splash-content {
     text-align: center;
     color: white;
-    animation: splashPulse 2s ease-in-out infinite;
 }
 
 .splash-logo {
@@ -82,7 +83,6 @@ body {
     border-radius: 10px;
     margin: 0 auto;
     overflow: hidden;
-    position: relative;
 }
 
 .splash-progress {
@@ -90,17 +90,12 @@ body {
     height: 100%;
     background: white;
     box-shadow: 0 0 15px rgba(255,255,255,0.8);
-    animation: loadProgress 2.2s ease-in-out forwards;
-}
-
-@keyframes splashPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.03); }
+    animation: loadProgress 2s ease-in-out forwards;
 }
 
 @keyframes loadProgress {
     0% { width: 0%; }
-    40% { width: 75%; }
+    50% { width: 70%; }
     100% { width: 100%; }
 }
 
@@ -134,7 +129,6 @@ nav a, .nav-label {
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 0.95rem;
-    user-select: none;
 }
 
 nav a:hover, .nav-label:hover {
@@ -142,11 +136,8 @@ nav a:hover, .nav-label:hover {
     color: var(--primary);
 }
 
-/* --- DROPDOWN SİSTEMİ --- */
-.dropdown {
-    position: relative;
-}
-
+/* --- DROPDOWN VE MOD SEÇİCİ --- */
+.dropdown { position: relative; }
 .dropdown-content {
     display: none;
     position: absolute;
@@ -157,74 +148,30 @@ nav a:hover, .nav-label:hover {
     border: 1px solid var(--border);
     border-radius: 12px;
     box-shadow: var(--shadow-lg);
-    overflow: hidden;
-    margin-top: 5px;
     z-index: 1001;
 }
-
-/* Masaüstü için üzerine gelince açılma */
-@media (min-width: 769px) {
-    .dropdown:hover .dropdown-content {
-        display: block;
-        animation: menuFade 0.2s ease-out;
-    }
+.dropdown.open .dropdown-content { display: block; }
+.dropdown-content a { 
+    padding: 12px 16px; 
+    display: block; 
+    text-decoration: none; 
+    color: var(--text); 
+    font-size: 0.9rem; 
+    border-bottom: 1px solid var(--neutral-bg); 
 }
 
-/* Mobil ve JS ile açılan menü durumu (iPhone fix) */
-.dropdown.open .dropdown-content {
-    display: block;
-    animation: menuFade 0.2s ease-out;
-}
-
-@keyframes menuFade {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.dropdown-content a {
-    padding: 12px 16px;
-    font-size: 0.9rem;
-    display: block;
-    border-bottom: 1px solid var(--neutral-bg);
-}
-
-.dropdown-content a:last-child {
-    border-bottom: none;
-}
-
-/* --- MOD SEÇİCİ (Yalnızca Aktif Olan Mavi) --- */
-.mode-selector {
-    display: flex;
-    gap: 5px;
-    background: var(--neutral-bg);
-    padding: 4px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-}
-
-.mode-btn {
-    padding: 6px 16px;
-    border: none;
-    border-radius: 7px;
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 0.85rem;
-    transition: all 0.2s ease;
-    background: transparent;
-    color: var(--text-muted);
-}
-
-.mode-btn.active {
-    background: var(--primary) !important;
-    color: white !important;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
-}
+.mode-selector { display: flex; gap: 5px; background: var(--neutral-bg); padding: 4px; border-radius: 10px; }
+.mode-btn { padding: 6px 16px; border: none; border-radius: 7px; cursor: pointer; font-weight: 700; background: transparent; color: var(--text-muted); }
+.mode-btn.active { background: var(--primary) !important; color: white !important; }
 
 /* --- SAYFA YAPISI --- */
 .container {
     max-width: 960px;
     margin: 2rem auto;
     padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 110px);
 }
 
 .page {
@@ -234,16 +181,36 @@ nav a:hover, .nav-label:hover {
     border-radius: 20px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
+    margin-bottom: 2rem;
 }
 
-.page.active {
-    display: block;
-    animation: pageSlide 0.4s cubic-bezier(0, 0, 0.2, 1);
-}
+.page.active { display: block; animation: pageFade 0.3s ease-in; }
 
-@keyframes pageSlide {
-    from { opacity: 0; transform: translateY(15px); }
+@keyframes pageFade {
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- FOOTER (ALT BİLGİ) --- */
+.main-footer {
+    margin-top: auto;
+    padding: 2.5rem 0;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+}
+
+.main-footer p {
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.main-footer .author {
+    font-weight: 800;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-size: 0.75rem;
 }
 
 /* --- FORM ELEMANLARI --- */
@@ -256,63 +223,51 @@ label {
     text-transform: uppercase;
 }
 
-input, select {
-    width: 100%;
-    padding: 12px 16px;
-    margin-bottom: 20px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    font-size: 1rem;
-    background: var(--bg);
+input, select { 
+    width: 100%; 
+    padding: 12px; 
+    margin-bottom: 20px; 
+    border-radius: 10px; 
+    border: 1px solid var(--border); 
+    background: var(--neutral-bg);
     transition: all 0.2s;
 }
 
 input:focus, select:focus {
-    outline: none;
     border-color: var(--primary);
     background: white;
-    box-shadow: 0 0 0 4px var(--primary-light);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--primary-light);
 }
 
-button {
-    background: var(--primary);
-    color: white;
-    border: none;
-    padding: 14px 24px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 1rem;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+button { 
+    background: var(--primary); 
+    color: white; 
+    border: none; 
+    padding: 15px; 
+    border-radius: 12px; 
+    cursor: pointer; 
+    font-weight: 700; 
+    width: 100%; 
+    transition: background 0.2s;
 }
 
-button:hover {
-    background: var(--primary-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-}
+button:hover { background: var(--primary-hover); }
 
 /* --- ANALİZ KARTLARI --- */
 .result-item {
     background: white;
     border: 1px solid var(--border);
-    padding: 24px;
-    margin: 16px 0;
+    padding: 20px;
+    margin: 15px 0;
     border-radius: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-left: 5px solid var(--primary);
     transition: transform 0.2s;
 }
 
-.result-item:hover {
-    transform: scale(1.01);
-}
+.result-item:hover { transform: scale(1.01); }
 
 .route-card {
     background: white;
@@ -333,55 +288,15 @@ button:hover {
 }
 
 /* --- DURUM KUTULARI --- */
-.status-box {
-    padding: 16px;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 0.95rem;
-    text-align: center;
-    margin-bottom: 25px;
-}
-
+.status-box { padding: 16px; border-radius: 12px; font-weight: 700; text-align: center; margin-bottom: 25px; }
 .status-success { background: var(--success-bg); color: var(--success); }
 .status-danger { background: var(--danger-bg); color: var(--danger); }
 .status-neutral { background: var(--neutral-bg); color: var(--text-muted); }
 
 /* --- MOBİL UYARLAMA --- */
 @media (max-width: 768px) {
-    nav {
-        flex-direction: column;
-        height: auto;
-        padding: 15px;
-        gap: 15px;
-    }
-    
-    .nav-links {
-        width: 100%;
-        justify-content: space-around;
-    }
-
-    .dropdown-content {
-        position: fixed;
-        top: 140px;
-        left: 5%;
-        width: 90%;
-        max-height: 50vh;
-        overflow-y: auto;
-    }
-
-    .result-item {
-        flex-direction: column;
-        text-align: center;
-        gap: 15px;
-    }
-
-    .result-item div {
-        text-align: center !important;
-        border-left: none !important;
-        padding-left: 0 !important;
-    }
-
-    .splash-logo {
-        font-size: 2.5rem;
-    }
+    nav { flex-direction: column; height: auto; padding: 15px; gap: 15px; }
+    .nav-links { width: 100%; justify-content: space-around; }
+    .dropdown-content { position: fixed; top: 140px; left: 5%; width: 90%; }
+    .result-item { flex-direction: column; text-align: center; gap: 10px; }
 }

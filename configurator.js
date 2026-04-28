@@ -1,6 +1,6 @@
 /**
  * configurator.js: Koltuk yapılandırması, kapasite yönetimi ve bilet fiyatlandırma katsayıları.
- * Bu modül, style.css içindeki durum sınıflarını kullanarak arayüzle haberleşir.
+ * Bu modül, AM4-MENOA standartlarına ve style.css sınıflarına tam uyumlu çalışır.
  */
 
 const Configurator = {
@@ -25,10 +25,11 @@ const Configurator = {
         const planeName = document.getElementById('paxRouteSelect')?.value;
         const infoDiv = document.getElementById('capacityInfo');
         
+        // Uçak seçilmemişse
         if (!planeName || !aircraftData[planeName]) {
             if (infoDiv) {
                 infoDiv.className = "status-box status-neutral";
-                infoDiv.innerText = "Lütfen bir uçak seçin.";
+                infoDiv.innerText = "Lütfen önce bir uçak seçin.";
             }
             return false;
         }
@@ -36,26 +37,27 @@ const Configurator = {
         const plane = aircraftData[planeName];
         const config = this.getSeatConfig();
         
-        // Kapasite hesaplama mantığı (Y + J*2 + F*3)
+        // Kapasite hesaplama: Y + J*2 + F*3
         const usedCapacity = config.y + (config.j * 2) + (config.f * 3);
         const remaining = plane.capacity - usedCapacity;
         
         if (!infoDiv) return usedCapacity <= plane.capacity;
 
+        // UI Durum Güncellemesi
         if (remaining < 0) {
             infoDiv.className = "status-box status-danger";
             infoDiv.innerText = `Kapasite Aşıldı! (${usedCapacity} / ${plane.capacity})`;
             return false;
         } else {
             infoDiv.className = "status-box status-success";
-            infoDiv.innerText = `Kapasite Uygun: ${usedCapacity} / ${plane.capacity} (Kalan Boş: ${remaining})`;
+            infoDiv.innerText = `Kapasite Uygun: ${usedCapacity} / ${plane.capacity} (Kalan: ${remaining})`;
             return true;
         }
     },
 
     /**
      * AM4-CC (Command Center) Standart İdeal Fiyat Katsayıları (1.1x Easy Mode)
-     * @param {number} distance - Rota mesafesi
+     * @param {number} distance - Rota mesafesi (km)
      * @returns {Object} Sınıf bazlı bilet fiyatları
      */
     getTicketMultipliers: function(distance) {

@@ -3,14 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AM4 Strateji Merkezi - MENOA</title>
+    <title>AM4 Strateji Merkezi</title>
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- Üst Navigasyon -->
+<!-- Animasyonlu Giriş Ekranı (Splash Screen) -->
+<div id="splash-screen">
+    <div class="splash-content">
+        <h1 class="splash-logo">MENOA</h1>
+        <p class="splash-tagline">AM4 Strateji Merkezi</p>
+        <div class="splash-loader">
+            <div class="splash-progress"></div>
+        </div>
+    </div>
+</div>
+
 <nav>
     <div class="nav-links">
         <a onclick="UI.showPage('home')" style="font-weight: 800; color: var(--primary);">MENOA</a>
@@ -45,7 +55,7 @@
     <div id="home" class="page active">
         <h2>Hoş Geldiniz</h2>
         <div id="modeDisplay" class="status-box status-danger">
-            Aktif Mod: Realism (1.0x Bilet Çarpanı)
+            Aktif Mod: Realism
         </div>
         <div class="info-box">
             <h4 style="margin-top: 0;">Nasıl Kullanılır?</h4>
@@ -54,7 +64,7 @@
         </div>
     </div>
 
-    <!-- YOLCU: UÇAK ÖNERİLERİ -->
+    <!-- Sayfalar buraya gelecek (Mevcut yapı korunmuştur) -->
     <div id="pax-plane" class="page">
         <h2>Yolcu: Bütçe Odaklı Uçak Önerileri</h2>
         <label>Yatırım Bütçeniz ($):</label>
@@ -65,15 +75,12 @@
         <div id="paxPlaneResult"></div>
     </div>
 
-    <!-- YOLCU: ROTA VE KOLTUK ANALİZİ -->
     <div id="pax-route" class="page">
         <h2>Yolcu: Rota & Koltuk Analizi</h2>
         <label>Uçak Seçiniz:</label>
         <select id="paxRouteSelect" onchange="updateCapacityCheck()"></select>
-        
         <label>Hedef Günlük Sefer:</label>
         <input type="number" id="paxRouteManualTrips" placeholder="Hıza göre otomatik hesaplanır">
-
         <div style="margin: 20px 0; background: var(--neutral-bg); padding: 20px; border-radius: 15px; border: 1px solid var(--border);">
             <label style="margin-bottom: 10px; color: var(--text); font-weight: 800;">Koltuk Yapılandırması</label>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
@@ -83,39 +90,28 @@
             </div>
             <div id="capacityInfo" class="status-box status-neutral">Lütfen uçak seçin.</div>
         </div>
-
-        <button onclick="UI.renderRouteAnalysis('pax')">En Kârlı Rotaları Listele</button>
+        <button onclick="UI.renderRouteAnalysis('pax')">Rotaları Listele</button>
         <div id="paxRouteResult"></div>
     </div>
 
-    <!-- KARGO: UÇAK ÖNERİLERİ -->
     <div id="cargo-plane" class="page">
-        <h2>Kargo: Bütçe Odaklı Uçak Önerileri</h2>
-        <label>Yatırım Bütçeniz ($):</label>
-        <input type="number" id="cargoBudgetInput" placeholder="Örn: 100000000">
-        <label>Hedef Günlük Sefer (Opsiyonel):</label>
-        <input type="number" id="cargoManualTrips" placeholder="Boş bırakın">
+        <h2>Kargo: Uçak Önerileri</h2>
+        <input type="number" id="cargoBudgetInput" placeholder="Bütçe">
         <button onclick="UI.renderSuggestions('cargo')">Uçakları Listele</button>
         <div id="cargoPlaneResult"></div>
     </div>
 
-    <!-- KARGO: ROTA ANALİZİ -->
     <div id="cargo-route" class="page">
         <h2>Kargo: Rota Analizi</h2>
-        <label>Uçak Seçiniz:</label>
         <select id="cargoRouteSelect"></select>
-        
-        <!-- DÜZELTME: Eksik olan cargoRouteManualTrips inputu eklendi -->
         <label>Hedef Günlük Sefer:</label>
-        <input type="number" id="cargoRouteManualTrips" placeholder="Hıza göre otomatik hesaplanır">
-
-        <button onclick="UI.renderRouteAnalysis('cargo')">Rotaları Analiz Et</button>
+        <input type="number" id="cargoRouteManualTrips" placeholder="Sefer Sayısı">
+        <button onclick="UI.renderRouteAnalysis('cargo')">Analiz Et</button>
         <div id="cargoRouteResult"></div>
     </div>
 
 </div>
 
-<!-- KOMPONENTLER -->
 <script src="planes.js"></script>
 <script src="routes.js"></script>
 <script src="utils.js"></script>

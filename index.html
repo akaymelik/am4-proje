@@ -3,326 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AM4 Menoa - Strateji Merkezi</title>
+    <title>AM4 Strateji Merkezi - MENOA v0.1.0</title>
+    <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --success: #059669;
-            --danger: #ef4444;
-            --info-bg: #eff6ff;
-            --success-bg: #dcfce7;
-            --danger-bg: #fee2e2;
-            --neutral-bg: #f1f5f9;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); line-height: 1.6; }
-
-        /* NAV & MOD SEÇİCİ */
-        nav {
-            background: var(--card);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 2rem;
-            height: 65px;
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .nav-links { display: flex; gap: 15px; }
-        .nav-links a { 
-            padding: 8px 12px; border-radius: 6px; cursor: pointer; 
-            font-weight: 500; text-decoration: none; color: var(--text);
-        }
-        .nav-links a:hover { background: var(--neutral-bg); color: var(--primary); }
-
-        .mode-selector {
-            display: flex;
-            background: var(--neutral-bg);
-            padding: 4px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
-        .mode-btn {
-            padding: 6px 16px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.85rem;
-            transition: all 0.2s;
-        }
-        .mode-btn.active {
-            background: var(--primary);
-            color: white;
-            box-shadow: var(--shadow);
-        }
-        .mode-btn:not(.active):hover { background: #e2e8f0; }
-
-        .container { max-width: 900px; margin: 2rem auto; padding: 0 20px; }
-        .page { display: none; background: var(--card); padding: 30px; border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); }
-        .page.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        h2 { margin-bottom: 20px; color: var(--primary); }
-        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; }
-        input, select { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 10px; border: 1px solid var(--border); outline: none; }
-        button { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: 600; }
-        button:hover { background: var(--primary-hover); }
-
-        .config-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 10px; }
-        .status-box { padding: 12px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 0.9rem; margin-top: 10px; }
-        .status-success { background: var(--success-bg); color: var(--success); }
-        .status-danger { background: var(--danger-bg); color: var(--danger); }
-        .status-neutral { background: var(--neutral-bg); color: var(--text-muted); }
-
-        .route-card { border: 1px solid var(--border); padding: 18px; border-radius: 12px; margin-bottom: 15px; background: #fff; }
-        .suggest-badge { background: white; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--primary); color: var(--primary); font-weight: 700; }
-        
-        .result-item { background: var(--neutral-bg); padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    </style>
+    <!-- Harici CSS Dosyası -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<!-- Üst Navigasyon Menüsü -->
 <nav>
     <div class="nav-links">
         <a onclick="UI.showPage('home')">Ana Sayfa</a>
-        <a onclick="UI.showPage('pax-route')">Yolcu Analizi</a>
-        <a onclick="UI.showPage('cargo-route')">Kargo Analizi</a>
+        
+        <div class="dropdown">
+            <span class="nav-label">PAX (Yolcu)</span>
+            <div class="dropdown-content">
+                <a onclick="UI.showPage('pax-plane')">En Verimli Uçak</a>
+                <a onclick="UI.showPage('pax-route')">Rota & Koltuk Analizi</a>
+            </div>
+        </div>
+
+        <div class="dropdown">
+            <span class="nav-label">Kargo</span>
+            <div class="dropdown-content">
+                <a onclick="UI.showPage('cargo-plane')">En Verimli Uçak</a>
+                <a onclick="UI.showPage('cargo-route')">Kargo Rota Analizi</a>
+            </div>
+        </div>
     </div>
 
-    <div class="mode-selector">
-        <button id="btn-easy" class="mode-btn active" onclick="UI.setGameMode('easy')">Easy Mode</button>
-        <button id="id-real" class="mode-btn" onclick="UI.setGameMode('realism')">Realism</button>
+    <!-- Oyun Modu Seçici (Easy / Realism) -->
+    <div class="mode-selector" style="display: flex; gap: 5px; background: #f1f5f9; padding: 4px; border-radius: 8px;">
+        <button id="btn-easy" class="mode-btn active" onclick="UI.setGameMode('easy')" style="padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.8rem;">Easy</button>
+        <button id="id-real" class="mode-btn" onclick="UI.setGameMode('realism')" style="padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.8rem;">Realism</button>
     </div>
 </nav>
 
 <div class="container">
     
+    <!-- ANA SAYFA -->
     <div id="home" class="page active">
-        <h2>Hoş Geldiniz</h2>
-        <div id="modeDisplay" class="status-box status-success" style="margin-bottom: 20px;">Aktif Mod: Easy Mode (1.1x Bilet Çarpanı)</div>
-        <p>AM4-CC standartlarına uygun, mod destekli profesyonel analiz paneli. Mod seçimi bilet fiyatlarını ve kargo gelirlerini anında günceller.</p>
+        <h2>MENOA Strateji Merkezi</h2>
+        <div id="modeDisplay" class="status-box status-success" style="margin-bottom: 20px;">
+            Aktif Mod: Easy Mode (1.1x Bilet Çarpanı)
+        </div>
+        <p>AM4 dünyasında en kârlı rotaları ve verimli uçakları bulmanız için tasarlandı.</p>
+        
+        <div class="info-box">
+            <h4 style="margin-top: 0; color: var(--primary);">Hızlı Başlangıç:</h4>
+            <p style="font-size: 0.95rem;">
+                1. <strong>PAX Rota Analizi</strong> sekmesine gidin.<br>
+                2. Bir uçak seçin (Koltukları 0 bırakabilirsiniz).<br>
+                3. <strong>Analizi Başlat</strong> butonuna basarak en iyi rotaları ve o rotalar için gereken ideal koltuk sayılarını görün.
+            </p>
+        </div>
     </div>
 
-    <div id="pax-route" class="page">
-        <h2>Yolcu Analizi</h2>
-        <label>Uçak Seçiniz:</label>
-        <select id="paxRouteSelect" onchange="Configurator.updateCapacityCheck()"></select>
+    <!-- PAX - EN VERİMLİ UÇAK -->
+    <div id="pax-plane" class="page">
+        <h2>PAX: Bütçe Odaklı Uçak Önerileri</h2>
+        <label>Yatırım Bütçeniz ($):</label>
+        <input type="number" id="paxBudgetInput" placeholder="Örn: 50000000">
+        <label>Hedef Günlük Sefer (Opsiyonel):</label>
+        <input type="number" id="paxManualTrips" placeholder="Maksimum için boş bırakın">
+        <button onclick="UI.renderSuggestions('pax')">Uçakları Analiz Et</button>
+        <div id="paxPlaneResult"></div>
+    </div>
 
-        <div style="margin: 20px 0; padding: 20px; background: #f8fafc; border-radius: 12px; border: 1px solid var(--border);">
+    <!-- PAX - ROTA ANALİZİ -->
+    <div id="pax-route" class="page">
+        <h2>PAX: Rota & Koltuk Analizi</h2>
+        <label>Uçak Seçiniz:</label>
+        <select id="paxRouteSelect" onchange="updateCapacityCheck()"></select>
+
+        <label>Günlük Hedef Sefer:</label>
+        <input type="number" id="paxRouteManualTrips" placeholder="Boş bırakılırsa hıza göre hesaplanır">
+
+        <div style="margin: 25px 0; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+            <label style="margin-bottom: 15px; color: var(--text); font-weight: 700;">Yapılandırma</label>
             <div class="config-grid">
-                <div><label>Eco (Y)</label><input type="number" id="seatsY" value="0" oninput="Configurator.updateCapacityCheck()"></div>
-                <div><label>Bus (J)</label><input type="number" id="seatsJ" value="0" oninput="Configurator.updateCapacityCheck()"></div>
-                <div><label>First (F)</label><input type="number" id="seatsF" value="0" oninput="Configurator.updateCapacityCheck()"></div>
+                <div><label>Eco (Y)</label><input type="number" id="seatsY" value="0" oninput="updateCapacityCheck()"></div>
+                <div><label>Bus (J)</label><input type="number" id="seatsJ" value="0" oninput="updateCapacityCheck()"></div>
+                <div><label>First (F)</label><input type="number" id="seatsF" value="0" oninput="updateCapacityCheck()"></div>
             </div>
             <div id="capacityInfo" class="status-box status-neutral">Uçak seçin.</div>
         </div>
 
-        <button onclick="UI.renderRouteAnalysis('pax')">Rotaları Listele</button>
-        <div id="paxRouteResult" style="margin-top: 20px;"></div>
+        <button onclick="UI.renderRouteAnalysis('pax')">Rotaları ve İdeal Konfigleri Listele</button>
+        <div id="paxRouteResult"></div>
     </div>
 
+    <!-- KARGO - EN VERİMLİ UÇAK -->
+    <div id="cargo-plane" class="page">
+        <h2>Kargo: Bütçe Odaklı Uçak Önerileri</h2>
+        <label>Bütçe ($):</label>
+        <input type="number" id="cargoBudgetInput">
+        <label>Hedef Sefer:</label>
+        <input type="number" id="cargoManualTrips">
+        <button onclick="UI.renderSuggestions('cargo')">Uçakları Listele</button>
+        <div id="cargoPlaneResult"></div>
+    </div>
+
+    <!-- KARGO - ROTA ANALİZİ -->
     <div id="cargo-route" class="page">
-        <h2>Kargo Analizi</h2>
+        <h2>Kargo: Rota Analizi</h2>
         <label>Uçak Seçiniz:</label>
         <select id="cargoRouteSelect"></select>
-        <button onclick="UI.renderRouteAnalysis('cargo')">Rotaları Listele</button>
-        <div id="cargoRouteResult" style="margin-top: 20px;"></div>
+        <label>Hedef Sefer:</label>
+        <input type="number" id="cargoRouteManualTrips">
+        <button onclick="UI.renderRouteAnalysis('cargo')">Analiz Et</button>
+        <div id="cargoRouteResult"></div>
     </div>
 
 </div>
 
-<script>
-/** 1. DATA: Aircraft & Routes **/
-const aircraftData = {
-    "A380-800": { type: "passenger", capacity: 600, fuel_consumption: 22.26, range: 14500, cruise_speed: 1049, price: 215629503 },
-    "B747-8": { type: "passenger", capacity: 467, fuel_consumption: 21.84, range: 14815, cruise_speed: 1097, price: 121097727 },
-    "A350-1000": { type: "passenger", capacity: 350, fuel_consumption: 15.98, range: 14800, cruise_speed: 860, price: 77538384 },
-    "B787-10": { type: "passenger", capacity: 440, fuel_consumption: 18.05, range: 12000, cruise_speed: 860, price: 72795638 },
-    "MC-21-400": { type: "passenger", capacity: 230, fuel_consumption: 19.57, range: 5500, cruise_speed: 1096, price: 5204503 },
-    "A330-900neo": { type: "passenger", capacity: 440, fuel_consumption: 13, range: 12130, cruise_speed: 801, price: 109315468 },
-    "B747-8F": { type: "cargo", capacity: 303700, fuel_consumption: 26, range: 14815, cruise_speed: 1002, price: 135498765 },
-    "AN-225": { type: "cargo", capacity: 550000, fuel_consumption: 69, range: 4000, cruise_speed: 824, price: 659923421 }
-};
-
-const popularRoutes = [
-    { origin: "London Heathrow (LHR), UK", destination: "New York (JFK), USA", distance: 5555, demand: { y: 2800, j: 450, f: 210 } },
-    { origin: "Istanbul (IST), TR", destination: "Tokyo Narita (NRT), JP", distance: 8950, demand: { y: 2600, j: 380, f: 180 } },
-    { origin: "Dubai (DXB), UAE", destination: "Sydney (SYD), AU", distance: 12000, demand: { y: 3100, j: 520, f: 280 } },
-    { origin: "Paris (CDG), FR", destination: "Singapore (SIN), SG", distance: 10700, demand: { y: 2750, j: 410, f: 195 } },
-    { origin: "Frankfurt (FRA), DE", destination: "Los Angeles (LAX), USA", distance: 9300, demand: { y: 2500, j: 350, f: 160 } }
-];
-
-/** 2. GLOBALS & UTILS **/
-let gameMode = 'easy';
-
-const Utils = {
-    formatCurrency: val => "$" + Math.floor(val).toLocaleString(),
-    formatDuration: decimal => {
-        const h = Math.floor(decimal);
-        const m = Math.round((decimal - h) * 60);
-        return `${h}sa ${m}dk`;
-    }
-};
-
-/** 3. CONFIGURATOR: Multipliers & Seat Logic **/
-const Configurator = {
-    getTicketMultipliers: function(distance) {
-        // AM4-CC Katsayıları: Easy = 1.1x | Realism = 1.0x
-        const m = gameMode === 'easy' ? 1.1 : 1.0;
-        return {
-            y: ((0.4 * distance) + 170) * m,
-            j: ((0.8 * distance) + 560) * m,
-            f: ((1.2 * distance) + 1200) * m
-        };
-    },
-
-    calculateOptimalSeats: function(plane, route) {
-        const flightTime = (route.distance / plane.cruise_speed) + 0.5;
-        const trips = Math.floor(24 / flightTime);
-        if (trips <= 0) return { y: 0, j: 0, f: 0 };
-
-        const dY = Math.floor(route.demand.y / trips);
-        const dJ = Math.floor(route.demand.j / trips);
-        const dF = Math.floor(route.demand.f / trips);
-
-        let rem = plane.capacity;
-        let sF = Math.min(dF, Math.floor(rem / 3)); rem -= (sF * 3);
-        let sJ = Math.min(dJ, Math.floor(rem / 2)); rem -= (sJ * 2);
-        let sY = Math.min(dY, rem);
-
-        return { y: sY, j: sJ, f: sF };
-    },
-
-    updateCapacityCheck: function() {
-        const planeName = document.getElementById('paxRouteSelect').value;
-        const info = document.getElementById('capacityInfo');
-        if (!planeName) return;
-
-        const p = aircraftData[planeName];
-        const y = parseInt(document.getElementById('seatsY').value) || 0;
-        const j = parseInt(document.getElementById('seatsJ').value) || 0;
-        const f = parseInt(document.getElementById('seatsF').value) || 0;
-        const used = y + (j * 2) + (f * 3);
-
-        if (used > p.capacity) {
-            info.className = "status-box status-danger";
-            info.innerText = `Aşıldı: ${used} / ${p.capacity}`;
-        } else {
-            info.className = "status-box status-success";
-            info.innerText = `Uygun: ${used} / ${p.capacity} (Kalan: ${p.capacity - used})`;
-        }
-    }
-};
-
-/** 4. LOGIC: Profit Engine **/
-const Logic = {
-    calculateProfit: function(plane, route, seats) {
-        const time = (route.distance / plane.cruise_speed) + 0.5;
-        const trips = Math.floor(24 / time);
-        if (trips <= 0) return 0;
-
-        let revenue = 0;
-        if (plane.type === "cargo") {
-            const m = gameMode === 'easy' ? 1.1 : 1.0;
-            const coef = route.distance > 5000 ? 0.47 : (route.distance > 2000 ? 0.52 : 0.56);
-            const carry = Math.min(plane.capacity * trips, route.demand.y || 200000);
-            revenue = (carry * (route.distance * coef / 100) * m) / trips;
-        } else {
-            const pr = Configurator.getTicketMultipliers(route.distance);
-            const s = seats || { y: plane.capacity, j: 0, f: 0 };
-            const cY = Math.min(s.y * trips, route.demand.y) / trips;
-            const cJ = Math.min(s.j * trips, route.demand.j) / trips;
-            const cF = Math.min(s.f * trips, route.demand.f) / trips;
-            revenue = (cY * pr.y) + (cJ * pr.j) + (cF * pr.f);
-        }
-
-        const cost = (route.distance * plane.fuel_consumption * 1.1) + (plane.capacity * (plane.type === "cargo" ? 0.01 : 2.5));
-        return (revenue - cost) * trips;
-    }
-};
-
-/** 5. UI: Page Management & Rendering **/
-const UI = {
-    showPage: id => {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-    },
-
-    setGameMode: mode => {
-        gameMode = mode;
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(mode === 'easy' ? 'btn-easy' : 'id-real').classList.add('active');
-        
-        const display = document.getElementById('modeDisplay');
-        display.innerText = mode === 'easy' ? "Aktif Mod: Easy Mode (1.1x Çarpan)" : "Aktif Mod: Realism (1.0x Çarpan)";
-        display.className = "status-box " + (mode === 'easy' ? "status-success" : "status-danger");
-        
-        // Eğer bir analiz açıksa modu değiştirdiğinde sonuçları temizle veya güncelle uyarısı ver
-        document.getElementById('paxRouteResult').innerHTML = "";
-        document.getElementById('cargoRouteResult').innerHTML = "";
-    },
-
-    fillSelects: () => {
-        const pS = document.getElementById('paxRouteSelect');
-        const cS = document.getElementById('cargoRouteSelect');
-        for (let n in aircraftData) {
-            const opt = new Option(n, n);
-            if (aircraftData[n].type === "passenger") pS.add(opt);
-            else cS.add(opt);
-        }
-    },
-
-    renderRouteAnalysis: cat => {
-        const name = document.getElementById(cat + 'RouteSelect').value;
-        const res = document.getElementById(cat + 'RouteResult');
-        const plane = aircraftData[name];
-        const currentSeats = cat === 'pax' ? {
-            y: parseInt(document.getElementById('seatsY').value) || 0,
-            j: parseInt(document.getElementById('seatsJ').value) || 0,
-            f: parseInt(document.getElementById('seatsF').value) || 0
-        } : null;
-
-        res.innerHTML = popularRoutes.map(r => {
-            const opt = cat === 'pax' ? Configurator.calculateOptimalSeats(plane, r) : null;
-            const profit = Logic.calculateProfit(plane, r, (currentSeats?.y + currentSeats?.j + currentSeats?.f > 0) ? currentSeats : opt);
-            
-            return `
-                <div class="route-card">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                        <strong>${r.origin} ➔ ${r.destination}</strong>
-                        <span style="color:var(--success); font-weight:700;">${Utils.formatCurrency(profit)} / Gün</span>
-                    </div>
-                    ${cat === 'pax' ? `
-                        <div style="font-size:0.8rem; margin-bottom:8px;">
-                            <span style="color:var(--primary); font-weight:700;">ÖNERİLEN:</span>
-                            <span class="suggest-badge">Y:${opt.y}</span> <span class="suggest-badge">J:${opt.j}</span> <span class="suggest-badge">F:${opt.f}</span>
-                        </div>
-                    ` : ''}
-                    <div style="font-size:0.8rem; color:var(--text-muted); display:flex; gap:15px;">
-                        <span>Mesafe: ${r.distance}km</span>
-                        <span>Süre: ${Utils.formatDuration((r.distance/plane.cruise_speed)+0.5)}</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-};
-
-window.onload = () => { UI.fillSelects(); UI.showPage('home'); };
-</script>
+<!-- HARİCİ JS DOSYALARI (Sıralama önemlidir) -->
+<script src="planes.js"></script>
+<script src="routes.js"></script>
+<script src="utils.js"></script>
+<script src="configurator.js"></script>
+<script src="logic.js"></script>
+<script src="ui.js"></script>
 
 </body>
 </html>

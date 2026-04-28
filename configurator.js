@@ -1,6 +1,6 @@
 /**
  * configurator.js: Rota bazlı dinamik koltuk optimizasyonu ve mod yönetimi.
- * AM4 Kuralları: Economy (Y)=1, Business (J)=2, First (F)=3 birim yer kaplar.
+ * AM4 Standartları: Economy (Y)=1, Business (J)=2, First (F)=3 birim yer kaplar.
  */
 
 const Configurator = {
@@ -19,10 +19,6 @@ const Configurator = {
     /**
      * Belirli bir uçak ve rota için en kârlı koltuk dağılımını hesaplar.
      * AM4 Kar Önceliği: First (3x) > Business (2x) > Economy (1x)
-     * @param {Object} plane - Uçak nesnesi
-     * @param {Object} route - Rota nesnesi
-     * @param {number} manualTrips - Kullanıcı hedefli günlük sefer
-     * @returns {Object} {y, j, f} ideal koltuk dağılımı
      */
     calculateOptimalSeats: function(plane, route, manualTrips = null) {
         const flightTime = Logic.calculateFlightTime(route.distance, plane.cruise_speed);
@@ -79,7 +75,7 @@ const Configurator = {
                 infoDiv.innerText = `Kapasite Aşıldı! (${usedCapacity} / ${plane.capacity})`;
             } else {
                 infoDiv.className = "status-box status-success";
-                infoDiv.innerText = `Kapasite Uygun: ${usedCapacity} / ${plane.capacity} (Kalan: ${remaining})`;
+                infoDiv.innerText = `Kapasite Uygun: ${usedCapacity} / ${plane.capacity} (Boş: ${remaining})`;
             }
         }
         return usedCapacity <= plane.capacity;
@@ -89,15 +85,27 @@ const Configurator = {
      * Rota analiz sonuçlarından gelen ideal değerleri ana kutucuklara aktarır.
      */
     applySuggestion: function(y, j, f) {
-        document.getElementById('seatsY').value = y;
-        document.getElementById('seatsJ').value = j;
-        document.getElementById('seatsF').value = f;
+        const yInput = document.getElementById('seatsY');
+        const jInput = document.getElementById('seatsJ');
+        const fInput = document.getElementById('seatsF');
+
+        if (yInput) yInput.value = y;
+        if (jInput) jInput.value = j;
+        if (fInput) fInput.value = f;
+
         this.updateCapacityCheck();
         
-        // Kullanıcıyı bilgilendirmek için ekranı hafifçe yukarı (ayarların olduğu yere) kaydır
+        // Kullanıcıyı bilgilendirmek için ekranı hafifçe uçağın seçim alanına kaydırır.
         const anchor = document.getElementById('paxRouteSelect');
         if (anchor) {
-            window.scrollTo({ top: anchor.offsetTop - 100, behavior: 'smooth' });
+            const offset = 80; // Üst navigasyon çubuğu için pay
+            const elementPosition = anchor.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
         }
     },
 
@@ -106,8 +114,8 @@ const Configurator = {
      * Easy: 1.1x | Realism: 1.0x
      */
     getTicketMultipliers: function(distance) {
-        // gameMode global değişkeni index.html üzerindeki seçiciden gelir.
-        const mode = typeof gameMode !== 'undefined' ? gameMode : 'easy';
+        // window.gameMode global değişkeni UI üzerinden yönetilir.
+        const mode = window.gameMode || 'easy';
         const multiplier = mode === 'easy' ? 1.1 : 1.0;
         
         return {

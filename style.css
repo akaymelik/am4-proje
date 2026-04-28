@@ -1,9 +1,12 @@
 :root {
-    --primary: #2563eb; /* Şık bir mavi */
-    --bg: #f8fafc;      /* Çok hafif gri/beyaz arka plan */
-    --card: #ffffff;    /* Saf beyaz kartlar */
-    --text: #1e293b;    /* Koyu gri/siyah metin */
-    --border: #e2e8f0;  /* İnce gri çizgiler */
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --success: #059669;
 }
 
 body {
@@ -14,17 +17,22 @@ body {
     line-height: 1.6;
 }
 
-/* Navigasyon - Üst Menü */
+/* Navigasyon ve Dropdown Menü */
 nav {
     background: var(--card);
-    padding: 1rem;
+    padding: 0 1rem;
     display: flex;
     justify-content: center;
-    gap: 30px;
+    gap: 10px;
     border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    height: 60px;
+    align-items: center;
 }
 
-nav a {
+nav a, .nav-label {
     color: var(--text);
     text-decoration: none;
     font-weight: 500;
@@ -32,11 +40,50 @@ nav a {
     padding: 8px 16px;
     border-radius: 6px;
     transition: all 0.2s;
+    display: inline-block;
 }
 
-nav a:hover {
+nav a:hover, .dropdown:hover .nav-label {
     background-color: #eff6ff;
     color: var(--primary);
+}
+
+/* Dropdown Yapısı */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: var(--card);
+    min-width: 180px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    z-index: 1;
+    top: 100%;
+    left: 0;
+    overflow: hidden;
+}
+
+.dropdown-content a {
+    color: var(--text);
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    font-size: 0.9rem;
+    border-radius: 0;
+}
+
+.dropdown-content a:hover {
+    background-color: #f1f5f9;
+    color: var(--primary);
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
 }
 
 /* İçerik Alanı */
@@ -57,6 +104,12 @@ nav a:hover {
 
 .active {
     display: block;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 h2 {
@@ -65,14 +118,16 @@ h2 {
     margin-top: 0;
     border-bottom: 2px solid var(--bg);
     padding-bottom: 10px;
+    margin-bottom: 25px;
 }
 
 /* Form Elemanları */
 label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     font-weight: 600;
     font-size: 0.9rem;
+    color: var(--text-muted);
 }
 
 input, select {
@@ -83,7 +138,8 @@ input, select {
     border: 1px solid var(--border);
     background-color: #fff;
     font-size: 1rem;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
+    box-sizing: border-box;
 }
 
 input:focus, select:focus {
@@ -102,21 +158,32 @@ button {
     width: 100%;
     font-size: 1rem;
     font-weight: 600;
-    transition: opacity 0.2s;
+    transition: background 0.2s;
 }
 
 button:hover {
-    opacity: 0.9;
+    background: var(--primary-hover);
 }
 
 /* Sonuç Listesi */
 .result-item {
     background: #f1f5f9;
-    padding: 15px;
+    padding: 20px;
     margin: 15px 0;
-    border-radius: 8px;
+    border-radius: 10px;
     border-left: 5px solid var(--primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.result-item h4 {
+    margin: 0 0 10px 0;
+    color: var(--text);
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
 }

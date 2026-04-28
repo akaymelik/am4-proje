@@ -1,162 +1,144 @@
 /**
- * ui.js: Kullanıcı etkileşimleri, sayfa yönetimi ve veri görselleştirme.
- * Bu dosya logic.js ve configurator.js ile tam entegre çalışır.
+ * logic.js: AM4 Pazar Talebi (Demand) Kısıtlamalı ve Sefer Ayarlı Hesaplama Motoru.
+ * Bu modül; Configurator, AircraftData ve PopularRoutes verileriyle tam uyumlu çalışır.
  */
 
-/**
- * Sayfalar arasında geçişi sağlar.
- * @param {string} pageId - Gösterilecek sayfanın ID değeri.
- */
-function showPage(pageId) {
-    // Tüm sayfaları gizle
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    
-    // Hedef sayfayı aktif et
-    const target = document.getElementById(pageId);
-    if (target) {
-        target.classList.add('active');
-    }
-    
-    // Rota analiz sayfalarında uçak listesini tazele
-    if (pageId.includes('route')) {
-        fillRouteSelects();
-    }
-}
+const Logic = {
+    /**
+     * Uçuş süresini hesaplar (AM4 Standart: Mesafe / Hız + 0.5sa Hazırlık).
+     * @param {number} distance - Rota mesafesi (km)
+     * @param {number} speed - Uçağın seyir hızı (km/s)
+     * @returns {number} Toplam uçuş süresi (ondalık saat)
+     */
+    calculateFlightTime: function(distance, speed) {
+        if (!speed || speed <= 0) return 0;
+        return (distance / speed) + 0.5;
+    },
 
-/**
- * Rota analizi bölümlerindeki uçak seçim kutularını (select) doldurur.
- */
-function fillRouteSelects() {
-    const paxSelect = document.getElementById('paxRouteSelect');
-    const cargoSelect = document.getElementById('cargoRouteSelect');
+    /**
+     * Tek bir uçuşun net kârını, süresini ve uygulanabilir sefer sayısını hesaplar.
+     * Pazar talebi (Market Demand) darboğazını dikkate alır.
+     * * @param {Object} plane - Uçak objesi (planes.js)
+     * @param {Object} route - Rota objesi (routes.js)
+     * @param {Object} seats - Özel koltuk düzeni {y, j, f}
+     * @param {number} manualTrips - Kullanıcının hedeflediği günlük sefer sayısı
+     * @returns {Object} {profitPerFlight, appliedTrips, duration}
+     */
+    calculateProfit: function(plane, route, seats = null, manualTrips = null) {
+        const flightTime = this.calculateFlightTime(route.distance, plane.cruise_speed);
+        
+        // 24 saatlik döngüde uçağın sığabileceği maksimum sefer sayısı
+        const maxTrips = Math.floor(24 / flightTime);
+        
+        // Kullanıcı manuel değer girdiyse onu kullan, sınırları aşıyorsa maksimumu kullan
+        let trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
+        
+        if (trips <= 0) return { profitPerFlight: 0, appliedTrips: 0, duration: flightTime };
 
-    // Yolcu uçaklarını doldur
-    if (paxSelect && paxSelect.options.length <= 1) {
+        let grossRevenue = 0;
+
+        // --- KARGO GELİR HESABI ---
+        if (plane.type === "cargo") {
+            // Mesafe dilimlerine göre kargo gelir katsayıları (AM4-CC Standartları)
+            let coef = route.distance > 5000 ? 0.47 : (route.distance > 2000 ? 0.52 : 0.56);
+            
+            const totalDailyCapacity = plane.capacity * trips;
+            const totalDailyDemand = route.demand.c || 0;
+            
+            // Pazardaki talepten fazlasını taşıyamayız (Market Bottleneck)
+            const actualDailyCarry = Math.min(totalDailyCapacity, totalDailyDemand);
+            
+            // Günlük toplam geliri tek seferlik gelire dönüştür
+            grossRevenue = (actualDailyCarry * (route.distance * coef / 100)) / trips;
+        } 
+        // --- YOLCU (PAX) GELİR HESABI ---
+        else {
+            const prices = Configurator.getTicketMultipliers(route.distance);
+            const activeSeats = seats || { y: plane.capacity, j: 0, f: 0 };
+
+            // Günlük talep kısıtlamasını sefer sayısına yayarak hesapla
+            // Formül: min(Kapasite * Sefer, Rota Talebi) / Sefer
+            const carryY = Math.min(activeSeats.y * trips, route.demand.y || 0) / trips;
+            const carryJ = Math.min(activeSeats.j * trips, route.demand.j || 0) / trips;
+            const carryF = Math.min(activeSeats.f * trips, route.demand.f || 0) / trips;
+
+            grossRevenue = (carryY * prices.y) + (carryJ * prices.j) + (carryF * prices.f);
+        }
+
+        // --- GİDERLER (Yakıt ve Personel) ---
+        // Yakıt fiyatı 1.2$ katsayısı ile güvenli seviyede tutulmuştur.
+        const fuelCost = route.distance * plane.fuel_consumption * 1.2;
+        
+        // Personel maliyeti: PAX uçağı ise koltuk başı 2.5$, Kargo ise kapasite başı 0.005$
+        const staffCost = plane.type === "cargo" ? plane.capacity * 0.005 : plane.capacity * 2.5;
+        
+        return {
+            profitPerFlight: grossRevenue - (fuelCost + staffCost),
+            appliedTrips: trips,
+            duration: flightTime
+        };
+    },
+
+    /**
+     * Belirli bir uçak için en kârlı 10 rotayı analiz eder.
+     */
+    analyzeTopRoutesForPlane: function(planeName, limit = 10, customSeats = null, manualTrips = null) {
+        const plane = aircraftData[planeName];
+        if (!plane) return [];
+
+        let results = [];
+        popularRoutes.forEach(route => {
+            // Uçağın menzili rotaya yetiyorsa hesaba başla
+            if (route.distance <= plane.range) {
+                const calculation = this.calculateProfit(plane, route, customSeats, manualTrips);
+                
+                if (calculation.profitPerFlight > 0) {
+                    const dailyProfit = calculation.profitPerFlight * calculation.appliedTrips;
+                    results.push({
+                        ...route,
+                        dailyProfit: dailyProfit,
+                        dailyTrips: calculation.appliedTrips,
+                        duration: calculation.duration,
+                        // Efficiency: Harcanan 1$ başına günlük kâr yüzdesi (En gerçekçi metrik)
+                        efficiency: ((dailyProfit / plane.price) * 100).toFixed(4),
+                        roiDays: (plane.price / dailyProfit).toFixed(1)
+                    });
+                }
+            }
+        });
+
+        // Günlük toplam kâra göre azalan sırada listele
+        return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
+    },
+
+    /**
+     * Bütçeye göre en verimli (Yatırım Getirisi en yüksek) uçakları bulur.
+     */
+    getBestPlanesByType: function(budget, type, manualTrips = null) {
+        const numericBudget = Number(budget);
+        let matches = [];
+        
         for (let name in aircraftData) {
-            if (aircraftData[name].type === "passenger") {
-                paxSelect.add(new Option(name, name));
+            const p = aircraftData[name];
+            if (p.price <= numericBudget && p.type === type) {
+                // Her uçağın veritabanındaki en iyi rotasındaki verimliliği kontrol edilir
+                const topResults = this.analyzeTopRoutesForPlane(name, 1, null, manualTrips);
+                if (topResults.length > 0) {
+                    const best = topResults[0];
+                    matches.push({
+                        name: name,
+                        efficiency: parseFloat(best.efficiency),
+                        roi: best.roiDays,
+                        duration: best.duration,
+                        bestRouteOrigin: best.origin,
+                        bestRouteName: best.destination,
+                        price: p.price
+                    });
+                }
             }
         }
+        
+        // Verimlilik (harcanan dolar başına kâr) sırasına göre diz
+        return matches.sort((a, b) => b.efficiency - a.efficiency);
     }
-
-    // Kargo uçaklarını doldur
-    if (cargoSelect && cargoSelect.options.length <= 1) {
-        for (let name in aircraftData) {
-            if (aircraftData[name].type === "cargo") {
-                cargoSelect.add(new Option(name, name));
-            }
-        }
-    }
-}
-
-/**
- * Bütçeye ve kullanıcı tarafından belirlenen sefer sayısına göre en verimli uçakları listeler.
- * @param {string} category - 'pax' (Yolcu) veya 'cargo' (Kargo)
- */
-function renderSuggestions(category) {
-    const budgetInput = document.getElementById(category + 'BudgetInput');
-    const manualTripsInput = document.getElementById(category + 'ManualTrips');
-    const container = document.getElementById(category + 'PlaneResult');
-    
-    if (!budgetInput || !budgetInput.value) {
-        return;
-    }
-    
-    const budget = Number(budgetInput.value);
-    const manualTrips = Number(manualTripsInput.value) || null;
-    const typeKey = category === 'pax' ? 'passenger' : 'cargo';
-    
-    // logic.js'den en verimli uçak listesini al (Sefer sayısı parametresiyle)
-    const results = getBestPlanesByType(budget, typeKey, manualTrips);
-    
-    if (results.length === 0) {
-        container.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Bu bütçeye veya sefer hedefine uygun uçak bulunamadı.</p>`;
-        return;
-    }
-
-    // Sonuçları HTML olarak oluştur (Tam rota gösterimi dahil)
-    container.innerHTML = results.map(p => `
-        <div class="result-item">
-            <div>
-                <strong style="font-size: 1.1rem; color: var(--text);">${p.name}</strong><br>
-                <small style="color: var(--success); font-weight: 600;">
-                    En Karlı Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}
-                </small>
-            </div>
-            <div style="text-align: right;">
-                <span style="color: var(--primary); font-weight: bold; font-size: 1.1rem;">%${p.efficiency} Verim</span><br>
-                <small style="color: var(--text-muted);">${p.roi} Gün Amorti</small>
-            </div>
-        </div>
-    `).join('');
-}
-
-/**
- * Seçilen uçak, koltuk düzeni ve sefer sayısı için en kârlı 10 rotayı listeler.
- * @param {string} category - 'pax' veya 'cargo'
- */
-function renderRouteAnalysis(category) {
-    const selectElement = document.getElementById(category + 'RouteSelect');
-    const manualTripsInput = document.getElementById(category + (category === 'pax' ? 'RouteManualTrips' : 'RouteManualTrips'));
-    const container = document.getElementById(category + 'RouteResult');
-    const planeName = selectElement.value;
-    
-    if (!planeName) {
-        return;
-    }
-    
-    const manualTrips = Number(manualTripsInput.value) || null;
-    let customSeats = null;
-    
-    // Yolcu uçuşu ise koltuk düzenini Configurator'dan al ve kontrol et
-    if (category === 'pax') {
-        if (typeof Configurator !== 'undefined') {
-            const isCapacityOk = Configurator.updateCapacityCheck();
-            if (!isCapacityOk) {
-                return; // Hata mesajı configurator tarafından basılıyor
-            }
-            customSeats = Configurator.getSeatConfig();
-        }
-    }
-
-    // logic.js üzerinden sefer ayarlı en iyi 10 rotayı hesapla
-    const topRoutes = analyzeTopRoutesForPlane(planeName, 10, customSeats, manualTrips);
-    
-    if (topRoutes.length === 0) {
-        container.innerHTML = `<p style="color: var(--danger); padding: 20px;">Uçağın menziline veya pazar talebine uygun rota bulunamadı.</p>`;
-        return;
-    }
-
-    // Rota kartlarını oluştur
-    container.innerHTML = `<h3>En Karlı 10 Rota (Günlük Kar Odaklı)</h3>` + topRoutes.map((r, index) => `
-        <div class="route-card" style="border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-bottom: 10px; background: #fff;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <strong style="font-size: 1.05rem;">#${index + 1} ${r.origin} ➔ ${r.destination}</strong>
-                <span style="color: var(--success); font-weight: 700; font-size: 1.1rem;">
-                    $${Math.floor(r.dailyProfit).toLocaleString()} / Gün
-                </span>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 0.85rem; color: var(--text-muted);">
-                <span><strong>Mesafe:</strong> ${r.distance} km</span>
-                <span><strong>Uygulanan Sefer:</strong> ${r.dailyTrips}x</span>
-                <span><strong>Yatırım Verimi:</strong> %${r.efficiency}</span>
-            </div>
-        </div>
-    `).join('');
-}
-
-/**
- * Koltuk inputları değiştikçe kapasite kontrolünü tetikler.
- */
-window.updateCapacityCheck = function() {
-    if (typeof Configurator !== 'undefined') {
-        Configurator.updateCapacityCheck();
-    }
-};
-
-/**
- * Sayfa yüklendiğinde başlangıç ayarlarını yapar.
- */
-window.onload = function() {
-    fillRouteSelects();
 };

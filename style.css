@@ -1,3 +1,4 @@
+/* --- DEĞİŞKENLER VE TEMEL AYARLAR --- */
 :root {
     --primary: #2563eb;
     --primary-hover: #1d4ed8;
@@ -7,20 +8,30 @@
     --text-muted: #64748b;
     --border: #e2e8f0;
     --success: #059669;
+    --danger: #ef4444;
+    --info-bg: #eff6ff;
+    --success-bg: #dcfce7;
+    --danger-bg: #fee2e2;
+    --neutral-bg: #f1f5f9;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--bg);
     color: var(--text);
-    margin: 0;
     line-height: 1.6;
 }
 
-/* Navigasyon ve Dropdown Menü */
+/* --- NAVİGASYON --- */
 nav {
     background: var(--card);
-    padding: 0 1rem;
     display: flex;
     justify-content: center;
     gap: 10px;
@@ -30,6 +41,7 @@ nav {
     z-index: 1000;
     height: 60px;
     align-items: center;
+    padding: 0 1rem;
 }
 
 nav a, .nav-label {
@@ -39,16 +51,15 @@ nav a, .nav-label {
     cursor: pointer;
     padding: 8px 16px;
     border-radius: 6px;
-    transition: all 0.2s;
-    display: inline-block;
+    transition: all 0.2s ease;
 }
 
 nav a:hover, .dropdown:hover .nav-label {
-    background-color: #eff6ff;
+    background-color: var(--info-bg);
     color: var(--primary);
 }
 
-/* Dropdown Yapısı */
+/* --- DROPDOWN --- */
 .dropdown {
     position: relative;
     display: inline-block;
@@ -58,14 +69,23 @@ nav a:hover, .dropdown:hover .nav-label {
     display: none;
     position: absolute;
     background-color: var(--card);
-    min-width: 180px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    min-width: 200px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     border: 1px solid var(--border);
     border-radius: 8px;
-    z-index: 1;
     top: 100%;
     left: 0;
     overflow: hidden;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .dropdown-content a {
@@ -74,19 +94,14 @@ nav a:hover, .dropdown:hover .nav-label {
     text-decoration: none;
     display: block;
     font-size: 0.9rem;
-    border-radius: 0;
+    transition: background 0.2s;
 }
 
 .dropdown-content a:hover {
-    background-color: #f1f5f9;
-    color: var(--primary);
+    background-color: var(--neutral-bg);
 }
 
-.dropdown:hover .dropdown-content {
-    display: block;
-}
-
-/* İçerik Alanı */
+/* --- LAYOUT VE SAYFALAR --- */
 .container {
     max-width: 900px;
     margin: 2rem auto;
@@ -97,53 +112,45 @@ nav a:hover, .dropdown:hover .nav-label {
     display: none;
     background: var(--card);
     padding: 40px;
-    border-radius: 12px;
+    border-radius: 16px;
     border: 1px solid var(--border);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow);
 }
 
-.active {
+.page.active {
     display: block;
-    animation: fadeIn 0.3s ease-in-out;
+    animation: fadeIn 0.4s ease;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-h2 {
-    color: var(--text);
-    font-size: 1.5rem;
-    margin-top: 0;
-    border-bottom: 2px solid var(--bg);
-    padding-bottom: 10px;
-    margin-bottom: 25px;
-}
-
-/* Form Elemanları */
+/* --- FORM ELEMANLARI --- */
 label {
     display: block;
     margin-bottom: 8px;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
 }
 
 input, select {
     width: 100%;
-    padding: 12px;
-    margin-bottom: 20px;
-    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    border-radius: 10px;
     border: 1px solid var(--border);
-    background-color: #fff;
+    background-color: white;
     font-size: 1rem;
     transition: all 0.2s;
-    box-sizing: border-box;
+    outline: none;
 }
 
 input:focus, select:focus {
-    outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
@@ -152,38 +159,88 @@ button {
     background: var(--primary);
     color: white;
     border: none;
-    padding: 14px;
-    border-radius: 8px;
+    padding: 16px;
+    border-radius: 10px;
     cursor: pointer;
     width: 100%;
     font-size: 1rem;
     font-weight: 600;
-    transition: background 0.2s;
+    transition: transform 0.1s, background 0.2s;
 }
 
 button:hover {
     background: var(--primary-hover);
 }
 
-/* Sonuç Listesi */
-.result-item {
-    background: #f1f5f9;
-    padding: 20px;
-    margin: 15px 0;
+button:active {
+    transform: scale(0.98);
+}
+
+/* --- BİLGİ VE DURUM KUTULARI --- */
+.info-box {
+    margin-top: 30px;
+    padding: 24px;
+    background: var(--info-bg);
+    border-radius: 12px;
+    border-left: 5px solid var(--primary);
+}
+
+.status-box {
+    margin-top: 10px;
+    padding: 14px;
     border-radius: 10px;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    transition: all 0.3s ease;
+}
+
+.status-success { background: var(--success-bg); color: var(--success); }
+.status-danger { background: var(--danger-bg); color: var(--danger); }
+.status-neutral { background: var(--neutral-bg); color: var(--text-muted); }
+
+/* --- ANALİZ SONUÇLARI --- */
+.config-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 10px;
+}
+
+.result-item {
+    background: var(--neutral-bg);
+    padding: 20px;
+    margin: 16px 0;
+    border-radius: 12px;
     border-left: 5px solid var(--primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: transform 0.2s;
 }
 
-.result-item h4 {
-    margin: 0 0 10px 0;
-    color: var(--text);
+.result-item:hover {
+    transform: translateX(5px);
 }
 
-hr {
-    border: 0;
-    border-top: 1px solid var(--border);
-    margin: 20px 0;
+.route-card {
+    border: 1px solid var(--border);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    background: #fff;
+    transition: box-shadow 0.2s;
+}
+
+.route-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* --- MOBİL UYUMLULUK --- */
+@media (max-width: 600px) {
+    .container { margin: 1rem auto; }
+    .page { padding: 20px; }
+    .config-grid { grid-template-columns: 1fr; }
+    nav { height: auto; padding: 10px; flex-direction: column; }
+    .dropdown-content { position: static; box-shadow: none; width: 100%; display: block; border: none; }
 }

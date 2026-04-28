@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AM4 Strateji Merkezi Pro</title>
+    <title>AM4 Strateji Merkezi - MENOA v0.1.0</title>
     <!-- Modern yazı tipi bağlantısı -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Harici Tasarım Dosyası -->
@@ -11,11 +11,11 @@
 </head>
 <body>
 
-<!-- Navigasyon Menüsü -->
+<!-- Üst Navigasyon Menüsü -->
 <nav>
     <a onclick="showPage('home')">Ana Sayfa</a>
     
-    <!-- Yolcu Grubu -->
+    <!-- Yolcu (PAX) Dropdown -->
     <div class="dropdown">
         <span class="nav-label">PAX (Yolcu)</span>
         <div class="dropdown-content">
@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <!-- Kargo Grubu -->
+    <!-- Kargo Dropdown -->
     <div class="dropdown">
         <span class="nav-label">Kargo</span>
         <div class="dropdown-content">
@@ -35,41 +35,43 @@
 </nav>
 
 <div class="container">
-    <!-- ANA SAYFA -->
+    
+    <!-- ANA SAYFA (HOME) -->
     <div id="home" class="page active">
         <h2>AM4 Strateji Merkezi Pro</h2>
-        <p>Airline Manager 4 için geliştirilmiş en kapsamlı analiz paneline hoş geldiniz.</p>
-        <p>Sistemimiz, küresel veri setlerini ve AM4 Command Center standartlarını kullanarak size en yüksek kârlılığı sağlar.</p>
+        <p>Excel (MENOA) veritabanı ve profesyonel AM4-CC katsayılarıyla güçlendirilmiş analiz paneli.</p>
         
-        <div style="margin-top: 30px; padding: 20px; background: #eff6ff; border-radius: 8px; border-left: 4px solid var(--primary);">
-            <h4 style="margin-top: 0; color: var(--primary);">Önemli Özellikler:</h4>
-            <ul style="margin-bottom: 0; font-size: 0.95rem; color: var(--text);">
-                <li><strong>Gelişmiş ROI:</strong> Uçaklar sadece ucuz olduğu için değil, yatırım verimliliğine (% Efficiency) göre sıralanır.</li>
-                <li><strong>Koltuk Konfigüratörü:</strong> Yolcu uçakları için özel Economy, Business ve First düzenleri oluşturabilirsiniz.</li>
-                <li><strong>Küresel Ağ:</strong> Dünya genelindeki en kârlı 250+ rota üzerinde anlık tarama yapılır.</li>
+        <div style="margin-top: 30px; padding: 25px; background: #eff6ff; border-radius: 12px; border-left: 5px solid var(--primary);">
+            <h4 style="margin-top: 0; color: var(--primary);">Sistem Notları:</h4>
+            <ul style="font-size: 0.95rem; color: var(--text); padding-left: 20px;">
+                <li><strong>Gerçek Talep:</strong> Analizler, Excel dosyanızdaki "Market Research" verilerini temel alır.</li>
+                <li><strong>Darboğaz Kontrolü:</strong> Uçak kapasitesi talebi aşarsa, kâr otomatik olarak piyasa tavanına çekilir.</li>
+                <li><strong>Yatırım Odaklı:</strong> Sıralamalar "Efficiency" (Harcanan 1$ başına günlük getiri) kriterine göre yapılır.</li>
             </ul>
         </div>
     </div>
 
-    <!-- PAX - Uçak Önerisi -->
+    <!-- PAX - UÇAK ÖNERİSİ -->
     <div id="pax-plane" class="page">
-        <h2>PAX: Bütçeye Göre En Verimli Uçak</h2>
+        <h2>PAX: Bütçeye Göre Uçak Önerileri</h2>
         <label>Mevcut Bütçeniz ($):</label>
         <input type="number" id="paxBudgetInput" placeholder="Örn: 50000000">
-        <button onclick="renderSuggestions('pax')">Uçakları Analiz Et</button>
-        <div id="paxPlaneResult"></div>
+        <button onclick="renderSuggestions('pax')">En Verimli Uçakları Bul</button>
+        <div id="paxPlaneResult" style="margin-top: 20px;"></div>
     </div>
 
-    <!-- PAX - Rota ve Koltuk Analizi -->
+    <!-- PAX - ROTA & KOLTUK ANALİZİ -->
     <div id="pax-route" class="page">
         <h2>PAX: Rota & Koltuk Analizi</h2>
+        
         <label>Uçak Seçiniz:</label>
         <select id="paxRouteSelect" onchange="updateCapacityCheck()">
             <option value="">-- Bir Uçak Seçin --</option>
         </select>
 
-        <div style="margin: 20px 0; background: #f1f5f9; padding: 20px; border-radius: 10px;">
-            <label style="margin-bottom: 15px; display: block;">Koltuk Yapılandırması:</label>
+        <!-- Koltuk Yapılandırma Paneli -->
+        <div style="margin: 25px 0; background: #f1f5f9; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+            <label style="margin-bottom: 15px; color: var(--text); font-weight: 700;">Koltuk Konfigürasyonu</label>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                 <div>
                     <label>Economy (Y)</label>
@@ -84,38 +86,39 @@
                     <input type="number" id="seatsF" value="0" min="0" oninput="updateCapacityCheck()">
                 </div>
             </div>
-            <!-- Kapasite Bilgi Kutusu -->
-            <div id="capacityInfo" style="margin-top: 15px; padding: 10px; border-radius: 6px; text-align: center; font-size: 0.85rem; font-weight: 600;">
-                Lütfen bir uçak seçin.
+            <!-- Kapasite Durum Çubuğu -->
+            <div id="capacityInfo" style="margin-top: 10px; padding: 12px; border-radius: 8px; text-align: center; font-size: 0.9rem; font-weight: 600;">
+                Lütfen bir uçak seçerek başlayın.
             </div>
         </div>
 
-        <button onclick="renderRouteAnalysis('pax')">En Karlı 10 Rotayı Göster</button>
+        <button onclick="renderRouteAnalysis('pax')">Pazar Talebine Göre Analiz Et</button>
         <div id="paxRouteResult" style="margin-top: 20px;"></div>
     </div>
 
-    <!-- KARGO - Uçak Önerisi -->
+    <!-- KARGO - UÇAK ÖNERİSİ -->
     <div id="cargo-plane" class="page">
-        <h2>Kargo: Bütçeye Göre En Verimli Uçak</h2>
+        <h2>Kargo: Bütçeye Göre Uçak Önerileri</h2>
         <label>Mevcut Bütçeniz ($):</label>
         <input type="number" id="cargoBudgetInput" placeholder="Örn: 100000000">
-        <button onclick="renderSuggestions('cargo')">Kargo Uçaklarını Analiz Et</button>
-        <div id="cargoPlaneResult"></div>
+        <button onclick="renderSuggestions('cargo')">Kargo Uçaklarını Listele</button>
+        <div id="cargoPlaneResult" style="margin-top: 20px;"></div>
     </div>
 
-    <!-- KARGO - Rota Analizi -->
+    <!-- KARGO - ROTA ANALİZİ -->
     <div id="cargo-route" class="page">
-        <h2>Kargo: En Karlı 10 Rota</h2>
+        <h2>Kargo: Rota Analizi</h2>
         <label>Kargo Uçağı Seçiniz:</label>
         <select id="cargoRouteSelect">
             <option value="">-- Bir Uçak Seçin --</option>
         </select>
-        <button onclick="renderRouteAnalysis('cargo')">Rotaları Analiz Et</button>
+        <button onclick="renderRouteAnalysis('cargo')">En Karlı Kargo Rotalarını Hesapla</button>
         <div id="cargoRouteResult" style="margin-top: 20px;"></div>
     </div>
+
 </div>
 
-<!-- Modüler JavaScript Dosyaları (Yükleme sırası kritiktir) -->
+<!-- JavaScript Modülleri (Sıralama hayati önem taşır) -->
 <script src="planes.js"></script>
 <script src="routes.js"></script>
 <script src="configurator.js"></script>

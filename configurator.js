@@ -1,11 +1,11 @@
 /**
- * configurator.js: Koltuk yapılandırması ve akıllı öneri motoru.
- * AM4 Kuralları: Economy (Y) = 1, Business (J) = 2, First (F) = 3 birim yer kaplar.
+ * configurator.js: Rota bazlı dinamik koltuk optimizasyonu.
+ * Genel başlangıç önerisi kaldırıldı, sadece rota bazlı hesaplama yapar.
  */
 
 const Configurator = {
     /**
-     * Kullanıcının girdiği mevcut koltuk değerlerini alır.
+     * Mevcut kutucuklardaki koltuk sayılarını çeker.
      */
     getSeatConfig: function() {
         return {
@@ -16,8 +16,40 @@ const Configurator = {
     },
 
     /**
-     * Kapasite kontrolü yapar ve arayüzü günceller.
-     * Aynı zamanda akıllı öneri motorunu tetikler.
+     * Spesifik bir rota ve uçak için en kârlı koltuk dağılımını hesaplar.
+     * AM4 Mantığı: F > J > Y hiyerarşisine göre (Kâr önceliği).
+     */
+    calculateOptimalSeats: function(plane, route, manualTrips = null) {
+        const flightTime = Logic.calculateFlightTime(route.distance, plane.cruise_speed);
+        const maxTrips = Math.floor(24 / flightTime);
+        const trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
+
+        if (trips <= 0) return { y: 0, j: 0, f: 0 };
+
+        // Sefer başına düşen tavan talepler
+        const maxF = Math.floor((route.demand.f || 0) / trips);
+        const maxJ = Math.floor((route.demand.j || 0) / trips);
+        const maxY = Math.floor((route.demand.y || 0) / trips);
+
+        let remCap = plane.capacity;
+        let sF = 0, sJ = 0, sY = 0;
+
+        // 1. First Class (3 birim yer kaplar)
+        sF = Math.min(maxF, Math.floor(remCap / 3));
+        remCap -= (sF * 3);
+
+        // 2. Business Class (2 birim yer kaplar)
+        sJ = Math.min(maxJ, Math.floor(remCap / 2));
+        remCap -= (sJ * 2);
+
+        // 3. Economy Class (1 birim yer kaplar)
+        sY = Math.min(maxY, remCap);
+        
+        return { y: sY, j: sJ, f: sF };
+    },
+
+    /**
+     * Kapasite kontrolü yapar ve UI'ı uyarır.
      */
     updateCapacityCheck: function() {
         const planeName = document.getElementById('paxRouteSelect')?.value;
@@ -28,7 +60,6 @@ const Configurator = {
                 infoDiv.className = "status-box status-neutral";
                 infoDiv.innerText = "Lütfen bir uçak seçin.";
             }
-            this.hideSuggestion();
             return false;
         }
 
@@ -46,97 +77,23 @@ const Configurator = {
                 infoDiv.innerText = `Kapasite Uygun: ${used} / ${plane.capacity} (Kalan: ${remaining})`;
             }
         }
-
-        // Akıllı öneriyi göster/güncelle
-        this.showOptimalSuggestion(planeName);
-
         return used <= plane.capacity;
     },
 
     /**
-     * Uçağın en kârlı rotasındaki talebe göre ideal koltuk dağılımını hesaplar.
-     */
-    showOptimalSuggestion: function(planeName) {
-        const suggestDiv = document.getElementById('optimalConfigSuggest');
-        if (!suggestDiv) return;
-
-        const plane = aircraftData[planeName];
-        // En kârlı ilk rotayı baz alıyoruz (Genel bir öneri için en mantıklı olanıdır)
-        const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 1);
-        
-        if (topRoutes.length === 0) {
-            this.hideSuggestion();
-            return;
-        }
-
-        const bestRoute = topRoutes[0];
-        const trips = bestRoute.dailyTrips;
-        const demand = bestRoute.demand;
-
-        // Sefer başına düşen talep (Sınırlayıcı faktör)
-        const dY = demand.y / trips;
-        const dJ = demand.j / trips;
-        const dF = demand.f / trips;
-
-        // Ağırlıklı talep toplamı (Kapasite birimi cinsinden)
-        const totalWeightedDemand = dY + (dJ * 2) + (dF * 3);
-        
-        let sY, sJ, sF;
-
-        if (totalWeightedDemand <= plane.capacity) {
-            // Eğer uçağın kapasitesi toplam talepten fazlaysa, tam talebi koy
-            sY = Math.floor(dY);
-            sJ = Math.floor(dJ);
-            sF = Math.floor(dF);
-        } else {
-            // Talep kapasiteden fazlaysa, oranla (Proportional Scaling)
-            const scale = plane.capacity / totalWeightedDemand;
-            sY = Math.floor(dY * scale);
-            sJ = Math.floor(dJ * scale);
-            sF = Math.floor(dF * scale);
-        }
-
-        // Kalan kapasiteyi en pahalı sınıfa (F) veya E'ye ekleyerek optimize et
-        let currentUsed = sY + (sJ * 2) + (sF * 3);
-        while (currentUsed < plane.capacity) {
-            if (sF < dF) { sF++; }
-            else if (sJ < dJ) { sJ++; }
-            else { sY++; }
-            currentUsed = sY + (sJ * 2) + (sF * 3);
-            if (currentUsed > plane.capacity) break; // Güvenlik kısıtı
-        }
-
-        suggestDiv.style.display = "block";
-        suggestDiv.innerHTML = `
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; font-weight: 700;">
-                Talebe Göre Önerilen Yapılandırma
-            </div>
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <div class="suggest-badge">Y: ${sY}</div>
-                <div class="suggest-badge">J: ${sJ}</div>
-                <div class="suggest-badge">F: ${sF}</div>
-                <button onclick="Configurator.applySuggestion(${sY}, ${sJ}, ${sF})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; margin: 0; background: var(--success);">Uygula</button>
-            </div>
-        `;
-    },
-
-    /**
-     * Önerilen değerleri inputlara yazar.
+     * Rota sonuçlarından gelen değerleri ana kutucuklara yazar.
      */
     applySuggestion: function(y, j, f) {
         document.getElementById('seatsY').value = y;
         document.getElementById('seatsJ').value = j;
         document.getElementById('seatsF').value = f;
         this.updateCapacityCheck();
-    },
-
-    hideSuggestion: function() {
-        const suggestDiv = document.getElementById('optimalConfigSuggest');
-        if (suggestDiv) suggestDiv.style.display = "none";
+        // Görsel geri bildirim için sayfayı hafifçe yukarı kaydırabiliriz
+        window.scrollTo({ top: document.getElementById('paxRouteSelect').offsetTop - 100, behavior: 'smooth' });
     },
 
     /**
-     * AM4 Standart Fiyat Motoru
+     * Easy Mode 1.1x Katsayıları
      */
     getTicketMultipliers: function(distance) {
         return {

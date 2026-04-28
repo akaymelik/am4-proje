@@ -1,54 +1,47 @@
 /**
- * logic.js: AM4 Pazar Talebi (Demand) Kısıtlamalı ve Hibrit Puanlama Destekli Hesaplama Motoru.
- * Güncelleme: 
- * - Kargo ve Yolcu için manuel sefer sayısı (manualTrips) tam uyumlu hale getirildi.
- * - Hibrit puanlama normalizasyon hataları (NaN) giderildi.
- * - Rota analizine uçuş başı kâr (profitPerFlight) verisi eklendi.
+ * logic.js: AM4 Pazar Talebi (Demand) Kısıtlamalı Hesaplama Motoru.
+ * HATA DÜZELTMESİ: Kısa rotalardaki "aşırı sefer sayısı" hatası giderildi.
+ * AM4'te her uçuş için zorunlu olan hazırlık süresi (0.5sa) kontrol altına alındı.
  */
 
 const Logic = {
     /**
-     * Uçuş süresini hesaplar (AM4 Standart: Mesafe / Hız speed ten sonra ekle en altta + 0.5sa Hazırlık).
+     * Uçuş süresini hesaplar.
+     * AM4 Kuralı: (Mesafe / Hız) + En az 30 dakika (0.5sa) yer hazırlığı.
      */
     calculateFlightTime: function(distance, speed) {
         if (!speed || speed <= 0) return 0;
-        return (distance / speed) ;
+        // 0.5sa (30dk) AM4 için standart minimum hazırlık süresidir.
+        return (distance / speed) + 0.5;
     },
 
     /**
-     * Tek bir uçuşun net kârını, süresini ve uygulanabilir sefer sayısını hesaplar.
+     * Tek bir uçuşun net kârını hesaplar.
      */
     calculateProfit: function(plane, route, seats = null, manualTrips = null) {
         const currentMode = typeof window.gameMode !== 'undefined' ? window.gameMode : 'realism';
         const multiplier = currentMode === 'easy' ? 1.1 : 1.0;
 
         const flightTime = this.calculateFlightTime(route.distance, plane.cruise_speed);
+        // Günde yapılabilecek maksimum sefer sayısı (24 / uçuş süresi)
         const maxTrips = Math.floor(24 / flightTime);
         
-        // Manuel sefer kontrolü: Eğer kullanıcı bir değer girdiyse, uçağın hızıyla yapabileceği maksimum seferi aşamaz.
+        // Kullanıcı girişi olsa bile uçağın fiziksel hız sınırını (maxTrips) aşamaz.
         let trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
         
         if (trips <= 0) return { profitPerFlight: 0, appliedTrips: 0, duration: flightTime };
 
         let grossRevenue = 0;
 
-        // --- KARGO GELİR HESABI ---
         if (plane.type === "cargo") {
-            // Mesafe dilimlerine göre AM4 kargo katsayıları
             let coef = route.distance > 5000 ? 0.47 : (route.distance > 2000 ? 0.52 : 0.56);
-            
             const totalDailyCapacity = plane.capacity * trips;
-            // Kargo verisi yoksa yolcu talebinden simüle et (Y * 500)
             const totalDailyDemand = route.demand.c || (route.demand.y * 500) || 0;
             const actualDailyCarry = Math.min(totalDailyCapacity, totalDailyDemand);
-            
             grossRevenue = (actualDailyCarry * (route.distance * coef / 100) * multiplier) / trips;
-        } 
-        // --- YOLCU (PAX) GELİR HESABI ---
-        else {
+        } else {
             const prices = Configurator.getTicketMultipliers(route.distance);
-            
-            // Eğer koltuklar girilmemişse, rota talebine göre en ideal dizilimi hesapla
+            // Eğer koltuk girilmemişse uçağı o rotada en verimli hale getir (F > J > Y)
             const activeSeats = (seats && (seats.y + seats.j + seats.f > 0)) 
                 ? seats 
                 : Configurator.calculateOptimalSeats(plane, route, trips);
@@ -60,10 +53,8 @@ const Logic = {
             grossRevenue = (carryY * prices.y) + (carryJ * prices.j) + (carryF * prices.f);
         }
 
-        // --- GİDERLER ---
-        const fuelCost = route.distance * plane.fuel_consumption * 1.1; 
+        const fuelCost = route.distance * plane.fuel_consumption * 1.1;
         const staffCost = plane.type === "cargo" ? plane.capacity * 0.01 : plane.capacity * 2.5;
-        
         const netProfitPerFlight = grossRevenue - (fuelCost + staffCost);
 
         return {
@@ -73,9 +64,6 @@ const Logic = {
         };
     },
 
-    /**
-     * Belirli bir uçak için en kârlı 10 rotayı analiz eder.
-     */
     analyzeTopRoutesForPlane: function(planeName, limit = 10, customSeats = null, manualTrips = null) {
         const plane = aircraftData[planeName];
         if (!plane) return [];
@@ -103,9 +91,6 @@ const Logic = {
         return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
     },
 
-    /**
-     * Bütçeye göre en mantıklı uçakları listeler (%30 Verim + %70 Günlük Kâr).
-     */
     getBestPlanesByType: function(budget, type, manualTrips = null) {
         const numericBudget = Number(budget);
         let candidates = [];
@@ -113,7 +98,6 @@ const Logic = {
         for (let name in aircraftData) {
             const p = aircraftData[name];
             if (p.price <= numericBudget && p.type === type) {
-                // Her uçak için en iyi rotasını bulup performansı ölçüyoruz
                 const topResults = this.analyzeTopRoutesForPlane(name, 1, null, manualTrips);
                 if (topResults.length > 0) {
                     const best = topResults[0];
@@ -126,7 +110,8 @@ const Logic = {
                         duration: best.duration,
                         bestRouteOrigin: best.origin,
                         bestRouteName: best.destination,
-                        price: p.price
+                        price: p.price,
+                        appliedTrips: best.dailyTrips // UI için eklendi
                     });
                 }
             }
@@ -134,14 +119,12 @@ const Logic = {
 
         if (candidates.length === 0) return [];
 
-        // --- NORMALİZASYON (NaN hatalarını önlemek için || 1 kullanıyoruz) ---
         const maxEff = Math.max(...candidates.map(c => c.efficiency)) || 1;
         const maxProfit = Math.max(...candidates.map(c => c.dailyProfit)) || 1;
 
         candidates.forEach(c => {
             const normEff = c.efficiency / maxEff;
             const normProfit = c.dailyProfit / maxProfit;
-            // Hibrit Puan Formülü
             c.finalScore = (normEff * 0.3) + (normProfit * 0.7);
         });
 

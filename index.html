@@ -2,51 +2,85 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AM4 Proje Merkezi</title>
-    <!-- Google Fonts üzerinden Inter yazı tipini çekiyoruz -->
+    <!-- Modern yazı tipi bağlantısı -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- Üst Menü Navigasyonu -->
+<!-- Kategorize Edilmiş Yeni Navigasyon Menüsü -->
 <nav>
     <a onclick="showPage('home')">Ana Sayfa</a>
-    <a onclick="showPage('karlı-uçak')">En Karlı Uçak</a>
-    <a onclick="showPage('karlı-rota')">En Karlı Rota</a>
+    
+    <!-- PAX (Yolcu) Uçuşları Grubu -->
+    <div class="dropdown">
+        <span class="nav-label">PAX Uçuşları</span>
+        <div class="dropdown-content">
+            <a onclick="showPage('pax-plane')">En Karlı Uçak</a>
+            <a onclick="showPage('pax-route')">En Karlı Rota</a>
+        </div>
+    </div>
+
+    <!-- Kargo Uçuşları Grubu -->
+    <div class="dropdown">
+        <span class="nav-label">Kargo Uçuşları</span>
+        <div class="dropdown-content">
+            <a onclick="showPage('cargo-plane')">En Karlı Uçak</a>
+            <a onclick="showPage('cargo-route')">En Karlı Rota</a>
+        </div>
+    </div>
 </nav>
 
 <div class="container">
-    <!-- ANA SAYFA PANELİ -->
+    <!-- ANA SAYFA -->
     <div id="home" class="page active">
-        <h2>Hoş Geldiniz</h2>
-        <p>AM4 analizleri için modüler sistem aktif.</p>
+        <h2>AM4 Analiz Paneli</h2>
+        <p>Airline Manager 4 için profesyonel analiz merkezi.</p>
+        <p>Lütfen yukarıdaki menüden analiz tipini seçin (PAX veya Kargo).</p>
     </div>
 
-    <!-- EN KARLI UÇAK PANELİ -->
-    <div id="karlı-uçak" class="page">
-        <h2>En Karlı Uçak (ROI Bazlı)</h2>
-        <input type="number" id="budgetInput" placeholder="Bütçenizi girin">
-        <button onclick="renderPlaneSuggestions()">Analiz Et</button>
-        <div id="ucakSonuc"></div>
+    <!-- PAX BÖLÜMLERİ -->
+    <div id="pax-plane" class="page">
+        <h2>PAX: En Karlı Uçak (ROI)</h2>
+        <label>Bakiyeniz ($):</label>
+        <input type="number" id="paxBudgetInput" placeholder="Örn: 50000000">
+        <button onclick="renderSuggestions('pax', 'plane')">Yolcu Uçaklarını Analiz Et</button>
+        <div id="paxPlaneResult"></div>
     </div>
 
-    <!-- EN KARLI ROTA PANELİ -->
-    <div id="karlı-rota" class="page">
-        <h2>En Karlı Rota</h2>
-        <!-- Uçak seçimi için etiket ve açılır menü -->
-        <label>Uçağınızı Seçin:</label>
-        <select id="rotaUcaks">
-            <option value="">-- Seçiniz --</option>
+    <div id="pax-route" class="page">
+        <h2>PAX: En Karlı Rota</h2>
+        <label>Yolcu Uçağı Seçin:</label>
+        <select id="paxRouteSelect">
+            <option value="">-- Uçak Seçin --</option>
         </select>
-        <!-- Analiz tetikleme butonu -->
-        <button onclick="renderBestRoute()">En İyi Rotaları Analiz Et</button>
-        <!-- Analiz sonuçlarının yazdırılacağı alan -->
-        <div id="rotaSonuc"></div>
+        <button onclick="renderRouteAnalysis('pax')">Rotayı Analiz Et</button>
+        <div id="paxRouteResult"></div>
+    </div>
+
+    <!-- KARGO BÖLÜMLERİ -->
+    <div id="cargo-plane" class="page">
+        <h2>Kargo: En Karlı Uçak (ROI)</h2>
+        <label>Bakiyeniz ($):</label>
+        <input type="number" id="cargoBudgetInput" placeholder="Örn: 100000000">
+        <button onclick="renderSuggestions('cargo', 'plane')">Kargo Uçaklarını Analiz Et</button>
+        <div id="cargoPlaneResult"></div>
+    </div>
+
+    <div id="cargo-route" class="page">
+        <h2>Kargo: En Karlı Rota</h2>
+        <label>Kargo Uçağı Seçin:</label>
+        <select id="cargoRouteSelect">
+            <option value="">-- Uçak Seçin --</option>
+        </select>
+        <button onclick="renderRouteAnalysis('cargo')">Kargo Rotasını Analiz Et</button>
+        <div id="cargoRouteResult"></div>
     </div>
 </div>
 
-<!-- Modüler JavaScript dosyalarını sırasıyla bağlıyoruz -->
+<!-- Gerekli JS Dosyaları -->
 <script src="planes.js"></script>
 <script src="logic.js"></script>
 <script src="ui.js"></script>

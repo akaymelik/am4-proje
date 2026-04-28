@@ -46,7 +46,7 @@
             <ul style="font-size: 0.95rem; color: var(--text); padding-left: 20px;">
                 <li><strong>Gerçek Talep:</strong> Analizler, Excel dosyanızdaki "Market Research" verilerini temel alır.</li>
                 <li><strong>Darboğaz Kontrolü:</strong> Uçak kapasitesi talebi aşarsa, kâr otomatik olarak piyasa tavanına çekilir.</li>
-                <li><strong>Yatırım Odaklı:</strong> Sıralamalar "Efficiency" (Harcanan 1$ başına günlük getiri) kriterine göre yapılır.</li>
+                <li><strong>Sefer Ayarı:</strong> Günlük sefer sayısını manuel belirleyerek gerçek oyun düzeninize uygun kârı hesaplayabilirsiniz.</li>
             </ul>
         </div>
     </div>
@@ -56,6 +56,8 @@
         <h2>PAX: Bütçeye Göre Uçak Önerileri</h2>
         <label>Mevcut Bütçeniz ($):</label>
         <input type="number" id="paxBudgetInput" placeholder="Örn: 50000000">
+        <label>Günlük Hedef Sefer Sayısı (Opsiyonel):</label>
+        <input type="number" id="paxManualTrips" placeholder="Boş bırakılırsa maksimum hesaplanır">
         <button onclick="renderSuggestions('pax')">En Verimli Uçakları Bul</button>
         <div id="paxPlaneResult" style="margin-top: 20px;"></div>
     </div>
@@ -68,6 +70,9 @@
         <select id="paxRouteSelect" onchange="updateCapacityCheck()">
             <option value="">-- Bir Uçak Seçin --</option>
         </select>
+
+        <label>Günlük Hedef Sefer Sayısı (Opsiyonel):</label>
+        <input type="number" id="paxRouteManualTrips" placeholder="Boş bırakılırsa maksimum hesaplanır">
 
         <!-- Koltuk Yapılandırma Paneli -->
         <div style="margin: 25px 0; background: #f1f5f9; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
@@ -86,13 +91,12 @@
                     <input type="number" id="seatsF" value="0" min="0" oninput="updateCapacityCheck()">
                 </div>
             </div>
-            <!-- Kapasite Durum Çubuğu -->
             <div id="capacityInfo" style="margin-top: 10px; padding: 12px; border-radius: 8px; text-align: center; font-size: 0.9rem; font-weight: 600;">
                 Lütfen bir uçak seçerek başlayın.
             </div>
         </div>
 
-        <button onclick="renderRouteAnalysis('pax')">Pazar Talebine Göre Analiz Et</button>
+        <button onclick="renderRouteAnalysis('pax')">Analiz Et</button>
         <div id="paxRouteResult" style="margin-top: 20px;"></div>
     </div>
 
@@ -101,6 +105,8 @@
         <h2>Kargo: Bütçeye Göre Uçak Önerileri</h2>
         <label>Mevcut Bütçeniz ($):</label>
         <input type="number" id="cargoBudgetInput" placeholder="Örn: 100000000">
+        <label>Günlük Hedef Sefer Sayısı:</label>
+        <input type="number" id="cargoManualTrips" placeholder="Opsiyonel">
         <button onclick="renderSuggestions('cargo')">Kargo Uçaklarını Listele</button>
         <div id="cargoPlaneResult" style="margin-top: 20px;"></div>
     </div>
@@ -112,13 +118,14 @@
         <select id="cargoRouteSelect">
             <option value="">-- Bir Uçak Seçin --</option>
         </select>
-        <button onclick="renderRouteAnalysis('cargo')">En Karlı Kargo Rotalarını Hesapla</button>
+        <label>Günlük Hedef Sefer Sayısı:</label>
+        <input type="number" id="cargoRouteManualTrips" placeholder="Opsiyonel">
+        <button onclick="renderRouteAnalysis('cargo')">Hesapla</button>
         <div id="cargoRouteResult" style="margin-top: 20px;"></div>
     </div>
 
 </div>
 
-<!-- JavaScript Modülleri (Sıralama hayati önem taşır) -->
 <script src="planes.js"></script>
 <script src="routes.js"></script>
 <script src="configurator.js"></script>

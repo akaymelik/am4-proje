@@ -1,132 +1,162 @@
 /**
- * logic.js: AM4 Pazar Talebi (Demand) Kısıtlamalı ve Manuel Sefer Ayarlı Hesaplama Motoru.
- * Bu dosya Configurator ve routes.js (Excel verileri) ile tam uyumlu çalışır.
+ * routes.js: Word belgesindeki (Yeni Microsoft Word Belgesi.docx) tüm rotaları içerir.
+ * Veriler: Kalkış, Varış, Mesafe ve Sınıf Bazlı Günlük Pazar Talebi (Demand).
  */
 
-/**
- * 1. Uçuş Süresi Hesaplama
- * AM4 Standart: (Mesafe / Hız) + 0.5 Saat Hazırlık Süresi.
- */
-function calculateFlightTime(distance, speed) {
-    if (!speed || speed <= 0) return 0;
-    return (distance / speed) + 0.5;
-}
-
-/**
- * 2. Rota Bazlı Net Kâr Hesaplama
- * manualTrips: Kullanıcının belirlediği günlük sefer sayısı.
- */
-function calculateRouteProfit(plane, route, seats = null, manualTrips = null) {
-    const dist = route.distance || route.dist;
-    const flightTime = calculateFlightTime(dist, plane.cruise_speed);
-    
-    // Maksimum sığabilecek sefer sayısı (24 saatlik döngüde)
-    const maxTrips = Math.floor(24 / flightTime);
-    
-    // Kullanıcı manuel değer girdiyse onu kullan, girmediyse veya sınırları aşıyorsa maksimumu kullan
-    let dailyTrips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
-    
-    if (dailyTrips <= 0) return { profitPerFlight: 0, appliedTrips: 0 };
-
-    let grossRevenue = 0;
-
-    if (plane.type === "cargo") {
-        /**
-         * Kargo Gelir Katsayıları (AM4-CC):
-         * 0-2000 km: 0.56 | 2000-5000 km: 0.52 | 5000+ km: 0.47
-         */
-        let coef = dist > 5000 ? 0.47 : (dist > 2000 ? 0.52 : 0.56);
-        const totalDailyCapacity = plane.capacity * dailyTrips;
-        const totalDailyDemand = route.demand?.c || 0;
-        
-        // Pazardaki talepten fazlasını taşıyamayız (Market Bottleneck)
-        const actualDailyCarry = Math.min(totalDailyCapacity, totalDailyDemand);
-        
-        // Günlük toplam geliri sefer sayısına bölerek sefer başı geliri buluyoruz
-        grossRevenue = (actualDailyCarry * (dist * coef / 100)) / dailyTrips;
-    } else {
-        /**
-         * Yolcu (PAX) Bilet Fiyatları (1.1x Easy Mode İdeal Fiyatlar)
-         */
-        const prices = Configurator.getTicketMultipliers(dist);
-        
-        // Eğer özel koltuk düzeni yoksa tam ekonomi varsayılır
-        const activeSeats = seats || { y: plane.capacity, j: 0, f: 0 };
-
-        // Günlük toplam talebi ve uçağın günlük kapasitesini sınıflara göre kıyaslıyoruz
-        // Eğer uçağın toplam günlük kapasitesi (Koltuk * Sefer) talepten fazlaysa, kâr talep sınırına çekilir.
-        const carryY = Math.min(activeSeats.y * dailyTrips, route.demand?.y || 0) / dailyTrips;
-        const carryJ = Math.min(activeSeats.j * dailyTrips, route.demand?.j || 0) / dailyTrips;
-        const carryF = Math.min(activeSeats.f * dailyTrips, route.demand?.f || 0) / dailyTrips;
-
-        grossRevenue = (carryY * prices.y) + (carryJ * prices.j) + (carryF * prices.f);
-    }
-
-    // Operasyonel Giderler
-    const fuelCost = dist * plane.fuel_consumption * 1.2; // Ortalama yakıt maliyeti
-    const staffCost = plane.type === "cargo" ? plane.capacity * 0.005 : plane.capacity * 2.5; 
-    
-    return {
-        profitPerFlight: grossRevenue - (fuelCost + staffCost),
-        appliedTrips: dailyTrips
-    };
-}
-
-/**
- * 3. Uçak İçin En Karlı 10 Rotayı Analiz Etme
- */
-function analyzeTopRoutesForPlane(planeName, limit = 10, customSeats = null, manualTrips = null) {
-    const plane = aircraftData[planeName];
-    if (!plane) return [];
-
-    let results = [];
-    popularRoutes.forEach(route => {
-        if (route.distance <= plane.range) {
-            const calculation = calculateRouteProfit(plane, route, customSeats, manualTrips);
-            
-            if (calculation.profitPerFlight > 0) {
-                const dailyProfit = calculation.profitPerFlight * calculation.appliedTrips;
-                results.push({
-                    ...route,
-                    dailyProfit: dailyProfit,
-                    dailyTrips: calculation.appliedTrips,
-                    // Efficiency: Yatırılan 1$ başına günlük kâr yüzdesi
-                    efficiency: ((dailyProfit / plane.price) * 100).toFixed(4),
-                    roiDays: (plane.price / dailyProfit).toFixed(1)
-                });
-            }
-        }
-    });
-
-    // Günlük kâra göre en yüksekten düşüğe sırala
-    return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
-}
-
-/**
- * 4. Bütçeye Göre En Verimli Uçağı Bulma
- */
-function getBestPlanesByType(budget, type, manualTrips = null) {
-    const numericBudget = Number(budget);
-    let matches = [];
-    
-    for (let name in aircraftData) {
-        const p = aircraftData[name];
-        if (p.price <= numericBudget && p.type === type) {
-            // Her uçağın en iyi rotasındaki verimliliğine bakılır
-            const topRoutes = analyzeTopRoutesForPlane(name, 1, null, manualTrips);
-            if (topRoutes.length > 0) {
-                const best = topRoutes[0];
-                matches.push({
-                    name: name,
-                    efficiency: parseFloat(best.efficiency),
-                    roi: best.roiDays,
-                    bestRouteOrigin: best.origin,
-                    bestRouteName: best.destination,
-                    price: p.price
-                });
-            }
-        }
-    }
-    
-    return matches.sort((a, b) => b.efficiency - a.efficiency);
-}
+const popularRoutes = [
+    { origin: "Belize City, Belize", destination: "Pointe-à-Pitre, Guadeloupe", distance: 2850, demand: { y: 2414, j: 274, f: 153 } },
+    { origin: "Kuala Lumpur, Malaysia", destination: "Gaborone, Botswana", distance: 8705, demand: { y: 2403, j: 258, f: 176 } },
+    { origin: "Asmara, Eritrea", destination: "Pointe-à-Pitre, Guadeloupe", distance: 10607, demand: { y: 2389, j: 248, f: 141 } },
+    { origin: "Nairobi Int, Kenya", destination: "Bangui, Central African Republic", distance: 2142, demand: { y: 2373, j: 306, f: 140 } },
+    { origin: "Hagåtña, Guam", destination: "Seoul Incheon, South Korea", distance: 3227, demand: { y: 2352, j: 273, f: 172 } },
+    { origin: "Seattle Tacoma, United States", destination: "Kingston, Jamaica", distance: 5264, demand: { y: 2349, j: 250, f: 161 } },
+    { origin: "Dallas-Fort Worth, United States", destination: "Wallis Island, Wallis and Futuna", distance: 9821, demand: { y: 2347, j: 266, f: 149 } },
+    { origin: "Buenos Aires Int, Argentina", destination: "Bishkek, Kyrgyzstan", distance: 15905, demand: { y: 2340, j: 243, f: 138 } },
+    { origin: "Beirut, Lebanon", destination: "Yaoundé Nsimalen, Cameroon", distance: 4164, demand: { y: 2338, j: 262, f: 138 } },
+    { origin: "Rabat, Morocco", destination: "Dakar L.S. Senghor, Senegal", distance: 2403, demand: { y: 2329, j: 264, f: 148 } },
+    { origin: "Seoul Incheon, South Korea", destination: "Singapore, Singapore", distance: 4627, demand: { y: 2329, j: 267, f: 159 } },
+    { origin: "Charlotte, United States", destination: "Shanghai Hongqiao, China", distance: 12272, demand: { y: 2328, j: 308, f: 159 } },
+    { origin: "Washington Dulles, United States", destination: "Funafuti, Tuvalu", distance: 11754, demand: { y: 2328, j: 287, f: 159 } },
+    { origin: "Reykjavík - Keflavik, Iceland", destination: "Copenhagen, Denmark", distance: 2144, demand: { y: 2326, j: 304, f: 148 } },
+    { origin: "Luanda, Angola", destination: "Freetown, Sierra Leone", distance: 3513, demand: { y: 2318, j: 279, f: 137 } },
+    { origin: "Khartoum, Sudan", destination: "Tarawa, Kiribati", distance: 15292, demand: { y: 2313, j: 344, f: 147 } },
+    { origin: "Prishtina, Kosovo", destination: "Yangon, Burma", distance: 7538, demand: { y: 2312, j: 259, f: 136 } },
+    { origin: "Dar es Salaam, Tanzania", destination: "Sydney intl, Australia", distance: 11560, demand: { y: 2306, j: 288, f: 169 } },
+    { origin: "Dallas-Fort Worth, United States", destination: "Dublin, Ireland", distance: 7180, demand: { y: 2301, j: 321, f: 146 } },
+    { origin: "Warsaw intl, Poland", destination: "Rabat, Morocco", distance: 2987, demand: { y: 2298, j: 260, f: 146 } },
+    { origin: "Havana Int, Cuba", destination: "Caracas, Venezuela", distance: 2139, demand: { y: 2298, j: 325, f: 157 } },
+    { origin: "Aqaba, Jordan", destination: "Singapore, Singapore", distance: 7909, demand: { y: 2294, j: 266, f: 168 } },
+    { origin: "Astana, Kazakhstan", destination: "Shenzhen, China", distance: 4810, demand: { y: 2287, j: 252, f: 191 } },
+    { origin: "Asmara, Eritrea", destination: "Dublin, Ireland", distance: 5772, demand: { y: 2284, j: 240, f: 145 } },
+    { origin: "Bucharest Baneasa, Romania", destination: "Dubai, United Arab Emirates", distance: 3390, demand: { y: 2284, j: 246, f: 167 } },
+    { origin: "Ouagadougou, Burkina Faso", destination: "Maseru, Lesotho", distance: 5598, demand: { y: 2281, j: 256, f: 134 } },
+    { origin: "Bucharest Henri Coanda, Romania", destination: "Oranjestad, Aruba", distance: 9510, demand: { y: 2280, j: 343, f: 156 } },
+    { origin: "Willemstad, Curaçao", destination: "Kinshasa, Congo (Kinshasa)", distance: 9504, demand: { y: 2266, j: 270, f: 189 } },
+    { origin: "Amman Queen Alia, Jordan", destination: "Gaborone, Botswana", distance: 6349, demand: { y: 2265, j: 333, f: 133 } },
+    { origin: "Khartoum, Sudan", destination: "Beijing Capital, China", distance: 8400, demand: { y: 2256, j: 332, f: 133 } },
+    { origin: "Tel Aviv Ben G., Israel", destination: "Kingstown, Saint Vincent and the Grenadines", distance: 9792, demand: { y: 2254, j: 255, f: 143 } },
+    { origin: "Quito, Ecuador", destination: "Shenzhen, China", distance: 17187, demand: { y: 2251, j: 258, f: 224 } },
+    { origin: "Chisinau, Moldova", destination: "Kingston, Jamaica", distance: 9696, demand: { y: 2246, j: 251, f: 199 } },
+    { origin: "Vienna, Austria", destination: "Dushanbe, Tajikistan", distance: 4271, demand: { y: 2243, j: 309, f: 132 } },
+    { origin: "Apia, Samoa", destination: "London Gatwick, United Kingdom", distance: 15801, demand: { y: 2241, j: 257, f: 223 } },
+    { origin: "Fort-de-France, Martinique", destination: "Kingstown, Saint Vincent and the Grenadines", distance: 160, demand: { y: 2239, j: 290, f: 198 } },
+    { origin: "Athens, Greece", destination: "Riga, Latvia", distance: 2111, demand: { y: 2235, j: 292, f: 142 } },
+    { origin: "Amman Queen Alia, Jordan", destination: "Canberra, Australia", distance: 13929, demand: { y: 2232, j: 327, f: 186 } },
+    { origin: "Papeete, French Polynesia", destination: "Willemstad, Curaçao", distance: 9448, demand: { y: 2232, j: 232, f: 131 } },
+    { origin: "Kingston, Jamaica", destination: "Apia, Samoa", distance: 11016, demand: { y: 2229, j: 353, f: 142 } },
+    { origin: "Road Town, British Virgin Islands", destination: "Chengdu, China", distance: 14427, demand: { y: 2228, j: 291, f: 142 } },
+    { origin: "Wellington, New Zealand", destination: "Caracas, Venezuela", distance: 13127, demand: { y: 2222, j: 331, f: 141 } },
+    { origin: "Saint George's, Grenada", destination: "Tallinn, Estonia", distance: 8670, demand: { y: 2221, j: 310, f: 141 } },
+    { origin: "Cocos (Keeling) Islands", destination: "London Heathrow intl, United Kingdom", distance: 11568, demand: { y: 2220, j: 394, f: 141 } },
+    { origin: "Chisinau, Moldova", destination: "Basseterre, Saint Kitts and Nevis", distance: 8734, demand: { y: 2219, j: 297, f: 163 } },
+    { origin: "Dar es Salaam, Tanzania", destination: "Amsterdam, Netherlands", distance: 7345, demand: { y: 2217, j: 321, f: 173 } },
+    { origin: "Fort-de-France, Martinique", destination: "Bangkok Int, Thailand", distance: 16255, demand: { y: 2216, j: 230, f: 131 } },
+    { origin: "Guangzhou, China", destination: "Lagos, Nigeria", distance: 11723, demand: { y: 2210, j: 229, f: 130 } },
+    { origin: "Dallas-Fort Worth, United States", destination: "Saipan Island, Northern Mariana Islands", distance: 11481, demand: { y: 2209, j: 295, f: 162 } },
+    { origin: "Nairobi Int, Kenya", destination: "Vienna, Austria", distance: 5838, demand: { y: 2209, j: 241, f: 173 } },
+    { origin: "Paro, Bhutan", destination: "Dzaoudzi, Mayotte", distance: 6529, demand: { y: 2206, j: 256, f: 162 } },
+    { origin: "Manama, Bahrain", destination: "Marigot, Dominica", distance: 11317, demand: { y: 2205, j: 292, f: 151 } },
+    { origin: "Bern, Switzerland", destination: "Aqaba, Jordan", distance: 3050, demand: { y: 2205, j: 291, f: 151 } },
+    { origin: "Georgetown, Cayman Islands", destination: "Saint Peter Port, Guernsey", distance: 7588, demand: { y: 2203, j: 275, f: 161 } },
+    { origin: "Guatemala City, Guatemala", destination: "Road Town, British Virgin Islands", distance: 2801, demand: { y: 2200, j: 344, f: 184 } },
+    { origin: "Gaborone, Botswana", destination: "Moroni, Comoros", distance: 2333, demand: { y: 2196, j: 231, f: 140 } },
+    { origin: "Manama, Bahrain", destination: "Bangkok Int, Thailand", distance: 5362, demand: { y: 2196, j: 261, f: 183 } },
+    { origin: "Ouagadougou, Burkina Faso", destination: "Shanghai Hongqiao, China", distance: 12234, demand: { y: 2195, j: 373, f: 150 } },
+    { origin: "Kigali, Rwanda", destination: "Stockholm intl, Sweden", distance: 6934, demand: { y: 2194, j: 271, f: 219 } },
+    { origin: "Managua, Nicaragua", destination: "Seoul Incheon, South Korea", distance: 13533, demand: { y: 2194, j: 288, f: 206 } },
+    { origin: "Kingston, Jamaica", destination: "Pyongyang, North Korea", distance: 13244, demand: { y: 2194, j: 310, f: 150 } },
+    { origin: "Taipei, Taiwan", destination: "Stockholm intl, Sweden", distance: 8329, demand: { y: 2193, j: 233, f: 150 } },
+    { origin: "Lisbon, Portugal", destination: "Taipei, Taiwan", distance: 11237, demand: { y: 2193, j: 270, f: 150 } },
+    { origin: "Sarajevo, Bosnia and Herzegovina", destination: "N'Djamena, Chad", distance: 3538, demand: { y: 2187, j: 277, f: 171 } },
+    { origin: "Nicosia, Cyprus", destination: "Wallis Island, Wallis and Futuna", distance: 16169, demand: { y: 2187, j: 289, f: 149 } },
+    { origin: "Bucharest Baneasa, Romania", destination: "Xi'an, China", distance: 6878, demand: { y: 2187, j: 263, f: 129 } },
+    { origin: "Chisinau, Moldova", destination: "Saipan Island, Northern Mariana Islands", distance: 10689, demand: { y: 2183, j: 341, f: 182 } },
+    { origin: "Praia, Cape Verde", destination: "Beirut, Lebanon", distance: 6244, demand: { y: 2181, j: 362, f: 182 } },
+    { origin: "Hamilton, Bermuda", destination: "Prishtina, Kosovo", distance: 7326, demand: { y: 2177, j: 374, f: 159 } },
+    { origin: "Georgetown, Cayman Islands", destination: "Luxembourg, Luxembourg", distance: 8215, demand: { y: 2175, j: 344, f: 138 } },
+    { origin: "Podgorica, Montenegro", destination: "Maseru, Lesotho", distance: 8031, demand: { y: 2175, j: 256, f: 170 } },
+    { origin: "Kigali, Rwanda", destination: "Guatemala City, Guatemala", distance: 13358, demand: { y: 2173, j: 303, f: 138 } },
+    { origin: "Buenos Aires Int, Argentina", destination: "Windhoek Int, Namibia", distance: 7374, demand: { y: 2172, j: 278, f: 181 } },
+    { origin: "Bujumbura, Burundi", destination: "Burnt Pine, Norfolk Island", distance: 14323, demand: { y: 2171, j: 228, f: 138 } },
+    { origin: "Dar es Salaam, Tanzania", destination: "Bucharest Baneasa, Romania", distance: 5862, demand: { y: 2171, j: 339, f: 128 } },
+    { origin: "Kabul, Afghanistan", destination: "Ouagadougou, Burkina Faso", distance: 7476, demand: { y: 2171, j: 285, f: 204 } },
+    { origin: "Podgorica, Montenegro", destination: "Oranjestad, Aruba", distance: 9016, demand: { y: 2171, j: 243, f: 128 } },
+    { origin: "Kigali, Rwanda", destination: "Saint Peter Port, Guernsey", distance: 6519, demand: { y: 2169, j: 274, f: 170 } },
+    { origin: "Phoenix Int, United States", destination: "Tegucigalpa, Honduras", distance: 3301, demand: { y: 2167, j: 228, f: 138 } },
+    { origin: "Ouagadougou, Burkina Faso", destination: "Stockholm intl, Sweden", distance: 5499, demand: { y: 2166, j: 251, f: 228 } },
+    { origin: "Taipei, Taiwan", destination: "Guangzhou, China", distance: 826, demand: { y: 2164, j: 267, f: 148 } },
+    { origin: "Cockburn Town, Turks and Caicos", destination: "Luxembourg, Luxembourg", distance: 7312, demand: { y: 2163, j: 273, f: 169 } },
+    { origin: "Munich, Germany", destination: "Luanda, Angola", distance: 6363, demand: { y: 2162, j: 254, f: 169 } },
+    { origin: "Malé, Maldives", destination: "Frankfurt intl, Germany", distance: 7884, demand: { y: 2161, j: 309, f: 158 } },
+    { origin: "Apia, Samoa", destination: "Malabo, Equatorial Guinea", distance: 18892, demand: { y: 2161, j: 384, f: 137 } },
+    { origin: "Yaren District, Nauru", destination: "Port Louis, Mauritius", distance: 11985, demand: { y: 2159, j: 362, f: 137 } },
+    { origin: "Las Vegas, United States", destination: "Taipei, Taiwan", distance: 11003, demand: { y: 2157, j: 244, f: 203 } },
+    { origin: "Luxembourg, Luxembourg", destination: "Manzini Mswati, Swaziland", distance: 8818, demand: { y: 2156, j: 337, f: 180 } },
+    { origin: "Tunis, Tunisia", destination: "Vilnius, Lithuania", distance: 2286, demand: { y: 2150, j: 259, f: 127 } },
+    { origin: "Wellington, New Zealand", destination: "Marigot, Dominica", distance: 13953, demand: { y: 2150, j: 340, f: 137 } },
+    { origin: "San Francisco, United States", destination: "Ouagadougou, Burkina Faso", distance: 11725, demand: { y: 2149, j: 316, f: 127 } },
+    { origin: "Brasília, Brazil", destination: "New Delhi, India", distance: 14232, demand: { y: 2146, j: 243, f: 202 } },
+    { origin: "Conakry, Guinea", destination: "Saint George's, Grenada", distance: 5263, demand: { y: 2145, j: 339, f: 190 } },
+    { origin: "Papeete, French Polynesia", destination: "Minsk, Belarus", distance: 15970, demand: { y: 2145, j: 243, f: 136 } },
+    { origin: "Kampala, Uganda", destination: "Dubai, UAE", distance: 3731, demand: { y: 2143, j: 356, f: 126 } },
+    { origin: "Denver Int, United States", destination: "Wellington, New Zealand", distance: 12139, demand: { y: 2141, j: 246, f: 146 } },
+    { origin: "Dhaka, Bangladesh", destination: "Shenzhen, China", distance: 2393, demand: { y: 2141, j: 290, f: 168 } },
+    { origin: "Addis Ababa, Ethiopia", destination: "Taipei, Taiwan", distance: 8829, demand: { y: 2139, j: 372, f: 167 } },
+    { origin: "Bern, Switzerland", destination: "Monrovia Int, Liberia", distance: 4835, demand: { y: 2139, j: 236, f: 178 } },
+    { origin: "Caracas, Venezuela", destination: "Minsk, Belarus", distance: 9383, demand: { y: 2138, j: 447, f: 136 } },
+    { origin: "Kabul, Afghanistan", destination: "Paro, Bhutan", distance: 2080, demand: { y: 2136, j: 309, f: 167 } },
+    { origin: "Khartoum, Sudan", destination: "Copenhagen, Denmark", distance: 4764, demand: { y: 2135, j: 297, f: 189 } },
+    { origin: "Kingstown, St Vincent", destination: "Freetown, Sierra Leone", distance: 5253, demand: { y: 2132, j: 366, f: 156 } },
+    { origin: "Yaren District, Nauru", destination: "Copenhagen, Denmark", distance: 13466, demand: { y: 2131, j: 264, f: 212 } },
+    { origin: "Chisinau, Moldova", destination: "Dublin, Ireland", distance: 2579, demand: { y: 2131, j: 264, f: 212 } },
+    { origin: "Cairo, Egypt", destination: "Malabo, Equatorial Guinea", distance: 3780, demand: { y: 2130, j: 250, f: 237 } },
+    { origin: "Beirut, Lebanon", destination: "Baucau, Timor-Leste", distance: 10615, demand: { y: 2130, j: 224, f: 135 } },
+    { origin: "Belgrade, Serbia", destination: "Phnom Penh, Cambodia", distance: 8677, demand: { y: 2130, j: 241, f: 135 } },
+    { origin: "Papeete, French Polynesia", destination: "Kingstown, St Vincent", distance: 10286, demand: { y: 2130, j: 260, f: 135 } },
+    { origin: "Tarawa, Kiribati", destination: "Dushanbe, Tajikistan", distance: 11150, demand: { y: 2130, j: 247, f: 224 } },
+    { origin: "Vieux Fort, Saint Lucia", destination: "Paro, Bhutan", distance: 14436, demand: { y: 2129, j: 247, f: 156 } },
+    { origin: "Washington Dulles, United States", destination: "Caracas, Venezuela", distance: 3318, demand: { y: 2129, j: 260, f: 135 } },
+    { origin: "Praia, Cape Verde", destination: "Kampala, Uganda", distance: 6363, demand: { y: 2128, j: 304, f: 156 } },
+    { origin: "Barcelona, Spain", destination: "Hong Kong, Hong Kong", distance: 10059, demand: { y: 2128, j: 353, f: 125 } },
+    { origin: "Papeete, French Polynesia", destination: "Shenzhen, China", distance: 11401, demand: { y: 2128, j: 383, f: 145 } },
+    { origin: "Guatemala City, Guatemala", destination: "Shanghai Pudong, China", distance: 13869, demand: { y: 2128, j: 308, f: 167 } },
+    { origin: "Chisinau, Moldova", destination: "Gaborone, Botswana", distance: 7954, demand: { y: 2127, j: 417, f: 125 } },
+    { origin: "Vieux Fort, Saint Lucia", destination: "Road Town, British Virgin Islands", distance: 649, demand: { y: 2126, j: 272, f: 177 } },
+    { origin: "Chisinau, Moldova", destination: "Podgorica, Montenegro", distance: 918, demand: { y: 2126, j: 275, f: 189 } },
+    { origin: "Hamilton, Bermuda", destination: "Luanda, Angola", distance: 9418, demand: { y: 2124, j: 288, f: 166 } },
+    { origin: "Dubai, UAE", destination: "Guangzhou, China", distance: 5827, demand: { y: 2124, j: 312, f: 125 } },
+    { origin: "Phoenix Int, United States", destination: "Beijing Capital, China", distance: 10438, demand: { y: 2124, j: 220, f: 125 } },
+    { origin: "Washington Dulles, United States", destination: "Apia, Samoa", distance: 11357, demand: { y: 2123, j: 253, f: 177 } },
+    { origin: "Malé, Maldives", destination: "Prishtina, Kosovo", distance: 6697, demand: { y: 2122, j: 362, f: 200 } },
+    { origin: "Baucau, Timor-Leste", destination: "Bissau, Guinea-Bissau", distance: 15848, demand: { y: 2121, j: 225, f: 145 } },
+    { origin: "Ottawa intl, Canada", destination: "Kingston, Jamaica", distance: 3047, demand: { y: 2120, j: 421, f: 135 } },
+    { origin: "Hanoi, Vietnam", destination: "Port Louis, Mauritius", distance: 6985, demand: { y: 2120, j: 220, f: 125 } },
+    { origin: "Nairobi Int, Kenya", destination: "Nadi, Fiji", distance: 15201, demand: { y: 2118, j: 275, f: 188 } },
+    { origin: "Saint-Pierre, St Pierre and Miquelon", destination: "Castletown, Isle of Man", distance: 3655, demand: { y: 2118, j: 278, f: 199 } },
+    { origin: "Honiara, Solomon Islands", destination: "Manama, Bahrain", distance: 12399, demand: { y: 2116, j: 319, f: 145 } },
+    { origin: "Taipei, Taiwan", destination: "El Aaiún, Western Sahara", distance: 12429, demand: { y: 2116, j: 264, f: 155 } },
+    { origin: "Manila, Philippines", destination: "Monrovia Int, Liberia", distance: 14179, demand: { y: 2114, j: 245, f: 223 } },
+    { origin: "Bangkok Int, Thailand", destination: "Warsaw intl, Poland", distance: 8087, demand: { y: 2114, j: 334, f: 134 } },
+    { origin: "Minsk, Belarus", destination: "Niamey, Niger", distance: 5030, demand: { y: 2111, j: 305, f: 222 } },
+    { origin: "Vienna, Austria", destination: "Alofi, Niue", distance: 16734, demand: { y: 2111, j: 338, f: 144 } },
+    { origin: "Bujumbura, Burundi", destination: "Luqa, Malta", distance: 4622, demand: { y: 2108, j: 325, f: 165 } },
+    { origin: "Reykjavík - Keflavik, Iceland", destination: "Tashkent, Uzbekistan", distance: 6052, demand: { y: 2107, j: 370, f: 124 } },
+    { origin: "Pago Pago, American Samoa", destination: "Paro, Bhutan", distance: 11692, demand: { y: 2106, j: 396, f: 134 } },
+    { origin: "Cotonou, Benin", destination: "São Tomé, São Tomé and Principe", distance: 820, demand: { y: 2103, j: 271, f: 124 } },
+    { origin: "Belize City, Belize", destination: "Munich, Germany", distance: 9279, demand: { y: 2103, j: 290, f: 124 } },
+    { origin: "Addis Ababa, Ethiopia", destination: "Jakarta Soekarno, Indonesia", distance: 7705, demand: { y: 2101, j: 292, f: 186 } },
+    { origin: "Saint-Pierre, St Pierre and Miquelon", destination: "Vienna, Austria", distance: 5261, demand: { y: 2101, j: 260, f: 209 } },
+    { origin: "Charlotte, United States", destination: "Gaborone, Botswana", distance: 13018, demand: { y: 1063, j: 1035, f: 106 } },
+    { origin: "Nairobi Int, Kenya", destination: "Luanda, Angola", distance: 2753, demand: { y: 898, j: 1034, f: 161 } },
+    { origin: "Quito, Ecuador", destination: "Basseterre, Saint Kitts and Nevis", distance: 2587, demand: { y: 882, j: 1033, f: 165 } },
+    { origin: "Cockburn Town, Turks and Caicos", destination: "Guangzhou, China", distance: 15006, demand: { y: 661, j: 1032, f: 239 } },
+    { origin: "Minsk, Belarus", destination: "Freetown, Sierra Leone", distance: 6226, demand: { y: 671, j: 1025, f: 233 } },
+    { origin: "Ottawa intl, Canada", destination: "Luxembourg, Luxembourg", distance: 5859, demand: { y: 561, j: 1024, f: 269 } },
+    { origin: "Minsk, Belarus", destination: "Vilnius, Lithuania", distance: 197, demand: { y: 1229, j: 293, f: 543 } },
+    { origin: "Asmara, Eritrea", destination: "Paro, Bhutan", distance: 5365, demand: { y: 1178, j: 308, f: 542 } },
+    { origin: "Wallis Island, Wallis and Futuna", destination: "Luanda, Angola", distance: 17347, demand: { y: 1075, j: 237, f: 538 } },
+    { origin: "Khartoum, Sudan", destination: "Shenzhen, China", distance: 8473, demand: { y: 1073, j: 314, f: 537 } },
+    { origin: "Barcelona, Spain", destination: "Tunis, Tunisia", distance: 859, demand: { y: 1243, j: 244, f: 506 } },
+    { origin: "Grand Case, Saint Martin", destination: "Saint Martin, Sint Maarten", distance: 9, demand: { y: 1012, j: 278, f: 506 } },
+    { origin: "Zandery, Suriname", destination: "Harare, Zimbabwe", distance: 9802, demand: { y: 1089, j: 247, f: 501 } }
+];

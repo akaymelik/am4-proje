@@ -38,8 +38,8 @@ nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 2rem;
-    height: 65px;
+    padding: 0 1.5rem;
+    height: 70px;
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
@@ -49,59 +49,29 @@ nav {
 
 .nav-links {
     display: flex;
-    gap: 8px;
+    gap: 5px;
     align-items: center;
 }
 
 nav a, .nav-label {
-    padding: 8px 14px;
+    padding: 10px 15px;
     border-radius: 8px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text);
     text-decoration: none;
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 0.95rem;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
-nav a:hover, .dropdown:hover .nav-label {
+nav a:hover, .nav-label:hover {
     background: var(--primary-light);
     color: var(--primary);
 }
 
-/* --- MOD SEÇİCİ BUTONLARI (ÖZEL GÜNCELLEME) --- */
-.mode-selector {
-    display: flex;
-    gap: 5px;
-    background: var(--neutral-bg);
-    padding: 4px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-}
-
-.mode-btn {
-    padding: 6px 16px;
-    border: none;
-    border-radius: 7px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.85rem;
-    transition: all 0.2s ease;
-    background: transparent; /* Seçili değilken şeffaf */
-    color: var(--text-muted);
-}
-
-.mode-btn:hover {
-    color: var(--text);
-}
-
-.mode-btn.active {
-    background: var(--primary) !important; /* Seçilen mavi olur */
-    color: white !important;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
-}
-
-/* --- DROPDOWN --- */
+/* --- DROPDOWN SİSTEMİ --- */
 .dropdown {
     position: relative;
 }
@@ -117,12 +87,22 @@ nav a:hover, .dropdown:hover .nav-label {
     border-radius: 12px;
     box-shadow: var(--shadow-lg);
     overflow: hidden;
-    margin-top: 8px;
-    animation: menuFade 0.2s ease-out;
+    margin-top: 5px;
+    z-index: 1001;
 }
 
-.dropdown:hover .dropdown-content {
+/* Masaüstü için üzerine gelince açılma */
+@media (min-width: 769px) {
+    .dropdown:hover .dropdown-content {
+        display: block;
+        animation: menuFade 0.2s ease-out;
+    }
+}
+
+/* Mobil ve JS kontrolü için açık menü sınıfı */
+.dropdown.open .dropdown-content {
     display: block;
+    animation: menuFade 0.2s ease-out;
 }
 
 @keyframes menuFade {
@@ -134,19 +114,52 @@ nav a:hover, .dropdown:hover .nav-label {
     padding: 12px 16px;
     font-size: 0.9rem;
     display: block;
+    border-bottom: 1px solid var(--neutral-bg);
 }
 
-/* --- SAYFA YAPISI --- */
+.dropdown-content a:last-child {
+    border-bottom: none;
+}
+
+/* --- MOD SEÇİCİ (GÜNCEL: SADECE AKTİF MAVİ) --- */
+.mode-selector {
+    display: flex;
+    gap: 4px;
+    background: var(--neutral-bg);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.mode-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.8rem;
+    background: transparent; /* Seçili olmayan şeffaf */
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.mode-btn.active {
+    background: var(--primary) !important; /* Seçilen mavi */
+    color: white !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+/* --- SAYFA VE KONTEYNER --- */
 .container {
     max-width: 960px;
     margin: 2rem auto;
-    padding: 0 20px;
+    padding: 0 15px;
 }
 
 .page {
     display: none;
     background: var(--card);
-    padding: 40px;
+    padding: 30px;
     border-radius: 20px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
@@ -154,11 +167,11 @@ nav a:hover, .dropdown:hover .nav-label {
 
 .page.active {
     display: block;
-    animation: pageSlide 0.4s cubic-bezier(0, 0, 0.2, 1);
+    animation: pageSlide 0.3s ease-out;
 }
 
 @keyframes pageSlide {
-    from { opacity: 0; transform: translateY(15px); }
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -166,11 +179,10 @@ nav a:hover, .dropdown:hover .nav-label {
 label {
     display: block;
     margin-bottom: 8px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.8rem;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
 input, select {
@@ -180,88 +192,66 @@ input, select {
     border-radius: 10px;
     border: 1px solid var(--border);
     font-size: 1rem;
-    transition: all 0.2s;
+    outline: none;
+    transition: border-color 0.2s;
 }
 
 input:focus, select:focus {
-    outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
 button {
     background: var(--primary);
     color: white;
     border: none;
-    padding: 14px 24px;
+    padding: 15px;
     border-radius: 12px;
     cursor: pointer;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    font-weight: 700;
+    width: 100%;
+    transition: background 0.2s;
 }
 
 button:hover {
     background: var(--primary-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
-button:active {
-    transform: translateY(0);
-}
-
-/* --- SONUÇ KARTLARI (SUGGESTIONS) --- */
+/* --- ANALİZ KARTLARI --- */
 .result-item {
     background: white;
     border: 1px solid var(--border);
-    padding: 24px;
-    margin: 16px 0;
+    padding: 20px;
+    margin: 15px 0;
     border-radius: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
+    border-left: 5px solid var(--primary);
 }
 
-.result-item:hover {
-    transform: scale(1.01);
-    box-shadow: var(--shadow);
-    border-color: var(--primary);
-}
-
-/* --- ROTA ANALİZ KARTLARI --- */
 .route-card {
     background: white;
     border: 1px solid var(--border);
-    padding: 24px;
+    padding: 20px;
     border-radius: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 15px;
 }
 
 .suggest-badge {
-    background: white;
+    background: var(--primary-light);
     color: var(--primary);
     padding: 4px 10px;
     border-radius: 8px;
     font-weight: 700;
     font-size: 0.85rem;
     margin: 0 2px;
-    border: 1px solid var(--border);
 }
 
-/* --- DURUM KUTULARI --- */
 .status-box {
     padding: 14px;
     border-radius: 12px;
     font-weight: 700;
-    font-size: 0.9rem;
+    margin-bottom: 20px;
     text-align: center;
 }
 
@@ -269,7 +259,7 @@ button:active {
 .status-danger { background: var(--danger-bg); color: var(--danger); }
 .status-neutral { background: var(--neutral-bg); color: var(--text-muted); }
 
-/* --- MOBİL UYARLAMA --- */
+/* --- MOBİL ÖZEL AYARLAR --- */
 @media (max-width: 768px) {
     nav {
         flex-direction: column;
@@ -280,17 +270,19 @@ button:active {
     
     .nav-links {
         width: 100%;
-        overflow-x: auto;
-        padding-bottom: 5px;
+        justify-content: space-around;
+    }
+
+    .dropdown-content {
+        position: fixed;
+        top: 140px;
+        left: 5%;
+        width: 90%;
     }
 
     .result-item {
         flex-direction: column;
-        text-align: center;
         gap: 15px;
-    }
-
-    .result-item div {
-        text-align: center !important;
+        text-align: center;
     }
 }

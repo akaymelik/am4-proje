@@ -1,6 +1,6 @@
 /**
  * ui.js: Ekran geçişleri, mod yönetimi ve analiz sonuçlarının görselleştirilmesi.
- * Bu modül Logic, Utils ve Configurator ile entegre çalışır.
+ * Bu modül Logic, Utils ve Configurator ile tam entegre çalışır.
  */
 
 const UI = {
@@ -11,10 +11,14 @@ const UI = {
     showPage: function(pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         const target = document.getElementById(pageId);
-        if (target) target.classList.add('active');
+        if (target) {
+            target.classList.add('active');
+        }
         
         // Rota sayfalarındaysak seçim kutularını tazele
-        if (pageId.includes('route')) this.fillSelects();
+        if (pageId.includes('route')) {
+            this.fillSelects();
+        }
     },
 
     /**
@@ -27,9 +31,11 @@ const UI = {
         // Butonların görsel durumunu güncelle
         document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
         const activeBtn = mode === 'easy' ? document.getElementById('btn-easy') : document.getElementById('id-real');
-        if (activeBtn) activeBtn.classList.add('active');
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
 
-        // Ana sayfadaki bilgi kutusunu güncelle
+        // Ana sayfadaki bilgi kutusunu ve mod bilgisini güncelle
         const display = document.getElementById('modeDisplay');
         if (display) {
             display.innerText = mode === 'easy' 
@@ -41,8 +47,13 @@ const UI = {
         // Mod değiştiğinde eski analiz sonuçlarını temizle (Yanlış veriyi önlemek için)
         const paxRes = document.getElementById('paxRouteResult');
         const cargoRes = document.getElementById('cargoRouteResult');
+        const paxPlaneRes = document.getElementById('paxPlaneResult');
+        const cargoPlaneRes = document.getElementById('cargoPlaneResult');
+        
         if (paxRes) paxRes.innerHTML = "";
         if (cargoRes) cargoRes.innerHTML = "";
+        if (paxPlaneRes) paxPlaneRes.innerHTML = "";
+        if (cargoPlaneRes) cargoPlaneRes.innerHTML = "";
     },
 
     /**
@@ -58,8 +69,11 @@ const UI = {
         for (let name in aircraftData) {
             const plane = aircraftData[name];
             const option = new Option(name, name);
-            if (plane.type === "passenger" && paxSelect) paxSelect.add(option);
-            else if (plane.type === "cargo" && cargoSelect) cargoSelect.add(option);
+            if (plane.type === "passenger" && paxSelect) {
+                paxSelect.add(option);
+            } else if (plane.type === "cargo" && cargoSelect) {
+                cargoSelect.add(option);
+            }
         }
     },
 
@@ -67,23 +81,37 @@ const UI = {
      * Bütçeye göre en verimli uçakları listeler.
      */
     renderSuggestions: function(cat) {
-        const budget = Number(document.getElementById(cat + 'BudgetInput').value);
-        const mTrips = Number(document.getElementById(cat + 'ManualTrips').value) || null;
+        const budgetInput = document.getElementById(cat + 'BudgetInput');
+        const mTripsInput = document.getElementById(cat + 'ManualTrips');
         const resultDiv = document.getElementById(cat + 'PlaneResult');
-        if (!budget) return;
-
-        const matches = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo', mTrips);
         
+        if (!budgetInput || !budgetInput.value) return;
+
+        const budget = Number(budgetInput.value);
+        const mTrips = Number(mTripsInput.value) || null;
+        const typeKey = cat === 'pax' ? 'passenger' : 'cargo';
+
+        const matches = Logic.getBestPlanesByType(budget, typeKey, mTrips);
+        
+        if (matches.length === 0) {
+            resultDiv.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Bu bütçeye uygun uçak bulunamadı.</p>`;
+            return;
+        }
+
         resultDiv.innerHTML = matches.map(m => `
             <div class="result-item">
                 <div>
                     <strong>${m.name}</strong><br>
-                    <small style="color: var(--success); font-weight: 600;">${m.bestRouteOrigin} ➔ ${m.bestRouteName}</small><br>
+                    <small style="color: var(--success); font-weight: 600;">
+                        En Karlı Rota: ${m.bestRouteOrigin} ➔ ${m.bestRouteName}
+                    </small><br>
                     <small style="color: var(--text-muted)">Süre: ${Utils.formatDuration(m.duration)}</small>
                 </div>
                 <div style="text-align: right;">
-                    <span style="color: var(--primary); font-weight: bold;">${Utils.formatPercent(m.efficiency)} Verim</span><br>
-                    <small>${m.roi} Gün ROI</small>
+                    <span style="color: var(--primary); font-weight: bold; font-size: 1.1rem;">
+                        ${Utils.formatPercent(m.efficiency)} Verim
+                    </span><br>
+                    <small style="color: var(--text-muted);">${m.roi} Gün ROI</small>
                 </div>
             </div>
         `).join('');
@@ -96,6 +124,7 @@ const UI = {
         const select = document.getElementById(cat + 'RouteSelect');
         const mTripsInput = document.getElementById(cat + (cat === 'pax' ? 'RouteManualTrips' : 'RouteManualTrips'));
         const resultDiv = document.getElementById(cat + 'RouteResult');
+        
         const planeName = select.value;
         if (!planeName) return;
         
@@ -106,14 +135,23 @@ const UI = {
         // Logic modülü üzerinden en iyi rotaları getir
         const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, seats, mTrips);
         
-        resultDiv.innerHTML = `<h3>En Karlı Rotalar (${gameMode.toUpperCase()})</h3>` + topRoutes.map((r, i) => {
+        if (topRoutes.length === 0) {
+            resultDiv.innerHTML = `<p style="color: var(--danger); padding: 20px;">Uygun rota bulunamadı.</p>`;
+            return;
+        }
+
+        const currentMode = window.gameMode || 'easy';
+
+        resultDiv.innerHTML = `<h3>En Karlı Rotalar (${currentMode.toUpperCase()})</h3>` + topRoutes.map((r, i) => {
             const opt = (cat === 'pax') ? Configurator.calculateOptimalSeats(plane, r, mTrips) : null;
             
             return `
             <div class="route-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <strong>#${i + 1} ${r.origin} ➔ ${r.destination}</strong>
-                    <span style="color: var(--success); font-weight: 700;">${Utils.formatCurrency(r.dailyProfit)} / Gün</span>
+                    <strong style="font-size: 1.05rem;">#${i + 1} ${r.origin} ➔ ${r.destination}</strong>
+                    <span style="color: var(--success); font-weight: 700; font-size: 1.1rem;">
+                        ${Utils.formatCurrency(r.dailyProfit)} / Gün
+                    </span>
                 </div>
                 
                 ${cat === 'pax' ? `
@@ -124,19 +162,19 @@ const UI = {
 
                 <div style="background: var(--info-bg); padding: 12px; border-radius: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(37, 99, 235, 0.2);">
                     <div>
-                        <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem;">İDEAL:</span> 
+                        <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem; margin-right: 8px;">İDEAL:</span> 
                         <span class="suggest-badge" style="border:none;">Y:${opt.y}</span>
                         <span class="suggest-badge" style="border:none;">J:${opt.j}</span>
                         <span class="suggest-badge" style="border:none;">F:${opt.f}</span>
                     </div>
                     <button onclick="Configurator.applySuggestion(${opt.y}, ${opt.j}, ${opt.f})" 
-                            style="width: auto; padding: 6px 12px; margin: 0; font-size: 0.7rem; background: var(--success);">
+                            style="width: auto; padding: 6px 14px; margin: 0; font-size: 0.75rem; background: var(--success);">
                         Yükle
                     </button>
                 </div>
                 ` : `
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; padding-left: 5px;">
-                    <span style="font-weight: 700; color: var(--text);">Kargo Talebi:</span> ${r.demand.c || r.demand.y} birim
+                    <span style="font-weight: 700; color: var(--text);">Kargo Talebi:</span> ${r.demand.c || (r.demand.y * 500)} birim
                 </div>
                 `}
 
@@ -154,8 +192,13 @@ const UI = {
 /**
  * Global başlatıcılar.
  */
-window.updateCapacityCheck = function() { Configurator.updateCapacityCheck(); };
+window.updateCapacityCheck = function() { 
+    if (typeof Configurator !== 'undefined') {
+        Configurator.updateCapacityCheck(); 
+    }
+};
+
 window.onload = function() { 
     UI.fillSelects(); 
-    UI.setGameMode('easy'); // Varsayılan mod
+    UI.setGameMode('easy'); // Uygulama Easy modda başlar.
 };

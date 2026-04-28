@@ -1,14 +1,20 @@
 /**
  * logic.js: AM4 Pazar Talebi (Demand) Kısıtlamalı ve Hibrit Puanlama Destekli Hesaplama Motoru.
- * Güncelleme: Uçuş başı kâr bilgisi veri setine eklendi.
+ * Güncelleme: analyzeTopRoutesForPlane fonksiyonuna profitPerFlight verisi eklendi.
  */
 
 const Logic = {
+    /**
+     * Uçuş süresini hesaplar (Mesafe / Hız + 0.5sa Hazırlık).
+     */
     calculateFlightTime: function(distance, speed) {
         if (!speed || speed <= 0) return 0;
         return (distance / speed) + 0.5;
     },
 
+    /**
+     * Tek bir uçuşun net kârını hesaplar.
+     */
     calculateProfit: function(plane, route, seats = null, manualTrips = null) {
         const currentMode = typeof window.gameMode !== 'undefined' ? window.gameMode : 'easy';
         const multiplier = currentMode === 'easy' ? 1.1 : 1.0;
@@ -51,6 +57,9 @@ const Logic = {
         };
     },
 
+    /**
+     * Belirli bir uçak için en kârlı rotaları analiz eder.
+     */
     analyzeTopRoutesForPlane: function(planeName, limit = 10, customSeats = null, manualTrips = null) {
         const plane = aircraftData[planeName];
         if (!plane) return [];
@@ -71,7 +80,7 @@ const Logic = {
                     const dailyProfit = calculation.profitPerFlight * calculation.appliedTrips;
                     results.push({
                         ...route,
-                        profitPerFlight: calculation.profitPerFlight, // UI için eklendi
+                        profitPerFlight: calculation.profitPerFlight, // Rota kartında gösterilecek uçuş başı kâr
                         dailyProfit: dailyProfit,
                         dailyTrips: calculation.appliedTrips,
                         duration: calculation.duration,
@@ -85,6 +94,9 @@ const Logic = {
         return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
     },
 
+    /**
+     * Hibrit Puanlama Sistemi (%30 Verimlilik + %70 Günlük Kâr)
+     */
     getBestPlanesByType: function(budget, type, manualTrips = null) {
         const numericBudget = Number(budget);
         let candidates = [];
@@ -99,7 +111,7 @@ const Logic = {
                         name: name,
                         efficiency: best.efficiency,
                         dailyProfit: best.dailyProfit,
-                        profitPerFlight: best.profitPerFlight, // UI için eklendi
+                        profitPerFlight: best.profitPerFlight,
                         roi: best.roiDays,
                         duration: best.duration,
                         bestRouteOrigin: best.origin,

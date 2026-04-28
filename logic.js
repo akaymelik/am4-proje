@@ -1,18 +1,18 @@
 /**
- * logic.js: AM4 Command Center katsayıları ve verimlilik odaklı hesaplama motoru.
+ * logic.js: AM4 Topluluk Standartlarına Dayalı Gelişmiş Hesaplama Motoru
  */
 
 /**
  * 1. Uçuş Süresi Hesabı
+ * (Mesafe / Hız) + 0.5 saat operasyonel hazırlık süresi.
  */
 function calculateFlightTime(distance, speed) {
-    // AM4'te uçuş süresi: (Mesafe / Hız) + 0.5 saat (A-Check ve yer hizmetleri hazırlığı)
     return (distance / speed) + 0.5;
 }
 
 /**
  * 2. Gelişmiş Rota Bazlı Net Kâr Hesabı
- * AM4 topluluğunun kabul ettiği 1.1x bilet çarpanı ve mesafe dilimli kargo oranları kullanılmıştır.
+ * Mesafe bazlı bilet fiyatlarını ve kargo katsayılarını AM4 standartlarına göre hesaplar.
  */
 function calculateRouteProfit(plane, route) {
     let grossRevenue = 0;
@@ -20,29 +20,29 @@ function calculateRouteProfit(plane, route) {
 
     if (plane.type === "cargo") {
         /**
-         * Kargo Gelir Katsayıları (Mesafe Dilimli):
+         * Kargo Gelir Katsayıları (Mesafe Dilimli - AM4-CC Standartları):
          * 0-2000 km: 0.56 | 2000-5000 km: 0.52 | 5000+ km: 0.47
          */
         let cargoCoefficient = 0.56;
         if (dist > 5000) cargoCoefficient = 0.47;
         else if (dist > 2000) cargoCoefficient = 0.52;
 
-        // Kargo Geliri: Kapasite * Katsayı * Mesafe (Basitleştirilmiş AM4 Formülü)
+        // Kargo Geliri: Kapasite * Katsayı * (Mesafe / 100)
         grossRevenue = plane.capacity * (dist * cargoCoefficient / 100);
     } else {
         /**
-         * Yolcu (PAX) Gelir Formülü (Easy Mode + 1.1x Multiplier):
+         * Yolcu (PAX) Gelir Formülü (Easy Mode + 1.1x İdeal Fiyat):
          * İdeal Fiyat = ((0.4 * Mesafe) + 170) * 1.1
          */
         const idealPrice = ((0.4 * dist) + 170) * 1.1; 
         grossRevenue = plane.capacity * idealPrice;
     }
 
-    // Giderler: Yakıt ve Personel (AM4 Standart Gider Tahmini)
-    // Yakıt: Mesafe * Tüketim * $1.2 (Ortalama yakıt fiyatı varsayımı)
+    // Giderler: Yakıt ve Personel
+    // Yakıt: Mesafe * Tüketim * $1.2 (Ortalama yakıt fiyatı)
     const fuelCost = dist * plane.fuel_consumption * 1.2; 
     
-    // Personel: Kapasite bazlı maaş ve servis giderleri
+    // Personel: Operasyonel maliyet tahmini
     const staffCost = plane.type === "cargo" ? plane.capacity * 0.005 : plane.capacity * 2.5; 
     
     return grossRevenue - (fuelCost + staffCost);
@@ -50,6 +50,7 @@ function calculateRouteProfit(plane, route) {
 
 /**
  * 3. En Karlı Rotayı ve Verimlilik Analizini Yapma
+ * Uçağın menziline giren rotalar içinden günlük kârı en yüksek olanı bulur.
  */
 function analyzeBestRouteForPlane(planeName) {
     const plane = aircraftData[planeName];
@@ -74,7 +75,7 @@ function analyzeBestRouteForPlane(planeName) {
                         flightTime: flightTime.toFixed(1),
                         dailyTrips: dailyTrips,
                         dailyProfit: dailyProfit,
-                        // Verimlilik: Günlük Kâr / Uçak Maliyeti (Yatırım Getirisi Oranı)
+                        // Efficiency: (Günlük Kâr / Uçak Fiyatı) * 100
                         efficiency: ((dailyProfit / plane.price) * 100).toFixed(4),
                         roiDays: (plane.price / dailyProfit).toFixed(1)
                     };
@@ -101,7 +102,7 @@ function getBestPlanesByType(budget, type) {
                     name: name,
                     efficiency: parseFloat(best.efficiency),
                     roi: best.roiDays,
-                    origin: best.origin,
+                    origin: best.origin, // Kalkış şehri bilgisi UI için eklendi
                     destination: best.destination,
                     price: p.price
                 });
@@ -109,6 +110,6 @@ function getBestPlanesByType(budget, type) {
         }
     }
     
-    // Verimlilik oranına (Efficiency) göre yüksekten düşüğe sırala
+    // Verimlilik oranına göre yüksekten düşüğe (Yatırım getirisi en yüksek olan üste) sırala
     return matches.sort((a, b) => b.efficiency - a.efficiency);
 }

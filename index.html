@@ -2,28 +2,8 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AM4 Proje Merkezi</title>
-    <style>
-        :root { --primary: #e94560; --bg: #1a1a2e; --card: #16213e; --text: #ffffff; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; }
-        
-        /* Menü Tasarımı */
-        nav { background: #0f3460; padding: 15px; display: flex; justify-content: center; gap: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
-        nav a { color: white; text-decoration: none; font-weight: bold; cursor: pointer; padding: 5px 10px; border-radius: 5px; transition: 0.3s; }
-        nav a:hover { background: var(--primary); }
-
-        .container { max-width: 800px; margin: 40px auto; padding: 20px; }
-        .page { display: none; background: var(--card); padding: 30px; border-radius: 15px; animation: fadeIn 0.5s; }
-        .active { display: block; }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        h2 { color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-        .input-group { margin: 15px 0; }
-        input, select { width: 100%; padding: 12px; margin-top: 5px; border-radius: 5px; border: none; }
-        button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -31,95 +11,29 @@
     <a onclick="showPage('home')">Ana Sayfa</a>
     <a onclick="showPage('karlı-uçak')">En Karlı Uçak</a>
     <a onclick="showPage('karlı-rota')">En Karlı Rota</a>
-    <a onclick="showPage('hesaplayıcı')">Hızlı Hesapla</a>
 </nav>
 
 <div class="container">
     <div id="home" class="page active">
-        <h2>AM4 Yönetim Paneline Hoş Geldiniz</h2>
-        <p>Excel verilerinizle desteklenen interaktif analiz araçlarını kullanmak için yukarıdaki menüyü kullanın.</p>
-        <p><i>İpucu: En karlı rotayı bulmak için uçağınızı seçip bütçenizi girmeniz yeterlidir.</i></p>
+        <h2>Hoş Geldiniz</h2>
+        <p>AM4 analizleri için modüler sistem aktif.</p>
     </div>
 
     <div id="karlı-uçak" class="page">
-        <h2>Yatırım Danışmanı: En Karlı Uçak</h2>
-        <div class="input-group">
-            <label>Mevcut Bakiyeniz ($):</label>
-            <input type="number" id="budgetInput" placeholder="Örn: 50000000">
-        </div>
-        <button onclick="enKarliUcagiBul()">Uçak Önerilerini Listele</button>
+        <h2>En Karlı Uçak (ROI Bazlı)</h2>
+        <input type="number" id="budgetInput" placeholder="Bütçenizi girin">
+        <button onclick="renderPlaneSuggestions()">Analiz Et</button>
         <div id="ucakSonuc"></div>
     </div>
 
     <div id="karlı-rota" class="page">
-        <h2>Rota Optimizasyonu</h2>
-        <div class="input-group">
-            <label>Uçağınızı Seçin:</label>
-            <select id="rotaUcaks"></select>
-        </div>
-        <button onclick="enKarliRotayiBul()">En İyi Rotaları Getir</button>
-        <div id="rotaSonuc"></div>
-    </div>
-
-    <div id="hesaplayıcı" class="page">
-        <h2>Hızlı Kar Hesapla</h2>
+        <h2>En Karlı Rota</h2>
         </div>
 </div>
 
 <script src="planes.js"></script>
-<script>
-    function showPage(pageId) {
-        // Tüm sayfaları gizle
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        // Seçilen sayfayı göster
-        document.getElementById(pageId).classList.add('active');
-    }
-
-    // Planes.js'den verileri çekip menüleri doldurma
-    window.onload = () => {
-        const rotaSelect = document.getElementById('rotaUcaks');
-        for (let p in aircraftData) {
-            let opt = document.createElement('option');
-            opt.value = p;
-            opt.innerText = p;
-            rotaSelect.appendChild(opt);
-        }
-    }
-
-    function enKarliUcagiBul() {
-    const bakiye = parseFloat(document.getElementById('budgetInput').value);
-    const sonucDiv = document.getElementById('ucakSonuc');
-    
-    if (!bakiye) return alert("Lütfen bütçenizi girin!");
-
-    let oneriler = "<ul>";
-    for (let name in aircraftData) {
-        const ucak = aircraftData[name];
-        if (ucak.price <= bakiye) {
-            oneriler += `<li><strong>${name}</strong>: $${ucak.price.toLocaleString()} - Menzil: ${ucak.range}km</li>`;
-        }
-    }
-    oneriler += "</ul>";
-    sonucDiv.innerHTML = oneriler;
-}
-
-function enKarliRotayiBul() {
-    const ucakName = document.getElementById('rotaUcaks').value;
-    const ucak = aircraftData[ucakName];
-    const sonucDiv = document.getElementById('rotaSonuc');
-
-    let rotalar = "<ul>";
-    popularRoutes.forEach(route => {
-        if (route.distance <= ucak.range) {
-            // Basit Kar Hesabı: (Talep x 0.4) - (Mesafe x Yakıt x 1.5)
-            const tahminiKar = ((route.demand * 0.4 * route.distance) - (route.distance * ucak.fuel_consumption * 1.5)).toFixed(0);
-            rotalar += `<li>${route.origin} -> ${route.destination} | Mesafe: ${route.distance}km | <strong>Potansiyel Kar: $${parseInt(tahminiKar).toLocaleString()}</strong></li>`;
-        }
-    });
-    rotalar += "</ul>";
-    sonucDiv.innerHTML = rotalar;
-}
-</script>
+<script src="logic.js"></script>
+<script src="ui.js"></script>
 
 </body>
 </html>

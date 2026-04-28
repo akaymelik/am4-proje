@@ -9,9 +9,11 @@ function calculateFlightTime(distance, speed) {
 function calculateRouteProfit(plane, route) {
     let grossRevenue = 0;
     if (plane.type === "cargo") {
+        // Kargo Gelir Formülü
         const cargoRate = (route.distance * 0.0004) + 0.15;
         grossRevenue = plane.capacity * cargoRate;
     } else {
+        // Yolcu Gelir Formülü
         const ecoTicket = (route.distance * 0.4) + 150; 
         grossRevenue = plane.capacity * ecoTicket;
     }
@@ -33,6 +35,8 @@ function analyzeBestRouteForPlane(planeName) {
             const dailyTrips = Math.floor(24 / flightTime);
             if (dailyTrips > 0) {
                 const dailyProfit = profitPerFlight * dailyTrips;
+                
+                // Sadece en çok karı değil, en mantıklı günlük karı bulalım
                 if (dailyProfit > maxDailyProfit) {
                     maxDailyProfit = dailyProfit;
                     bestRoute = {
@@ -70,6 +74,6 @@ function getBestPlanesByType(budget, type) {
             }
         }
     }
-    // Verimlilik oranına göre YÜKSEKTEN DÜŞÜĞE sırala
+    // DİKKAT: Verimlilik oranına göre YÜKSEKTEN DÜŞÜĞE sırala
     return matches.sort((a, b) => b.efficiency - a.efficiency);
 }

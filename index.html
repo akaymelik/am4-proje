@@ -10,7 +10,7 @@
 </head>
 <body>
 
-<!-- Kategorize Edilmiş Yeni Navigasyon Menüsü -->
+<!-- Kategorize Edilmiş Navigasyon Menüsü -->
 <nav>
     <a onclick="showPage('home')">Ana Sayfa</a>
     
@@ -19,7 +19,7 @@
         <span class="nav-label">PAX Uçuşları</span>
         <div class="dropdown-content">
             <a onclick="showPage('pax-plane')">En Karlı Uçak</a>
-            <a onclick="showPage('pax-route')">En Karlı Rota</a>
+            <a onclick="showPage('pax-route')">En Karlı Rotalar</a>
         </div>
     </div>
 
@@ -28,7 +28,7 @@
         <span class="nav-label">Kargo Uçuşları</span>
         <div class="dropdown-content">
             <a onclick="showPage('cargo-plane')">En Karlı Uçak</a>
-            <a onclick="showPage('cargo-route')">En Karlı Rota</a>
+            <a onclick="showPage('cargo-route')">En Karlı Rotalar</a>
         </div>
     </div>
 </nav>
@@ -39,19 +39,22 @@
         <h2>AM4 Analiz Paneli</h2>
         <p>Airline Manager 4 için profesyonel analiz merkezi.</p>
         <p>Lütfen yukarıdaki menüden analiz tipini seçin (PAX veya Kargo).</p>
+        <p style="margin-top: 20px; font-size: 0.9rem; color: var(--text-muted);">
+            Sistem şu an küresel veritabanındaki yüzlerce rotayı tarayarak en yüksek verimlilik sağlayan sonuçları hesaplamaktadır.
+        </p>
     </div>
 
     <!-- PAX BÖLÜMLERİ -->
     <div id="pax-plane" class="page">
-        <h2>PAX: En Karlı Uçak (ROI)</h2>
+        <h2>PAX: En Karlı Uçak (% Verim)</h2>
         <label>Bakiyeniz ($):</label>
         <input type="number" id="paxBudgetInput" placeholder="Örn: 50000000">
-        <button onclick="renderSuggestions('pax', 'plane')">Yolcu Uçaklarını Analiz Et</button>
+        <button onclick="renderSuggestions('pax')">Yolcu Uçaklarını Analiz Et</button>
         <div id="paxPlaneResult"></div>
     </div>
 
     <div id="pax-route" class="page">
-        <h2>PAX: En Karlı Rota</h2>
+        <h2>PAX: En Karlı 10 Rota</h2>
         <label>Yolcu Uçağı Seçin:</label>
         <select id="paxRouteSelect">
             <option value="">-- Uçak Seçin --</option>
@@ -62,15 +65,15 @@
 
     <!-- KARGO BÖLÜMLERİ -->
     <div id="cargo-plane" class="page">
-        <h2>Kargo: En Karlı Uçak (ROI)</h2>
+        <h2>Kargo: En Karlı Uçak (% Verim)</h2>
         <label>Bakiyeniz ($):</label>
         <input type="number" id="cargoBudgetInput" placeholder="Örn: 100000000">
-        <button onclick="renderSuggestions('cargo', 'plane')">Kargo Uçaklarını Analiz Et</button>
+        <button onclick="renderSuggestions('cargo')">Kargo Uçaklarını Analiz Et</button>
         <div id="cargoPlaneResult"></div>
     </div>
 
     <div id="cargo-route" class="page">
-        <h2>Kargo: En Karlı Rota</h2>
+        <h2>Kargo: En Karlı 10 Rota</h2>
         <label>Kargo Uçağı Seçin:</label>
         <select id="cargoRouteSelect">
             <option value="">-- Uçak Seçin --</option>
@@ -80,8 +83,9 @@
     </div>
 </div>
 
-<!-- Gerekli JS Dosyaları -->
+<!-- Gerekli JS Dosyaları (Yükleme sırası önemlidir) -->
 <script src="planes.js"></script>
+<script src="routes.js"></script>
 <script src="logic.js"></script>
 <script src="ui.js"></script>
 

@@ -1,92 +1,89 @@
 /**
- * ui.js: Sayfa geçişleri, dinamik liste dolumu ve sonuçların ekrana basılması.
+ * ui.js: Kullanıcı arayüzü etkileşimleri, sayfa yönetimi ve veri görselleştirme.
  */
 
 /**
- * Sayfalar arası geçişi yönetir.
- * @param {string} pageId - Görüntülenecek sayfanın ID'si
+ * Sayfalar arasında geçiş yapar.
+ * @param {string} pageId - Gösterilecek sayfanın ID değeri.
  */
 function showPage(pageId) {
     // Tüm sayfaları gizle
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     
-    // Hedef sayfayı göster
+    // Hedef sayfayı aktif et
     const target = document.getElementById(pageId);
-    if (target) target.classList.add('active');
+    if (target) {
+        target.classList.add('active');
+    }
     
-    // Rota analiz sayfasına geçildiyse seçim kutularını doldur
+    // Eğer bir rota analiz sayfasına geçildiyse uçak listelerini tazele
     if (pageId.includes('route')) {
         fillRouteSelects();
     }
 }
 
 /**
- * Rota analizi için uçak seçim listelerini uçak tipine göre doldurur.
+ * Rota analizi bölümlerindeki uçak seçim kutularını (select) doldurur.
  */
 function fillRouteSelects() {
     const paxSelect = document.getElementById('paxRouteSelect');
     const cargoSelect = document.getElementById('cargoRouteSelect');
 
-    // Eğer listeler boşsa (sadece varsayılan seçenek varsa) doldur
+    // Yolcu uçaklarını doldur
     if (paxSelect && paxSelect.options.length <= 1) {
         for (let name in aircraftData) {
             if (aircraftData[name].type === "passenger") {
-                let opt = document.createElement('option');
-                opt.value = name;
-                opt.innerText = name;
-                paxSelect.appendChild(opt);
+                let opt = new Option(name, name);
+                paxSelect.add(opt);
             }
         }
     }
 
+    // Kargo uçaklarını doldur
     if (cargoSelect && cargoSelect.options.length <= 1) {
         for (let name in aircraftData) {
             if (aircraftData[name].type === "cargo") {
-                let opt = document.createElement('option');
-                opt.value = name;
-                opt.innerText = name;
-                cargoSelect.appendChild(opt);
+                let opt = new Option(name, name);
+                cargoSelect.add(opt);
             }
         }
     }
 }
 
 /**
- * Bütçeye göre en verimli uçak önerilerini listeler.
- * @param {string} category - 'pax' veya 'cargo'
+ * Bütçeye göre en verimli (Efficiency odaklı) uçak önerilerini listeler.
+ * @param {string} category - 'pax' (Yolcu) veya 'cargo' (Kargo)
  */
 function renderSuggestions(category) {
-    const typeKey = category === 'pax' ? 'passenger' : 'cargo';
-    const inputId = category === 'pax' ? 'paxBudgetInput' : 'cargoBudgetInput';
-    const resultId = category === 'pax' ? 'paxPlaneResult' : 'cargoPlaneResult';
-    
-    const budgetInput = document.getElementById(inputId);
-    const container = document.getElementById(resultId);
+    const budgetInput = document.getElementById(category + 'BudgetInput');
+    const container = document.getElementById(category + 'PlaneResult');
     
     if (!budgetInput || !budgetInput.value) {
-        return alert("Lütfen analize başlamak için bir bütçe girin!");
+        return alert("Lütfen analize başlamak için bütçenizi girin!");
     }
     
     const budget = Number(budgetInput.value);
-    // logic.js içindeki verimlilik odaklı fonksiyonu çağırıyoruz
+    const typeKey = category === 'pax' ? 'passenger' : 'cargo';
+    
+    // logic.js'den en verimli uçak listesini al
     const results = getBestPlanesByType(budget, typeKey);
     
     if (results.length === 0) {
-        container.innerHTML = "<p style='margin-top:20px; color: #64748b;'>Bu bütçeye uygun uçak bulunamadı.</p>";
+        container.innerHTML = `<p style="margin-top:20px; color: var(--text-muted);">Bu bütçeye uygun uçak bulunamadı.</p>`;
         return;
     }
 
-    // Sonuçları HTML olarak ekrana bas
+    // Sonuçları HTML olarak oluştur
     container.innerHTML = results.map(p => `
         <div class="result-item">
             <div>
-                <strong style="font-size: 1.1rem; color: #1e293b;">${p.name}</strong><br>
+                <strong style="font-size: 1.1rem; color: var(--text);">${p.name}</strong><br>
                 <small style="color: var(--success); font-weight: 600;">
                     En Karlı Rota: ${p.origin} ➔ ${p.destination}
                 </small>
             </div>
             <div style="text-align: right;">
-                <span style="color: var(--primary); font-weight: bold; font-size: 1.1rem;">%${p.efficiency.toFixed(3)} Verim</span><br>
+                <span style="color: var(--primary); font-weight: bold; font-size: 1.1rem;">%${p.efficiency} Verim</span><br>
                 <small style="color: var(--text-muted);">${p.roi} Gün Amorti</small>
             </div>
         </div>
@@ -94,56 +91,69 @@ function renderSuggestions(category) {
 }
 
 /**
- * Seçilen bir uçağın en karlı rota detaylarını gösterir.
+ * Seçilen uçak ve koltuk düzeni için en karlı 10 rotayı detaylı listeler.
  * @param {string} category - 'pax' veya 'cargo'
  */
 function renderRouteAnalysis(category) {
-    const selectId = category === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
-    const resultId = category === 'pax' ? 'paxRouteResult' : 'cargoRouteResult';
+    const selectElement = document.getElementById(category + 'RouteSelect');
+    const container = document.getElementById(category + 'RouteResult');
+    const planeName = selectElement.value;
     
-    const planeName = document.getElementById(selectId).value;
-    const container = document.getElementById(resultId);
-    
-    if (!planeName) return alert("Lütfen bir uçak seçin!");
-    
-    // logic.js içindeki rota analiz fonksiyonunu çağırıyoruz
-    const best = analyzeBestRouteForPlane(planeName);
-    
-    if (best) {
-        container.innerHTML = `
-            <div class="result-item" style="display: block; border-left: 5px solid var(--success); margin-top: 20px;">
-                <div style="margin-bottom: 15px;">
-                    <h4 style="margin: 0; color: #1e293b;">Rota: ${best.origin} ➔ ${best.destination}</h4>
-                    <small style="color: var(--text-muted);">Bu uçak için veritabanındaki en karlı sonuç.</small>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.95rem;">
-                    <span><strong>Mesafe:</strong> ${best.distance} km</span>
-                    <span><strong>Sefer Süresi:</strong> ${best.flightTime} Saat</span>
-                    <span><strong>Günlük Sefer:</strong> ${best.dailyTrips} Sefer</span>
-                    <span><strong>Günlük Net Kâr:</strong> <span style="color: var(--success); font-weight: bold;">$${parseInt(best.dailyProfit).toLocaleString()}</span></span>
-                </div>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
-                
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <small style="display: block; color: var(--text-muted);">Günlük Yatırım Verimi</small>
-                        <strong style="color: var(--primary); font-size: 1.3rem;">%${best.efficiency}</strong>
-                    </div>
-                    <div style="text-align: right;">
-                        <small style="display: block; color: var(--text-muted);">Amorti Süresi</small>
-                        <strong style="color: var(--text); font-size: 1.3rem;">${best.roiDays} GÜN</strong>
-                    </div>
-                </div>
-            </div>
-        `;
-    } else {
-        container.innerHTML = "<p style='color: #ef4444; margin-top: 20px;'>Hata: Bu uçak için rota verisi hesaplanamadı.</p>";
+    if (!planeName) {
+        return alert("Lütfen analiz edilecek bir uçak seçin!");
     }
+    
+    let customSeats = null;
+    
+    // Yolcu uçuşu ise koltuk düzenini Configurator'dan al ve kontrol et
+    if (category === 'pax') {
+        if (typeof Configurator !== 'undefined') {
+            const isCapacityOk = Configurator.updateCapacityCheck();
+            if (!isCapacityOk) {
+                return alert("Hata: Girdiğiniz koltuk sayıları uçak kapasitesini aşıyor!");
+            }
+            customSeats = Configurator.getSeatConfig();
+        }
+    }
+
+    // logic.js üzerinden en iyi 10 rotayı hesapla
+    const topRoutes = analyzeTopRoutesForPlane(planeName, 10, customSeats);
+    
+    if (topRoutes.length === 0) {
+        container.innerHTML = `<p style="color: var(--danger); margin-top: 20px;">Uçağın menziline uygun rota bulunamadı.</p>`;
+        return;
+    }
+
+    // Rota kartlarını oluştur
+    container.innerHTML = `<h3>En Karlı 10 Rota (Günlük Kar Odaklı)</h3>` + topRoutes.map((r, index) => `
+        <div class="route-card" style="border-left: 5px solid ${index === 0 ? 'var(--success)' : 'var(--border)'};">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <strong style="font-size: 1.05rem;">#${index + 1} ${r.origin} ➔ ${r.destination}</strong>
+                <span style="color: var(--success); font-weight: 700; font-size: 1.1rem;">
+                    $${Math.floor(r.dailyProfit).toLocaleString()} / Gün
+                </span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 0.85rem; color: var(--text-muted);">
+                <span><strong>Mesafe:</strong> ${r.distance} km</span>
+                <span><strong>Günlük Sefer:</strong> ${r.dailyTrips}x</span>
+                <span><strong>Yatırım Verimi:</strong> %${r.efficiency}</span>
+            </div>
+        </div>
+    `).join('');
 }
 
-// Sayfa yüklendiğinde varsayılan listeleri hazırla
+/**
+ * Koltuk inputları değiştikçe kapasite kontrolünü tetikler (Configurator ile bağlantılı).
+ */
+window.updateCapacityCheck = function() {
+    if (typeof Configurator !== 'undefined') {
+        Configurator.updateCapacityCheck();
+    }
+};
+
+/**
+ * Sayfa yüklendiğinde gerekli başlangıç ayarlarını yapar.
+ */
 window.onload = function() {
     fillRouteSelects();
 };

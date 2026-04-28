@@ -11,7 +11,7 @@
 </head>
 <body>
 
-<!-- Üst Navigasyon -->
+<!-- Üst Navigasyon Menüsü -->
 <nav>
     <a onclick="UI.showPage('home')">Ana Sayfa</a>
     
@@ -37,26 +37,26 @@
     <!-- ANA SAYFA -->
     <div id="home" class="page active">
         <h2>MENOA Strateji Merkezi</h2>
-        <p>Profesyonel AM4 veritabanı ve akıllı analiz algoritmaları.</p>
+        <p>Profesyonel AM4 veritabanı ve rota bazlı dinamik optimizasyon paneli.</p>
         
         <div class="info-box">
-            <h4 style="margin-top: 0; color: var(--primary);">Öne Çıkan Özellikler:</h4>
-            <ul style="font-size: 0.95rem; padding-left: 20px;">
-                <li><strong>Akıllı Konfigürasyon:</strong> Rota talebine göre en ideal koltuk düzenini otomatik hesaplar.</li>
-                <li><strong>Gerçek Zamanlı Süre:</strong> Uçuş sürelerini AM4 standartlarında (sa/dk) gösterir.</li>
-                <li><strong>Genişletilmiş Filo:</strong> Attığınız dosyadaki tüm uçak verileri sisteme entegre edilmiştir.</li>
-            </ul>
+            <h4 style="margin-top: 0; color: var(--primary);">Kullanım Rehberi:</h4>
+            <p style="font-size: 0.95rem; margin-bottom: 10px;">
+                1. <strong>Rota Analizi</strong> sekmesine gidin ve bir uçak seçin.<br>
+                2. <strong>Analizi Başlat</strong> butonuna basarak en kârlı rotaları listeleyin.<br>
+                3. Listelenen rotaların yanındaki <strong>"Konfigi Yükle"</strong> butonuyla uçağınızı o rotaya özel tek tıkla optimize edin.
+            </p>
         </div>
     </div>
 
-    <!-- PAX - UÇAK ÖNERİSİ -->
+    <!-- PAX - EN VERİMLİ UÇAK ÖNERİSİ -->
     <div id="pax-plane" class="page">
-        <h2>PAX: En Verimli Uçaklar</h2>
+        <h2>PAX: Bütçe Odaklı Uçak Önerileri</h2>
         <label>Yatırım Bütçeniz ($):</label>
-        <input type="number" id="paxBudgetInput" placeholder="Örn: 50000000">
+        <input type="number" id="paxBudgetInput" placeholder="Örn: 100000000">
         <label>Günlük Hedef Sefer Sayısı (Opsiyonel):</label>
-        <input type="number" id="paxManualTrips" placeholder="Boş bırakılırsa maksimum hesaplanır">
-        <button onclick="UI.renderSuggestions('pax')">Uçakları Listele</button>
+        <input type="number" id="paxManualTrips" placeholder="Boş bırakılırsa uçağın hızı belirler">
+        <button onclick="UI.renderSuggestions('pax')">Uçakları Analiz Et</button>
         <div id="paxPlaneResult"></div>
     </div>
 
@@ -74,7 +74,7 @@
 
         <!-- Koltuk Yapılandırma Paneli -->
         <div style="margin: 25px 0; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
-            <label style="margin-bottom: 15px; color: var(--text); font-weight: 700;">Koltuk Konfigürasyonu</label>
+            <label style="margin-bottom: 15px; color: var(--text); font-weight: 700;">Mevcut Yapılandırma</label>
             <div class="config-grid">
                 <div>
                     <label>Economy (Y)</label>
@@ -90,47 +90,43 @@
                 </div>
             </div>
 
-            <!-- Kapasite Durum Çubuğu -->
+            <!-- Kapasite Durum Bilgisi -->
             <div id="capacityInfo" class="status-box status-neutral">
                 Uçak seçerek başlayın.
             </div>
-
-            <!-- Akıllı Öneri Kutusu (Yeni eklendi) -->
-            <div id="optimalConfigSuggest" style="display: none; margin-top: 15px; padding: 15px; border: 1px dashed var(--success); border-radius: 8px; background: #f0fdf4;">
-                <!-- JavaScript tarafından doldurulur -->
-            </div>
         </div>
 
-        <button onclick="UI.renderRouteAnalysis('pax')">Pazar Analizini Başlat</button>
+        <button onclick="UI.renderRouteAnalysis('pax')">Rotaları ve İdeal Konfigleri Listele</button>
         <div id="paxRouteResult"></div>
     </div>
 
-    <!-- KARGO SAYFALARI (PAX ile benzer mantıkta) -->
+    <!-- KARGO - EN VERİMLİ UÇAK ÖNERİSİ -->
     <div id="cargo-plane" class="page">
-        <h2>Kargo: En Verimli Uçaklar</h2>
+        <h2>Kargo: Bütçe Odaklı Uçak Önerileri</h2>
         <label>Bütçe ($):</label>
-        <input type="number" id="cargoBudgetInput">
+        <input type="number" id="cargoBudgetInput" placeholder="Örn: 200000000">
         <label>Hedef Sefer:</label>
         <input type="number" id="cargoManualTrips">
         <button onclick="UI.renderSuggestions('cargo')">Uçakları Bul</button>
         <div id="cargoPlaneResult"></div>
     </div>
 
+    <!-- KARGO - ROTA ANALİZİ -->
     <div id="cargo-route" class="page">
         <h2>Kargo: Rota Analizi</h2>
-        <label>Kargo Uçağı:</label>
+        <label>Kargo Uçağı Seçiniz:</label>
         <select id="cargoRouteSelect">
             <option value="">-- Bir Uçak Seçin --</option>
         </select>
         <label>Hedef Sefer:</label>
         <input type="number" id="cargoRouteManualTrips">
-        <button onclick="UI.renderRouteAnalysis('cargo')">Analiz Et</button>
+        <button onclick="UI.renderRouteAnalysis('cargo')">Kârlı Rotaları Analiz Et</button>
         <div id="cargoRouteResult"></div>
     </div>
 
 </div>
 
-<!-- JavaScript Modülleri (Sıralama önemlidir) -->
+<!-- MODÜLER JAVASCRIPT DOSYALARI (Bağımlılık sırasına göre) -->
 <script src="planes.js"></script>
 <script src="routes.js"></script>
 <script src="utils.js"></script>

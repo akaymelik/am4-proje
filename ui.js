@@ -1,44 +1,29 @@
 /**
  * ui.js: Ekran geçişleri, mod yönetimi ve analiz sonuçlarının görselleştirilmesi.
- * Bu modül Logic, Utils ve Configurator modülleri ile tam entegre çalışır.
+ * Güncelleme: Hibrit puanlama (%30 Verim + %70 Kâr) arayüze entegre edildi.
  */
 
 const UI = {
     /**
      * Sayfalar arasında geçiş yapar.
-     * @param {string} pageId - Aktif edilecek sayfanın ID'si.
      */
     showPage: function(pageId) {
-        // Tüm sayfaları gizle
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        
-        // Hedef sayfayı göster
         const target = document.getElementById(pageId);
-        if (target) {
-            target.classList.add('active');
-        }
+        if (target) target.classList.add('active');
         
-        // Eğer bir analiz sayfasına geçildiyse seçim kutularını doldur
-        if (pageId.includes('route')) {
-            this.fillSelects();
-        }
+        if (pageId.includes('route')) this.fillSelects();
     },
 
     /**
      * Oyun modunu (Easy/Realism) değiştirir ve tüm sistemi günceller.
-     * @param {string} mode - 'easy' veya 'realism'
      */
     setGameMode: function(mode) {
-        window.gameMode = mode; // Global değişkeni güncelle
-        
-        // Butonların görsel durumunu güncelle
+        window.gameMode = mode; 
         document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
         const activeBtn = mode === 'easy' ? document.getElementById('btn-easy') : document.getElementById('id-real');
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-        }
+        if (activeBtn) activeBtn.classList.add('active');
 
-        // Ana sayfadaki bilgi kutusunu ve mod metnini güncelle
         const display = document.getElementById('modeDisplay');
         if (display) {
             display.innerText = mode === 'easy' 
@@ -47,16 +32,15 @@ const UI = {
             display.className = "status-box " + (mode === 'easy' ? "status-success" : "status-danger");
         }
 
-        // Mod değiştiğinde eski analiz sonuçlarını temizle
-        const results = ['paxRouteResult', 'cargoRouteResult', 'paxPlaneResult', 'cargoPlaneResult'];
-        results.forEach(id => {
+        // Mod değiştiğinde eski sonuçları temizle
+        ['paxRouteResult', 'cargoRouteResult', 'paxPlaneResult', 'cargoPlaneResult'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = "";
         });
     },
 
     /**
-     * Uçak seçim listelerini planes.js verileriyle doldurur.
+     * Seçim listelerini doldurur.
      */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
@@ -68,17 +52,13 @@ const UI = {
         for (let name in aircraftData) {
             const plane = aircraftData[name];
             const option = new Option(name, name);
-            if (plane.type === "passenger" && paxSelect) {
-                paxSelect.add(option);
-            } else if (plane.type === "cargo" && cargoSelect) {
-                cargoSelect.add(option);
-            }
+            if (plane.type === "passenger" && paxSelect) paxSelect.add(option);
+            else if (plane.type === "cargo" && cargoSelect) cargoSelect.add(option);
         }
     },
 
     /**
-     * Bütçeye göre en verimli uçakları listeler.
-     * "Nereden Nereye" tam rota bilgisini içerir.
+     * Hibrit puanlamaya göre uçak önerilerini listeler.
      */
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
@@ -91,24 +71,30 @@ const UI = {
         const mTrips = Number(mTripsInput.value) || null;
         const typeKey = cat === 'pax' ? 'passenger' : 'cargo';
 
+        // Logic modülünden hibrit skorlu adayları getir
         const matches = Logic.getBestPlanesByType(budget, typeKey, mTrips);
         
         if (matches.length === 0) {
-            resultDiv.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Bu bütçeye uygun kârlı bir uçak bulunamadı.</p>`;
+            resultDiv.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Uygun uçak bulunamadı.</p>`;
             return;
         }
 
-        resultDiv.innerHTML = matches.map(m => `
-            <div class="result-item">
-                <div>
-                    <strong>${m.name}</strong><br>
-                    <small style="color: var(--success); font-weight: 600;">
-                        En Karlı Rota: ${m.bestRouteOrigin} ➔ ${m.bestRouteName}
-                    </small><br>
-                    <small style="color: var(--text-muted)">Süre: ${Utils.formatDuration(m.duration)}</small>
+        resultDiv.innerHTML = matches.map((m, index) => `
+            <div class="result-item" style="border-left: 5px solid ${index === 0 ? 'var(--success)' : 'var(--primary)'}">
+                <div style="flex: 2;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <strong style="font-size: 1.1rem;">${m.name}</strong>
+                        <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;">
+                            Skor: %${(m.finalScore * 100).toFixed(0)}
+                        </span>
+                    </div>
+                    <small style="color: var(--success); font-weight: 600; display: block; margin-top: 4px;">
+                        Rota: ${m.bestRouteOrigin} ➔ ${m.bestRouteName}
+                    </small>
+                    <small style="color: var(--text-muted)">Günlük Kâr: <strong>${Utils.formatCurrency(m.dailyProfit)}</strong></small>
                 </div>
-                <div style="text-align: right;">
-                    <span style="color: var(--primary); font-weight: bold; font-size: 1.1rem;">
+                <div style="text-align: right; flex: 1;">
+                    <span style="color: var(--primary); font-weight: bold; font-size: 1rem;">
                         ${Utils.formatPercent(m.efficiency)} Verim
                     </span><br>
                     <small style="color: var(--text-muted);">${m.roi} Gün ROI</small>
@@ -118,7 +104,7 @@ const UI = {
     },
 
     /**
-     * Seçilen uçak için rota analizini, talepleri ve ideal koltuk önerilerini listeler.
+     * Rota analizini ve ideal koltukları gösterir.
      */
     renderRouteAnalysis: function(cat) {
         const select = document.getElementById(cat + 'RouteSelect');
@@ -132,53 +118,41 @@ const UI = {
         const mTrips = Number(mTripsInput.value) || null;
         let seats = cat === 'pax' ? Configurator.getSeatConfig() : null;
 
-        // Logic modülü üzerinden en iyi rotaları getir
         const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, seats, mTrips);
-        
-        if (topRoutes.length === 0) {
-            resultDiv.innerHTML = `<p style="color: var(--danger); padding: 20px;">Uygun rota bulunamadı.</p>`;
-            return;
-        }
-
         const currentMode = window.gameMode || 'easy';
 
-        resultDiv.innerHTML = `<h3>En Karlı Rotalar (${currentMode.toUpperCase()})</h3>` + topRoutes.map((r, i) => {
+        resultDiv.innerHTML = `<h3 style="margin: 15px 0;">En Karlı Rotalar (${currentMode.toUpperCase()})</h3>` + topRoutes.map((r, i) => {
             const opt = (cat === 'pax') ? Configurator.calculateOptimalSeats(plane, r, mTrips) : null;
             
             return `
             <div class="route-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <strong style="font-size: 1.1rem;">#${i + 1} ${r.origin} ➔ ${r.destination}</strong>
-                    <span style="color: var(--success); font-weight: 700; font-size: 1.1rem;">
+                    <strong style="font-size: 1rem;">#${i + 1} ${r.origin} ➔ ${r.destination}</strong>
+                    <span style="color: var(--success); font-weight: 700;">
                         ${Utils.formatCurrency(r.dailyProfit)} / Gün
                     </span>
                 </div>
                 
                 ${cat === 'pax' ? `
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; padding-left: 5px;">
-                    <span style="font-weight: 700; color: var(--text);">Pazar Talebi:</span>
-                    Y:${r.demand.y} | J:${r.demand.j} | F:${r.demand.f}
-                </div>
-
-                <div style="background: var(--info-bg); padding: 12px 15px; border-radius: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(37, 99, 235, 0.15);">
+                <div style="background: var(--info-bg); padding: 12px; border-radius: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(37, 99, 235, 0.1);">
                     <div>
-                        <span style="color: var(--primary); font-weight: 800; font-size: 0.85rem; margin-right: 8px;">İDEAL DİZİLİM:</span> 
-                        <span class="suggest-badge" style="border:none; padding:0 5px; background:transparent;">Y:${opt.y}</span>
-                        <span class="suggest-badge" style="border:none; padding:0 5px; background:transparent;">J:${opt.j}</span>
-                        <span class="suggest-badge" style="border:none; padding:0 5px; background:transparent;">F:${opt.f}</span>
+                        <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem; margin-right: 8px;">İDEAL:</span> 
+                        <span class="suggest-badge" style="border:none;">Y:${opt.y}</span>
+                        <span class="suggest-badge" style="border:none;">J:${opt.j}</span>
+                        <span class="suggest-badge" style="border:none;">F:${opt.f}</span>
                     </div>
                     <button onclick="Configurator.applySuggestion(${opt.y}, ${opt.j}, ${opt.f})" 
-                            style="width: auto; padding: 6px 14px; margin: 0; font-size: 0.75rem; background: var(--success); box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);">
-                        Konfigi Yükle
+                            style="width: auto; padding: 6px 12px; margin: 0; font-size: 0.7rem; background: var(--success);">
+                        Yükle
                     </button>
                 </div>
                 ` : `
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; padding-left: 5px;">
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
                     <span style="font-weight: 700; color: var(--text);">Kargo Talebi:</span> ${r.demand.c || (r.demand.y * 500)} birim
                 </div>
                 `}
 
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 10px;">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 10px;">
                     <span><strong>Mesafe:</strong> ${r.distance}km</span>
                     <span><strong>Süre:</strong> ${Utils.formatDuration(r.duration)}</span>
                     <span><strong>Sefer:</strong> ${r.dailyTrips}x</span>
@@ -190,15 +164,13 @@ const UI = {
 };
 
 /**
- * Global başlatıcılar ve Pencere (Window) bağlantıları.
+ * Global başlatıcılar.
  */
 window.updateCapacityCheck = function() { 
-    if (typeof Configurator !== 'undefined') {
-        Configurator.updateCapacityCheck(); 
-    }
+    if (typeof Configurator !== 'undefined') Configurator.updateCapacityCheck(); 
 };
 
 window.onload = function() { 
     UI.fillSelects(); 
-    UI.setGameMode('easy'); // Uygulama varsayılan olarak Easy modda başlar.
+    UI.setGameMode('easy'); 
 };

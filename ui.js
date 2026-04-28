@@ -1,110 +1,104 @@
+/**
+ * logic.js: PAX ve Kargo uçuşları için matematiksel hesaplamalar ve analizler.
+ */
 
-
-function showPage(pageId) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    const target = document.getElementById(pageId);
-    if (target) target.classList.add('active');
-    
-    if (pageId.includes('route')) {
-        fillRouteSelects();
-    }
+/**
+ * 1. Uçuş Süresi Hesabı
+ * Mesafeyi uçağın hızına böler ve üzerine 30 dakika hazırlık süresi ekler.
+ */
+function calculateFlightTime(distance, speed) {
+    return (distance / speed) + 0.5;
 }
 
-function fillRouteSelects() {
-    const paxSelect = document.getElementById('paxRouteSelect');
-    const cargoSelect = document.getElementById('cargoRouteSelect');
+/**
+ * 2. Rota Bazlı Net Kâr Hesabı
+ * Uçak tipine (Yolcu/Kargo) göre farklı gelir modelleri kullanır.
+ */
+function calculateRouteProfit(plane, route) {
+    let grossRevenue = 0;
 
-    if (paxSelect && paxSelect.options.length <= 1) {
-        for (let name in aircraftData) {
-            if (aircraftData[name].type === "passenger") {
-                let opt = document.createElement('option');
-                opt.value = name;
-                opt.innerText = name;
-                paxSelect.appendChild(opt);
-            }
-        }
-    }
-
-    if (cargoSelect && cargoSelect.options.length <= 1) {
-        for (let name in aircraftData) {
-            if (aircraftData[name].type === "cargo") {
-                let opt = document.createElement('option');
-                opt.value = name;
-                opt.innerText = name;
-                cargoSelect.appendChild(opt);
-            }
-        }
-    }
-}
-
-function renderSuggestions(category, subType) {
-    const typeKey = category === 'pax' ? 'passenger' : 'cargo';
-    const inputId = category === 'pax' ? 'paxBudgetInput' : 'cargoBudgetInput';
-    const resultId = category === 'pax' ? 'paxPlaneResult' : 'cargoPlaneResult';
-    
-    const budgetInput = document.getElementById(inputId);
-    const container = document.getElementById(resultId);
-    
-    if (!budgetInput || !budgetInput.value) return alert("Lütfen bütçenizi girin!");
-    
-    // Bütçeyi sayıya çevirip gönderiyoruz
-    const budget = Number(budgetInput.value);
-    const results = getBestPlanesByType(budget, typeKey);
-    
-    if (results.length === 0) {
-        container.innerHTML = "<p style='margin-top:20px; color:#64748b;'>Bu bütçeye uygun sonuç bulunamadı.</p>";
-        return;
-    }
-
-    container.innerHTML = results.map(p => `
-        <div class="result-item">
-            <div>
-                <strong style="font-size: 1.1rem;">${p.name}</strong><br>
-                <small style="color: var(--success); font-weight: 600;">
-                    En İyi Rota: ${p.origin} ➔ ${p.destination}
-                </small>
-            </div>
-            <div style="text-align: right;">
-                <span style="color: var(--primary); font-weight: bold; font-size: 1.1rem;">${p.roi} Gün</span><br>
-                <small style="color: var(--text-muted);">$${p.price.toLocaleString()}</small>
-            </div>
-        </div>
-    `).join('');
-}
-
-function renderRouteAnalysis(category) {
-    const selectId = category === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
-    const resultId = category === 'pax' ? 'paxRouteResult' : 'cargoRouteResult';
-    
-    const planeName = document.getElementById(selectId).value;
-    const container = document.getElementById(resultId);
-    
-    if (!planeName) return alert("Lütfen bir uçak seçin!");
-    
-    const best = analyzeBestRouteForPlane(planeName);
-    
-    if (best) {
-        container.innerHTML = `
-            <div class="result-item" style="display: block; border-left: 5px solid var(--success); margin-top: 20px;">
-                <h4 style="margin-bottom: 15px;">${best.origin} ➔ ${best.destination}</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.95rem;">
-                    <span><strong>Mesafe:</strong> ${best.distance} km</span>
-                    <span><strong>Uçuş Süresi:</strong> ${best.flightTime} Saat</span>
-                    <span><strong>Günlük Sefer:</strong> ${best.dailyTrips} Uçuş</span>
-                    <span><strong>Günlük Net Kâr:</strong> <span style="color: var(--success); font-weight: bold;">$${parseInt(best.dailyProfit).toLocaleString()}</span></span>
-                </div>
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
-                <div style="text-align: center;">
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Amorti Süresi (ROI)</span><br>
-                    <strong style="color: var(--primary); font-size: 1.4rem;">${best.roiDays} GÜN</strong>
-                </div>
-            </div>
-        `;
+    if (plane.type === "cargo") {
+        // Kargo Gelir Formülü: (Mesafe tabanlı oran + sabit) * Lbs Kapasitesi
+        const cargoRate = (route.distance * 0.0004) + 0.15;
+        grossRevenue = plane.capacity * cargoRate;
     } else {
-        container.innerHTML = "<p style='color: #ef4444; margin-top: 20px;'>Uygun rota bulunamadı.</p>";
+        // Yolcu Gelir Formülü: (Mesafe tabanlı bilet fiyatı) * Yolcu Kapasitesi
+        const ecoTicket = (route.distance * 0.4) + 150; 
+        grossRevenue = plane.capacity * ecoTicket;
     }
+
+    // Giderler: Yakıt maliyeti (Mesafe * Tüketim * Yakıt Çarpanı)
+    const fuelCost = route.distance * plane.fuel_consumption * 1.5; 
+    
+    // Personel Gideri: Yolcu uçağında kişi başı, kargo uçağında kapasiteye oranla küçük miktar
+    const staffCost = plane.type === "cargo" ? plane.capacity * 0.005 : plane.capacity * 2; 
+    
+    return grossRevenue - (fuelCost + staffCost);
 }
 
-window.onload = function() {
-    fillRouteSelects();
-};
+/**
+ * 3. Belirli Bir Uçak İçin En Karlı Rotayı Bulma
+ * Veritabanındaki rotaları tarayarak uçağın menziline uyan en kârlı olanı seçer.
+ */
+function analyzeBestRouteForPlane(planeName) {
+    const plane = aircraftData[planeName];
+    if (!plane) return null;
+
+    let bestRoute = null;
+    let maxDailyProfit = 0;
+
+    popularRoutes.forEach(route => {
+        // Menzil kontrolü
+        if (route.distance <= plane.range) {
+            const profitPerFlight = calculateRouteProfit(plane, route);
+            const flightTime = calculateFlightTime(route.distance, plane.cruise_speed);
+            
+            // 24 saatte kaç uçuş yapılabileceği
+            const dailyTrips = Math.floor(24 / flightTime);
+            if (dailyTrips > 0) {
+                const dailyProfit = profitPerFlight * dailyTrips;
+
+                if (dailyProfit > maxDailyProfit) {
+                    maxDailyProfit = dailyProfit;
+                    bestRoute = {
+                        ...route,
+                        flightTime: flightTime.toFixed(1),
+                        dailyTrips: dailyTrips,
+                        dailyProfit: dailyProfit,
+                        // ROI (Amorti Süresi) sayısal değer olarak saklanır
+                        roiDays: parseFloat((plane.price / dailyProfit).toFixed(2))
+                    };
+                }
+            }
+        }
+    });
+    return bestRoute;
+}
+
+/**
+ * 4. Bütçeye ve Uçuş Tipine Göre Uçak Önerileri
+ * Kullanıcının girdiği bütçe ve seçtiği tipe (PAX/Kargo) göre listeleme yapar.
+ */
+function getBestPlanesByType(budget, type) {
+    const numericBudget = Number(budget);
+    let matches = [];
+    
+    for (let name in aircraftData) {
+        const p = aircraftData[name];
+        // Bütçe ve tip kontrolü
+        if (p.price <= numericBudget && p.type === type) {
+            const bestRouteInfo = analyzeBestRouteForPlane(name);
+            if (bestRouteInfo) {
+                matches.push({
+                    name: name,
+                    roi: bestRouteInfo.roiDays,
+                    origin: bestRouteInfo.origin,
+                    destination: bestRouteInfo.destination,
+                    price: p.price
+                });
+            }
+        }
+    }
+    // En düşük ROI (en hızlı kazanç) olanı başa getir
+    return matches.sort((a, b) => a.roi - b.roi);
+}

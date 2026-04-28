@@ -1,6 +1,7 @@
 /**
  * planes.js: ucak.docx dosyasındaki tüm uçakları içeren tam liste.
  * Kapasiteler: Yolcu uçakları için PAX, Kargo uçakları için H Cargo sütunu baz alınmıştır.
+ * Güncelleme: Mükerrer kayıtlar temizlendi.
  */
 
 const aircraftData = {

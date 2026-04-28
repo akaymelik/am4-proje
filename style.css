@@ -22,7 +22,8 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent; /* Mobil tıklama efektini temizle */
+    /* iPhone/Mobil cihazlarda tıklama sırasında çıkan mavi gölgeyi temizler */
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -55,14 +56,14 @@ nav {
 }
 
 nav a, .nav-label {
-    padding: 10px 12px;
+    padding: 10px 15px;
     border-radius: 8px;
     font-weight: 600;
     color: var(--text);
     text-decoration: none;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     user-select: none;
 }
 
@@ -82,7 +83,7 @@ nav a:hover, .nav-label:hover {
     top: 100%;
     left: 0;
     background: var(--card);
-    min-width: 200px;
+    min-width: 220px;
     border: 1px solid var(--border);
     border-radius: 12px;
     box-shadow: var(--shadow-lg);
@@ -91,7 +92,7 @@ nav a:hover, .nav-label:hover {
     z-index: 1001;
 }
 
-/* Masaüstü Hover Desteği */
+/* Masaüstü için üzerine gelince açılma (hover) */
 @media (min-width: 769px) {
     .dropdown:hover .dropdown-content {
         display: block;
@@ -99,7 +100,7 @@ nav a:hover, .nav-label:hover {
     }
 }
 
-/* Mobil ve JS ile açılan menü durumu */
+/* Mobil ve JS ile tetiklenen açık menü sınıfı */
 .dropdown.open .dropdown-content {
     display: block;
     animation: menuFade 0.2s ease-out;
@@ -112,12 +113,16 @@ nav a:hover, .nav-label:hover {
 
 .dropdown-content a {
     padding: 12px 16px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     display: block;
     border-bottom: 1px solid var(--neutral-bg);
 }
 
-/* --- MOD SEÇİCİ (Görsel Düzeltme) --- */
+.dropdown-content a:last-child {
+    border-bottom: none;
+}
+
+/* --- MOD SEÇİCİ (DÜZELTME: SADECE AKTİF MAVİ) --- */
 .mode-selector {
     display: flex;
     gap: 4px;
@@ -134,13 +139,13 @@ nav a:hover, .nav-label:hover {
     cursor: pointer;
     font-weight: 700;
     font-size: 0.8rem;
-    background: transparent; /* Seçili olmayan butonlar şeffaf */
+    background: transparent; /* Seçili olmayanlar şeffaf */
     color: var(--text-muted);
     transition: all 0.2s ease;
 }
 
 .mode-btn.active {
-    background: var(--primary) !important; /* Sadece seçili olan mavi */
+    background: var(--primary) !important; /* Seçilen mod belirgin mavi olur */
     color: white !important;
     box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
@@ -176,10 +181,9 @@ label {
     display: block;
     margin-bottom: 8px;
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
 input, select {
@@ -189,26 +193,23 @@ input, select {
     border-radius: 10px;
     border: 1px solid var(--border);
     font-size: 1rem;
-    background: var(--bg);
     outline: none;
     transition: all 0.2s;
 }
 
 input:focus, select:focus {
     border-color: var(--primary);
-    background: white;
-    box-shadow: 0 0 0 4px var(--primary-light);
+    box-shadow: 0 0 0 3px var(--primary-light);
 }
 
 button {
     background: var(--primary);
     color: white;
     border: none;
-    padding: 14px 20px;
+    padding: 15px;
     border-radius: 12px;
     cursor: pointer;
     font-weight: 700;
-    font-size: 1rem;
     width: 100%;
     transition: all 0.2s;
 }
@@ -228,11 +229,7 @@ button:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: transform 0.2s;
-}
-
-.result-item:hover {
-    transform: scale(1.01);
+    border-left: 5px solid var(--primary);
 }
 
 .route-card {
@@ -249,7 +246,7 @@ button:hover {
     padding: 4px 10px;
     border-radius: 8px;
     font-weight: 700;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     margin: 0 2px;
 }
 
@@ -257,9 +254,8 @@ button:hover {
     padding: 14px;
     border-radius: 12px;
     font-weight: 700;
-    font-size: 0.85rem;
-    text-align: center;
     margin-bottom: 20px;
+    text-align: center;
 }
 
 .status-success { background: var(--success-bg); color: var(--success); }
@@ -278,7 +274,6 @@ button:hover {
     .nav-links {
         width: 100%;
         justify-content: space-around;
-        flex-wrap: wrap;
     }
 
     .dropdown-content {
@@ -286,23 +281,13 @@ button:hover {
         top: 140px;
         left: 5%;
         width: 90%;
-        max-height: 50vh;
+        max-height: 60vh;
         overflow-y: auto;
-    }
-
-    .container {
-        margin: 1rem auto;
     }
 
     .result-item {
         flex-direction: column;
         text-align: center;
         gap: 15px;
-    }
-
-    .result-item div {
-        text-align: center !important;
-        border-left: none !important;
-        padding-left: 0 !important;
     }
 }

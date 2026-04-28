@@ -1,33 +1,19 @@
-/**
- * ui.js: Sayfa geçişleri ve verilerin ekrana yazdırılması.
- */
 
-/**
- * Sayfalar arası geçişi yönetir.
- * @param {string} pageId - Görüntülenecek sayfanın ID'si
- */
+
 function showPage(pageId) {
-    // Tüm sayfaları gizle
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    
-    // Hedef sayfayı göster
     const target = document.getElementById(pageId);
     if (target) target.classList.add('active');
     
-    // Rota sayfalarından birine geçilirse seçim listelerini doldur
     if (pageId.includes('route')) {
         fillRouteSelects();
     }
 }
 
-/**
- * Rota analizi için uçak seçim listelerini (select) doldurur.
- */
 function fillRouteSelects() {
     const paxSelect = document.getElementById('paxRouteSelect');
     const cargoSelect = document.getElementById('cargoRouteSelect');
 
-    // Eğer listeler henüz dolmamışsa (sadece varsayılan seçenek varsa) doldur
     if (paxSelect && paxSelect.options.length <= 1) {
         for (let name in aircraftData) {
             if (aircraftData[name].type === "passenger") {
@@ -51,10 +37,6 @@ function fillRouteSelects() {
     }
 }
 
-/**
- * Bütçeye göre en karlı uçak önerilerini listeler.
- * @param {string} category - 'pax' veya 'cargo'
- */
 function renderSuggestions(category, subType) {
     const typeKey = category === 'pax' ? 'passenger' : 'cargo';
     const inputId = category === 'pax' ? 'paxBudgetInput' : 'cargoBudgetInput';
@@ -65,8 +47,8 @@ function renderSuggestions(category, subType) {
     
     if (!budgetInput || !budgetInput.value) return alert("Lütfen bütçenizi girin!");
     
-    const budget = parseFloat(budgetInput.value);
-    // logic.js'deki fonksiyonu çağırıyoruz
+    // Bütçeyi sayıya çevirip gönderiyoruz
+    const budget = Number(budgetInput.value);
     const results = getBestPlanesByType(budget, typeKey);
     
     if (results.length === 0) {
@@ -90,10 +72,6 @@ function renderSuggestions(category, subType) {
     `).join('');
 }
 
-/**
- * Seçilen bir uçağın en karlı rotasını detaylandırır.
- * @param {string} category - 'pax' veya 'cargo'
- */
 function renderRouteAnalysis(category) {
     const selectId = category === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
     const resultId = category === 'pax' ? 'paxRouteResult' : 'cargoRouteResult';
@@ -103,7 +81,6 @@ function renderRouteAnalysis(category) {
     
     if (!planeName) return alert("Lütfen bir uçak seçin!");
     
-    // logic.js'deki analiz fonksiyonunu çağırıyoruz
     const best = analyzeBestRouteForPlane(planeName);
     
     if (best) {
@@ -124,11 +101,10 @@ function renderRouteAnalysis(category) {
             </div>
         `;
     } else {
-        container.innerHTML = "<p style='margin-top:20px; color:#ef4444;'>Bu uçak için uygun rota bulunamadı (Menzil yetersiz olabilir).</p>";
+        container.innerHTML = "<p style='color: #ef4444; margin-top: 20px;'>Uygun rota bulunamadı.</p>";
     }
 }
 
-// Sayfa ilk yüklendiğinde seçim listelerini hazırla
 window.onload = function() {
     fillRouteSelects();
 };

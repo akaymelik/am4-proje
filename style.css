@@ -69,6 +69,38 @@ nav a:hover, .dropdown:hover .nav-label {
     color: var(--primary);
 }
 
+/* --- MOD SEÇİCİ BUTONLARI (ÖZEL GÜNCELLEME) --- */
+.mode-selector {
+    display: flex;
+    gap: 5px;
+    background: var(--neutral-bg);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.mode-btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    background: transparent; /* Seçili değilken şeffaf */
+    color: var(--text-muted);
+}
+
+.mode-btn:hover {
+    color: var(--text);
+}
+
+.mode-btn.active {
+    background: var(--primary) !important; /* Seçilen mavi olur */
+    color: white !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
 /* --- DROPDOWN --- */
 .dropdown {
     position: relative;
@@ -204,17 +236,6 @@ button:active {
     border-color: var(--primary);
 }
 
-.score-badge {
-    display: inline-block;
-    background: var(--primary);
-    color: white;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-}
-
 /* --- ROTA ANALİZ KARTLARI --- */
 .route-card {
     background: white;
@@ -222,17 +243,6 @@ button:active {
     padding: 24px;
     border-radius: 16px;
     margin-bottom: 16px;
-}
-
-.config-highlight {
-    background: var(--primary-light);
-    border: 1px solid rgba(37, 99, 235, 0.2);
-    padding: 15px;
-    border-radius: 12px;
-    margin: 15px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
 
 .suggest-badge {
@@ -274,14 +284,6 @@ button:active {
         padding-bottom: 5px;
     }
 
-    .container {
-        margin: 1rem auto;
-    }
-
-    .page {
-        padding: 25px 20px;
-    }
-
     .result-item {
         flex-direction: column;
         text-align: center;
@@ -290,10 +292,5 @@ button:active {
 
     .result-item div {
         text-align: center !important;
-    }
-
-    .config-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
     }
 }

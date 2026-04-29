@@ -24,14 +24,14 @@
             <span class="nav-label" onclick="UI.toggleDropdown('paxDrop')">Yolcu ▾</span>
             <div class="dropdown-content">
                 <a onclick="UI.showPage('pax-plane')">Uçak Önerileri</a>
-                <a onclick="UI.showPage('pax-route')">Rota & Koltuk Analizi</a>
+                <a onclick="UI.showPage('pax-route')">Rota & Analiz</a>
             </div>
         </div>
         <div class="dropdown" id="cargoDrop">
             <span class="nav-label" onclick="UI.toggleDropdown('cargoDrop')">Kargo ▾</span>
             <div class="dropdown-content">
                 <a onclick="UI.showPage('cargo-plane')">Uçak Önerileri</a>
-                <a onclick="UI.showPage('cargo-route')">Rota & Yük Analizi</a>
+                <a onclick="UI.showPage('cargo-route')">Rota & Analiz</a>
             </div>
         </div>
     </div>
@@ -48,7 +48,7 @@
         <p style="margin: 20px 0; color: var(--text-muted);">AM4 pazar verilerini Melik Akay stratejileriyle analiz eden profesyonel filo yönetim aracı.</p>
     </div>
 
-    <!-- YOLCU UÇAK -->
+    <!-- Yolcu Sayfaları -->
     <div id="pax-plane" class="page">
         <h2>Yolcu: Bütçe Odaklı Öneriler</h2>
         <label>Yatırım Bütçeniz ($):</label>
@@ -57,7 +57,6 @@
         <div id="paxPlaneResult"></div>
     </div>
 
-    <!-- YOLCU ROTA -->
     <div id="pax-route" class="page">
         <h2>Yolcu: Rota & Koltuk Analizi</h2>
         <label>Uçak Seçiniz:</label>
@@ -74,7 +73,7 @@
         <div id="paxRouteResult"></div>
     </div>
 
-    <!-- KARGO UÇAK -->
+    <!-- Kargo Sayfaları -->
     <div id="cargo-plane" class="page">
         <h2>Kargo: Bütçe Odaklı Öneriler</h2>
         <label>Yatırım Bütçeniz ($):</label>
@@ -83,7 +82,6 @@
         <div id="cargoPlaneResult"></div>
     </div>
 
-    <!-- KARGO ROTA -->
     <div id="cargo-route" class="page">
         <h2>Kargo: Rota & Yük Analizi</h2>
         <label>Uçak Seçiniz:</label>
@@ -100,11 +98,10 @@
     </div>
 
     <footer class="main-footer">
-        <p>© 2024 AM4 Strateji Merkezi. Tüm hakları saklıdır. <strong>By Melik akay</strong></p>
+        <p>© 2024 AM4 Strateji Merkezi. <strong>By Melik akay</strong></p>
     </footer>
 </div>
 
-<!-- JS Dosyalarını Doğru Sırayla Yüklüyoruz -->
 <script src="planes.js"></script>
 <script src="routes.js"></script>
 <script src="utils.js"></script>
@@ -113,11 +110,10 @@
 <script src="ui.js"></script>
 
 <script>
-    // Açılış Animasyonu Yönetimi
     window.onload = () => {
         setTimeout(() => {
             document.getElementById('splash-screen').classList.add('hidden');
-        }, 2000);
+        }, 1500);
     };
 </script>
 

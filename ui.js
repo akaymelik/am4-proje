@@ -1,11 +1,12 @@
 /**
- * ui.js: AM4 Strateji Merkezi Arayüz ve AI Motoru Bağlantısı.
- * GÜNCELLEME: Worker adresi 'ai.airm4.workers.dev' olarak güncellendi.
+ * ui.js: AM4 Strateji Merkezi Arayüz.
+ * Güncelleme: Worker URL adresi 'ai.airm4.workers.dev' olarak güncellendi.
+ * Bağlantı: Gemini 2.5 Flash Motoru ile tam uyumlu.
  */
 
 const UI = {
     /**
-     * Sayfa değiştirme yönetimi.
+     * Sayfa değiştirme ve navigasyon yönetimi.
      */
     showPage: function(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -14,12 +15,16 @@ const UI = {
         
         UI.closeAllDropdowns();
         
+        // Rota sayfalarında uçak listelerini doldur
         if (id.includes('route')) {
             UI.fillSelects();
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
+    /**
+     * Dropdown (Açılır Menü) yönetimi.
+     */
     toggleDropdown: function(id) {
         const el = document.getElementById(id);
         if (!el) return;
@@ -32,6 +37,9 @@ const UI = {
         document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
     },
 
+    /**
+     * Oyun modunu (Easy/Realism) ayarlar.
+     */
     setGameMode: function(mode) {
         window.gameMode = mode;
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -45,6 +53,9 @@ const UI = {
         }
     },
 
+    /**
+     * Uçak seçim kutularını doldurur.
+     */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
         const cargoSelect = document.getElementById('cargoRouteSelect');
@@ -65,10 +76,10 @@ const UI = {
     },
 
     /**
-     * Yapay Zeka Analiz Talebi
+     * Gemini Yapay Zekasına (ai.airm4.workers.dev) analiz talebi gönderir.
      */
     askGemini: async function(planeName, routeData) {
-        // KESİN DÜZELTME: Senin görselindeki aktif adres budur
+        // AKTİF WORKER ADRESİN
         const workerUrl = "https://ai.airm4.workers.dev/";
         
         const resultArea = document.getElementById('aiResultArea');
@@ -91,11 +102,10 @@ const UI = {
                 })
             });
 
-            // Yanıtı al
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.text || "Motor yanıt vermedi.");
+                throw new Error(data.text || "Yapay zeka motoruna bağlanılamadı.");
             }
             
             resultArea.innerHTML = `
@@ -105,7 +115,7 @@ const UI = {
                         <h4 style="margin:0; color:var(--primary); font-weight:800;">MENOA AI ANALİZİ</h4>
                     </div>
                     <div style="font-size:0.9rem; line-height:1.7; color:var(--text);">
-                        ${(data.text || "Analiz oluşturulamadı.").replace(/\n/g, '<br>')}
+                        ${(data.text || "Analiz raporu oluşturulamadı.").replace(/\n/g, '<br>')}
                     </div>
                 </div>`;
             resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -120,6 +130,9 @@ const UI = {
         }
     },
 
+    /**
+     * Bütçeye göre en verimli uçakları listeler.
+     */
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
         const budget = Number(budgetInput?.value);
@@ -151,6 +164,9 @@ const UI = {
         `).join('');
     },
 
+    /**
+     * Belirli bir uçak için tüm rotaları analiz eder.
+     */
     renderRouteAnalysis: function(cat) {
         const selectId = cat === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
         const resultId = cat === 'pax' ? 'paxRouteResult' : 'cargoRouteResult';
@@ -195,6 +211,9 @@ const UI = {
     }
 };
 
+/**
+ * Global tıklama dinleyicisi: Dropdown dışına tıklandığında menüleri kapatır.
+ */
 document.addEventListener('click', e => {
     if (!e.target.closest('.dropdown')) UI.closeAllDropdowns();
 });

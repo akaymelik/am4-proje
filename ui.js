@@ -1,6 +1,6 @@
 /**
  * ui.js: MENOA AI Arayüz, Sohbet ve Analiz Yönetimi.
- * Özellikler: Daktilo efekti, Tam Rota Gösterimi, ReferenceError Fix.
+ * Özellikler: Daktilo efekti, ReferenceError Fix, Dinamik Rota Gösterimi.
  * Bağlantı: https://ai.airm4.workers.dev/
  */
 
@@ -21,6 +21,9 @@ const UI = {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
+    /**
+     * Açılır menü (Dropdown) kontrolü.
+     */
     toggleDropdown: function(id) {
         const el = document.getElementById(id);
         if (!el) return;
@@ -50,7 +53,7 @@ const UI = {
     },
 
     /**
-     * Uçak seçim kutularını doldurur.
+     * Uçak seçim kutularını verilerle doldurur.
      */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
@@ -72,7 +75,7 @@ const UI = {
     },
 
     /**
-     * Daktilo (Typewriter) Efekti: Yazıların akarak gelmesini sağlar.
+     * Daktilo (Typewriter) Efekti: Metni karakter karakter ekrana basar.
      */
     typeEffect: function(element, text, speed = 10) {
         if (!element) return;
@@ -82,7 +85,7 @@ const UI = {
             if (i < text.length) {
                 element.innerHTML += text.charAt(i) === "\n" ? "<br>" : text.charAt(i);
                 i++;
-                // Uzun yazılarda otomatik aşağı kaydırma (Chat için)
+                // Otomatik aşağı kaydırma (Chat penceresi için)
                 const chatBody = document.getElementById('chat-body');
                 if (chatBody && element.closest('#chat-body')) {
                     chatBody.scrollTop = chatBody.scrollHeight;
@@ -94,14 +97,14 @@ const UI = {
     },
 
     /**
-     * Rota Analizi için AI talebi gönderir.
+     * Gemini AI'dan rota analizi talep eder.
      */
     askGemini: async function(planeName, routeData) {
         const workerUrl = "https://ai.airm4.workers.dev/";
         const resultArea = document.getElementById('aiResultArea');
         if (!resultArea) return;
 
-        resultArea.innerHTML = '<div id="aiLoader">🤖 MENOA Stratejileri Analiz Ediyor...</div>';
+        resultArea.innerHTML = '<div id="aiLoader">🤖 MENOA Analiz Yapıyor...</div>';
 
         try {
             const response = await fetch(workerUrl, {
@@ -119,11 +122,11 @@ const UI = {
             
             resultArea.innerHTML = `
                 <div class="ai-report-card">
-                    <h4 style="margin-bottom:10px; color:var(--primary);">🤖 MENOA AI ANALİZİ</h4>
-                    <div id="typingAnalysis" style="font-size:0.9rem; line-height:1.6;"></div>
+                    <h4 style="color:var(--primary); margin-bottom:10px;">🤖 MENOA AI ANALİZİ</h4>
+                    <div id="typingArea" style="font-size:0.9rem; line-height:1.6;"></div>
                 </div>`;
             
-            this.typeEffect(document.getElementById('typingAnalysis'), data.text);
+            this.typeEffect(document.getElementById('typingArea'), data.text);
             resultArea.scrollIntoView({ behavior: 'smooth' });
 
         } catch (error) {
@@ -132,7 +135,7 @@ const UI = {
     },
 
     /**
-     * Bütçeye göre en verimli uçakları listeler.
+     * Bütçeye göre en iyi uçakları ve tam rotalarını listeler.
      */
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
@@ -143,18 +146,20 @@ const UI = {
         const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo');
         
         resultDiv.innerHTML = bestPlanes.map(p => `
-            <div class="plane-item">
+            <div class="plane-item" style="background:white; border:1px solid var(--border); padding:15px; border-radius:12px; margin-bottom:10px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <strong>${p.name}</strong>
                     <span style="color:var(--primary); font-weight:800;">${Utils.formatPercent(p.efficiency)} Verim</span>
                 </div>
-                <small style="color:var(--success); font-weight:600;">En Karlı Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}</small>
+                <small style="color:var(--success); font-weight:600; display:block; margin-top:5px;">
+                    En Karlı Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}
+                </small>
             </div>
         `).join('');
     },
 
     /**
-     * Belirli bir uçak için kârlı rotaları listeler.
+     * Seçilen uçak için rota seçeneklerini listeler.
      */
     renderRouteAnalysis: function(cat) {
         const selectId = cat === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
@@ -163,25 +168,34 @@ const UI = {
         const resultDiv = document.getElementById(resultId);
         if (!planeName) return;
 
-        resultDiv.innerHTML = `<div id="aiResultArea"></div><h3>En Karlı Rotalar</h3>`;
+        resultDiv.innerHTML = `<div id=\"aiResultArea\"></div><h3>En Karlı Rotalar</h3>`;
         const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 12);
+        
         topRoutes.forEach((r, i) => {
             const card = document.createElement('div');
             card.className = 'route-card';
+            card.style = "background:white; border:1px solid var(--border); padding:15px; border-radius:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;";
             card.innerHTML = `
-                <strong>#${i + 1} ${r.origin} ➔ ${r.destination}</strong> 
-                <div style="color:var(--success); font-weight:700;">${Utils.formatCurrency(r.dailyProfit)}/G.</div>
-                <button class="ai-btn-small" onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/\"/g, '&quot;')})">🤖 AI</button>`;
+                <div>
+                    <strong>#${i + 1} ${r.origin} ➔ ${r.destination}</strong><br>
+                    <small style="color:var(--success); font-weight:700;">${Utils.formatCurrency(r.dailyProfit)} / Gün</small>
+                </div>
+                <button onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/\"/g, '&quot;')})" style="width:auto; padding:8px 15px; font-size:0.8rem;">🤖 AI</button>`;
             resultDiv.appendChild(card);
         });
     }
 };
 
-/** --- SOHBET MODÜLÜ (CHAT) --- */
+/** --- AI SOHBET MODÜLÜ (CHAT) --- */
 const Chat = {
     toggle: function() {
         const win = document.getElementById('chat-window');
-        if (win) win.classList.toggle('chat-hidden');
+        if (win) {
+            win.classList.toggle('chat-hidden');
+            if (!win.classList.contains('chat-hidden')) {
+                document.getElementById('chatInput')?.focus();
+            }
+        }
     },
 
     addMessage: function(text, sender) {
@@ -216,12 +230,12 @@ const Chat = {
             const data = await response.json();
             this.addMessage(data.text || "Yanıt alınamadı.", 'ai');
         } catch (e) {
-            this.addMessage("⚠️ Hata: Motor yanıt vermiyor.", 'ai');
+            this.addMessage("⚠️ Bağlantı hatası: Motor yanıt vermiyor.", 'ai');
         }
     }
 };
 
-// MODÜLLERİ GLOBALE BAĞLA (index.html'den erişim hatalarını önlemek için)
+// MODÜLLERİ GLOBALE BAĞLA (ReferenceError Fix)
 window.UI = UI;
 window.Chat = Chat;
 

@@ -38,7 +38,7 @@
             <span class="nav-label" onclick="UI.toggleDropdown('cargoDrop')">Kargo ▾</span>
             <div class="dropdown-content">
                 <a onclick="UI.showPage('cargo-plane')">Uçak Önerileri</a>
-                <a onclick="UI.showPage('cargo-route')">Rota Analizi</a>
+                <a onclick="UI.showPage('cargo-route')">Rota & Yük Analizi</a>
             </div>
         </div>
     </div>
@@ -54,12 +54,12 @@
     
     <!-- ANA SAYFA -->
     <div id="home" class="page active">
-        <h2 style="font-size: 2rem; margin-bottom: 10px;">Hoş Geldiniz</h2>
+        <h2 style="font-size: 2rem; margin-bottom: 10px;">MENOA Strateji Merkezi</h2>
         <div id="modeDisplay" class="status-box status-danger">
             Aktif Mod: Realism
         </div>
         <p style="margin: 20px 0; color: var(--text-muted);">
-            AM4 dünyasında en kârlı rotaları ve verimli uçakları bulmanız için tasarlanmış profesyonel analiz motoru.
+            AM4 dünyasında en kârlı rotaları, verimli uçakları ve ideal konfigürasyonları bulmanız için tasarlanmış profesyonel analiz motoru.
         </p>
         
         <div class="info-box" style="background: var(--primary-light); padding: 20px; border-radius: 15px; border: 1px solid rgba(37, 99, 235, 0.1);">
@@ -74,7 +74,7 @@
 
     <!-- YOLCU: UÇAK ÖNERİLERİ -->
     <div id="pax-plane" class="page">
-        <h2>Yolcu: Bütçe Odaklı Uçak Önerileri</h2>
+        <h2>Yolcu: Bütçe Odaklı Öneriler</h2>
         <label>Yatırım Bütçeniz ($):</label>
         <input type="number" id="paxBudgetInput" placeholder="Örn: 50000000">
         <label>Hedef Günlük Sefer (Opsiyonel):</label>
@@ -108,7 +108,7 @@
 
     <!-- KARGO: UÇAK ÖNERİLERİ -->
     <div id="cargo-plane" class="page">
-        <h2>Kargo: Bütçe Odaklı Uçak Önerileri</h2>
+        <h2>Kargo: Bütçe Odaklı Öneriler</h2>
         <label>Yatırım Bütçeniz ($):</label>
         <input type="number" id="cargoBudgetInput" placeholder="Örn: 100000000">
         <label>Hedef Günlük Sefer (Opsiyonel):</label>
@@ -117,7 +117,7 @@
         <div id="cargoPlaneResult"></div>
     </div>
 
-    <!-- KARGO: ROTA ANALİZİ (YENİLENMİŞ) -->
+    <!-- KARGO: ROTA VE YÜK ANALİZİ -->
     <div id="cargo-route" class="page">
         <h2>Kargo: Rota & Yük Analizi</h2>
         <label>Uçak Seçiniz:</label>
@@ -126,7 +126,6 @@
         <label>Hedef Günlük Sefer:</label>
         <input type="number" id="cargoRouteManualTrips" placeholder="Hıza göre otomatik hesaplanır">
 
-        <!-- Kargo Yük Yapılandırma Alanı -->
         <div style="margin: 20px 0; background: var(--neutral-bg); padding: 20px; border-radius: 15px; border: 1px solid var(--border);">
             <label style="margin-bottom: 10px; color: var(--text); font-weight: 800;">Kargo Yapılandırması (L + H)</label>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">

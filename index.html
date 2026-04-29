@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MENOA AI - Strateji</title>
+    <title>MENOA AI - AM4 Strateji Merkezi</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<!-- Splash Screen (Giriş Ekranı) -->
 <div id="splash-screen">
     <div class="splash-content">
         <h1 class="splash-logo">MENOA</h1>
@@ -17,11 +18,13 @@
     </div>
 </div>
 
+<!-- Navigasyon -->
 <nav>
     <div class="nav-links">
         <a onclick="UI.showPage('home')" style="font-weight: 800; color: var(--primary); cursor:pointer; font-size: 1.2rem; letter-spacing: -1px;">
             MENOA <span style="color: var(--secondary); font-weight: 400; font-size: 0.8rem; letter-spacing: 0;">AI</span>
         </a>
+        
         <div class="dropdown" id="paxDrop">
             <span class="nav-label" onclick="UI.toggleDropdown('paxDrop')">Yolcu ▾</span>
             <div class="dropdown-content">
@@ -29,6 +32,7 @@
                 <a onclick="UI.showPage('pax-route')">Rota & Analiz</a>
             </div>
         </div>
+        
         <div class="dropdown" id="cargoDrop">
             <span class="nav-label" onclick="UI.toggleDropdown('cargoDrop')">Kargo ▾</span>
             <div class="dropdown-content">
@@ -37,6 +41,7 @@
             </div>
         </div>
     </div>
+    
     <div class="mode-selector">
         <button id="btn-easy" class="mode-btn" onclick="UI.setGameMode('easy')">Easy</button>
         <button id="id-real" class="mode-btn active" onclick="UI.setGameMode('realism')">Realism</button>
@@ -44,13 +49,16 @@
 </nav>
 
 <div class="container">
+    <!-- ANA SAYFA -->
     <div id="home" class="page active">
         <h2>MENOA Strateji Merkezi</h2>
         <div id="modeDisplay" class="status-box status-danger">Aktif Mod: Realism</div>
-        <p style="margin: 20px 0; color: var(--text-muted);">AM4 pazar verilerini Gemini 2.5 Flash mimarisiyle analiz eden profesyonel filo yönetim aracı.</p>
+        <p style="margin: 20px 0; color: var(--text-muted);">
+            Airline Manager 4 pazar verilerini Gemini 2.5 Flash mimarisiyle işleyen profesyonel filo yönetim aracı.
+        </p>
     </div>
 
-    <!-- Sayfaların Diğer Bölümleri Buraya Gelecek -->
+    <!-- YOLCU UÇAK ÖNERİLERİ -->
     <div id="pax-plane" class="page">
         <h2>Yolcu: Bütçe Odaklı Öneriler</h2>
         <label>Yatırım Bütçeniz ($):</label>
@@ -59,13 +67,48 @@
         <div id="paxPlaneResult"></div>
     </div>
 
+    <!-- YOLCU ROTA ANALİZİ -->
     <div id="pax-route" class="page">
         <h2>Yolcu: Rota & Koltuk Analizi</h2>
         <label>Uçak Seçiniz:</label>
         <select id="paxRouteSelect" onchange="Configurator.updateCapacityCheck()"></select>
-        <div id="capacityInfo" class="status-box status-neutral">Lütfen uçak seçin.</div>
+        
+        <div style="margin: 20px 0; background: var(--neutral-bg); padding: 20px; border-radius: 15px; border: 1px solid var(--border);">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <div><label>Eco</label><input type="number" id="seatsY" value="0" oninput="Configurator.updateCapacityCheck()"></div>
+                <div><label>Bus</label><input type="number" id="seatsJ" value="0" oninput="Configurator.updateCapacityCheck()"></div>
+                <div><label>First</label><input type="number" id="seatsF" value="0" oninput="Configurator.updateCapacityCheck()"></div>
+            </div>
+            <div id="capacityInfo" class="status-box status-neutral">Lütfen uçak seçin.</div>
+        </div>
         <button onclick="UI.renderRouteAnalysis('pax')">Rotaları Analiz Et</button>
         <div id="paxRouteResult"></div>
+    </div>
+
+    <!-- KARGO UÇAK ÖNERİLERİ -->
+    <div id="cargo-plane" class="page">
+        <h2>Kargo: Bütçe Odaklı Öneriler</h2>
+        <label>Yatırım Bütçeniz ($):</label>
+        <input type="number" id="cargoBudgetInput" placeholder="Örn: 100000000">
+        <button onclick="UI.renderSuggestions('cargo')">Uçakları Listele</button>
+        <div id="cargoPlaneResult"></div>
+    </div>
+
+    <!-- KARGO ROTA ANALİZİ -->
+    <div id="cargo-route" class="page">
+        <h2>Kargo: Rota & Yük Analizi</h2>
+        <label>Uçak Seçiniz:</label>
+        <select id="cargoRouteSelect" onchange="Configurator.updateCapacityCheck()"></select>
+        
+        <div style="margin: 20px 0; background: var(--neutral-bg); padding: 20px; border-radius: 15px; border: 1px solid var(--border);">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                <div><label>Hafif (L)</label><input type="number" id="cargoL" value="0" oninput="Configurator.updateCapacityCheck()"></div>
+                <div><label>Ağır (H)</label><input type="number" id="cargoH" value="0" oninput="Configurator.updateCapacityCheck()"></div>
+            </div>
+            <div id="cargoCapacityInfo" class="status-box status-neutral">Lütfen uçak seçin.</div>
+        </div>
+        <button onclick="UI.renderRouteAnalysis('cargo')">Rotaları Analiz Et</button>
+        <div id="cargoRouteResult"></div>
     </div>
 
     <footer class="main-footer">
@@ -73,6 +116,7 @@
     </footer>
 </div>
 
+<!-- AI Chat Widget -->
 <div id="ai-chat-widget">
     <div id="chat-window" class="chat-hidden">
         <div class="chat-header">
@@ -90,6 +134,7 @@
     </button>
 </div>
 
+<!-- Dosyalar -->
 <script src="planes.js"></script>
 <script src="routes.js"></script>
 <script src="utils.js"></script>
@@ -99,8 +144,15 @@
 
 <script>
     window.onload = () => {
-        setTimeout(() => document.getElementById('splash-screen').classList.add('hidden'), 1200);
-        Chat.addMessage("Selam Melik! Bugün filonu nasıl geliştirelim?", "ai");
+        // Splash screen'i kaldır
+        setTimeout(() => {
+            document.getElementById('splash-screen').classList.add('hidden');
+        }, 1200);
+        
+        // İlk mesajı daktilo efektiyle gönder
+        setTimeout(() => {
+            Chat.addMessage("Selam Melik! Bugün filonu nasıl geliştirelim?", "ai");
+        }, 2000);
     };
 </script>
 

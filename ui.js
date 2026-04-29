@@ -15,7 +15,7 @@ const UI = {
         
         UI.closeAllDropdowns();
         
-        // Rota sayfaları açıldığında listeleri tazele
+        // Rota sayfaları açıldığında uçak listelerini tazele
         if (id && id.includes('route')) {
             UI.fillSelects();
         }
@@ -38,7 +38,7 @@ const UI = {
     },
 
     /**
-     * Oyun modunu (Easy/Realism) ayarlar.
+     * Oyun modunu (Easy/Realism) ayarlar ve UI'ı günceller.
      */
     setGameMode: function(mode) {
         window.gameMode = mode;
@@ -56,7 +56,7 @@ const UI = {
     },
 
     /**
-     * Uçak seçim kutularını verilerle doldurur.
+     * Uçak seçim kutularını (select) verilerle doldurur.
      */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
@@ -78,7 +78,7 @@ const UI = {
     },
 
     /**
-     * Daktilo (Typewriter) Efekti: Metni karakter karakter ekrana basar.
+     * Daktilo (Typewriter) Efekti: Yapay zeka yanıtlarını karakter karakter basar.
      */
     typeEffect: function(element, text, speed = 10) {
         if (!element) return;
@@ -88,7 +88,7 @@ const UI = {
             if (i < text.length) {
                 element.innerHTML += text.charAt(i) === "\n" ? "<br>" : text.charAt(i);
                 i++;
-                // Chat penceresi için otomatik aşağı kaydırma
+                // Chat penceresi içindeyse aşağı kaydır
                 const chatBody = document.getElementById('chat-body');
                 if (chatBody && element.closest('#chat-body')) {
                     chatBody.scrollTop = chatBody.scrollHeight;
@@ -100,7 +100,7 @@ const UI = {
     },
 
     /**
-     * Gemini AI'dan rota analizi talep eder.
+     * Gemini AI'dan detaylı rota analizi talep eder.
      */
     askGemini: async function(planeName, routeData) {
         const workerUrl = "https://ai.airm4.workers.dev/";
@@ -133,17 +133,18 @@ const UI = {
             resultArea.scrollIntoView({ behavior: 'smooth' });
 
         } catch (error) {
-            resultArea.innerHTML = `<div class="status-box status-danger">Hata: ${error.message}</div>`;
+            resultArea.innerHTML = `<div class="status-box status-danger">Hata: Motor şu an meşgul.</div>`;
         }
     },
 
     /**
-     * Bütçeye göre en iyi uçakları ve tam rotalarını listeler.
+     * Bütçeye göre en verimli uçakları ve rotalarını listeler.
      */
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
         const budget = Number(budgetInput?.value);
         const resultDiv = document.getElementById(cat + 'PlaneResult');
+        
         if (!budget || budget <= 0) {
             if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Lütfen geçerli bir bütçe giriniz.</div>';
             return;
@@ -173,7 +174,7 @@ const UI = {
     },
 
     /**
-     * Seçilen uçak için rota seçeneklerini listeler.
+     * Seçilen uçak için en kârlı rotaları ve ideal konfigleri listeler.
      */
     renderRouteAnalysis: function(cat) {
         const selectId = cat === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
@@ -203,7 +204,7 @@ const UI = {
                     </div>
                     <div class="route-stats">
                         <div class="profit-val">${Utils.formatCurrency(r.dailyProfit)}/G</div>
-                        <div class="efficiency-tag">Yatırım Verimi: ${Utils.formatPercent(r.efficiency)}</div>
+                        <div class="efficiency-tag">Verim: ${Utils.formatPercent(r.efficiency)}</div>
                     </div>
                 </div>
                 <div class="suggestion-bar">
@@ -221,7 +222,7 @@ const UI = {
     }
 };
 
-/** --- AI SOHBET MODÜLÜ (CHAT) --- */
+/** --- AI SOHBET MODÜLÜ (CHAT WIDGET) --- */
 const Chat = {
     toggle: function() {
         const win = document.getElementById('chat-window');
@@ -265,16 +266,16 @@ const Chat = {
             const data = await response.json();
             this.addMessage(data.text || "Yanıt alınamadı.", 'ai');
         } catch (e) {
-            this.addMessage("⚠️ Hata: Motor yanıt vermiyor.", 'ai');
+            this.addMessage("⚠️ Hata: Motor şu an yanıt vermiyor.", 'ai');
         }
     }
 };
 
-// MODÜLLERİ GLOBALE BAĞLA (ReferenceError Fix)
+// MODÜLLERİ GLOBALE BAĞLA
 window.UI = UI;
 window.Chat = Chat;
 
-// Global tıklama dinleyicisi: Menü dışına tıklandığında dropdownları kapatır.
+// Menü dışına tıklandığında dropdownları kapatan dinleyici
 document.addEventListener('click', e => {
     if (!e.target.closest('.dropdown')) UI.closeAllDropdowns();
 });

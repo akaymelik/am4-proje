@@ -1,16 +1,23 @@
 /**
  * ui.js: MENOA AI Arayüz, Sohbet ve Analiz Yönetimi.
- * Özellikler: Daktilo efekti, İmzasız mesajlar, Akıllı UI geçişleri.
+ * Özellikler: Daktilo efekti, Tam Rota Gösterimi, ReferenceError Fix.
  * Bağlantı: https://ai.airm4.workers.dev/
  */
 
 const UI = {
+    /**
+     * Sayfa değiştirme ve navigasyon yönetimi.
+     */
     showPage: function(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         const targetPage = document.getElementById(id);
         if (targetPage) targetPage.classList.add('active');
+        
         UI.closeAllDropdowns();
-        if (id.includes('route')) UI.fillSelects();
+        
+        if (id && id.includes('route')) {
+            UI.fillSelects();
+        }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
@@ -26,11 +33,15 @@ const UI = {
         document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
     },
 
+    /**
+     * Oyun modunu (Easy/Realism) ayarlar.
+     */
     setGameMode: function(mode) {
         window.gameMode = mode;
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
         const activeBtn = mode === 'easy' ? document.getElementById('btn-easy') : document.getElementById('id-real');
         if (activeBtn) activeBtn.classList.add('active');
+        
         const display = document.getElementById('modeDisplay');
         if (display) {
             display.innerText = "Aktif Mod: " + (mode === 'easy' ? "Easy (1.1x)" : "Realism (1.0x)");
@@ -38,15 +49,20 @@ const UI = {
         }
     },
 
+    /**
+     * Uçak seçim kutularını doldurur.
+     */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
         const cargoSelect = document.getElementById('cargoRouteSelect');
+        
         if (paxSelect) {
             paxSelect.innerHTML = '<option value="">-- Uçak Seçiniz --</option>';
             for (let name in aircraftData) {
                 if (aircraftData[name].type === "passenger") paxSelect.add(new Option(name, name));
             }
         }
+        
         if (cargoSelect) {
             cargoSelect.innerHTML = '<option value="">-- Uçak Seçiniz --</option>';
             for (let name in aircraftData) {
@@ -56,14 +72,36 @@ const UI = {
     },
 
     /**
-     * Rota Analizi - Daktilo Efektli
+     * Daktilo (Typewriter) Efekti: Yazıların akarak gelmesini sağlar.
+     */
+    typeEffect: function(element, text, speed = 10) {
+        if (!element) return;
+        let i = 0;
+        element.innerHTML = "";
+        const timer = setInterval(() => {
+            if (i < text.length) {
+                element.innerHTML += text.charAt(i) === "\n" ? "<br>" : text.charAt(i);
+                i++;
+                // Uzun yazılarda otomatik aşağı kaydırma (Chat için)
+                const chatBody = document.getElementById('chat-body');
+                if (chatBody && element.closest('#chat-body')) {
+                    chatBody.scrollTop = chatBody.scrollHeight;
+                }
+            } else {
+                clearInterval(timer);
+            }
+        }, speed);
+    },
+
+    /**
+     * Rota Analizi için AI talebi gönderir.
      */
     askGemini: async function(planeName, routeData) {
         const workerUrl = "https://ai.airm4.workers.dev/";
         const resultArea = document.getElementById('aiResultArea');
         if (!resultArea) return;
 
-        resultArea.innerHTML = '<div id="aiLoader">🤖 MENOA Verileri İşliyor...</div>';
+        resultArea.innerHTML = '<div id="aiLoader">🤖 MENOA Stratejileri Analiz Ediyor...</div>';
 
         try {
             const response = await fetch(workerUrl, {
@@ -81,52 +119,43 @@ const UI = {
             
             resultArea.innerHTML = `
                 <div class="ai-report-card">
-                    <h4 style="margin:0 0 10px 0; color:var(--primary); font-weight:800;">🤖 MENOA AI ANALİZİ</h4>
-                    <div id="typingAnalysis" style="font-size:0.9rem; line-height:1.6; color:var(--text);"></div>
+                    <h4 style="margin-bottom:10px; color:var(--primary);">🤖 MENOA AI ANALİZİ</h4>
+                    <div id="typingAnalysis" style="font-size:0.9rem; line-height:1.6;"></div>
                 </div>`;
             
             this.typeEffect(document.getElementById('typingAnalysis'), data.text);
             resultArea.scrollIntoView({ behavior: 'smooth' });
 
         } catch (error) {
-            resultArea.innerHTML = `<div class="status-box status-danger">Bağlantı Hatası: ${error.message}</div>`;
+            resultArea.innerHTML = `<div class="status-box status-danger">Hata: ${error.message}</div>`;
         }
     },
 
     /**
-     * Daktilo Efekti Fonksiyonu
+     * Bütçeye göre en verimli uçakları listeler.
      */
-    typeEffect: function(element, text) {
-        let i = 0;
-        element.innerHTML = "";
-        const timer = setInterval(() => {
-            if (i < text.length) {
-                element.innerHTML += text.charAt(i) === "\n" ? "<br>" : text.charAt(i);
-                i++;
-                if (i % 5 === 0) window.scrollBy(0, 1);
-            } else {
-                clearInterval(timer);
-            }
-        }, 15);
-    },
-
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
         const budget = Number(budgetInput?.value);
         const resultDiv = document.getElementById(cat + 'PlaneResult');
         if (!budget || budget <= 0) return;
+
         const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo');
+        
         resultDiv.innerHTML = bestPlanes.map(p => `
             <div class="plane-item">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <strong>${p.name}</strong>
                     <span style="color:var(--primary); font-weight:800;">${Utils.formatPercent(p.efficiency)} Verim</span>
                 </div>
-                <small style="color:var(--success); font-weight:600;">Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}</small>
+                <small style="color:var(--success); font-weight:600;">En Karlı Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}</small>
             </div>
         `).join('');
     },
 
+    /**
+     * Belirli bir uçak için kârlı rotaları listeler.
+     */
     renderRouteAnalysis: function(cat) {
         const selectId = cat === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
         const resultId = cat === 'pax' ? 'paxRouteResult' : 'cargoRouteResult';
@@ -148,7 +177,7 @@ const UI = {
     }
 };
 
-/** --- SOHBET MODÜLÜ --- */
+/** --- SOHBET MODÜLÜ (CHAT) --- */
 const Chat = {
     toggle: function() {
         const win = document.getElementById('chat-window');
@@ -163,16 +192,7 @@ const Chat = {
         body.appendChild(msgDiv);
 
         if (sender === 'ai') {
-            let i = 0;
-            const timer = setInterval(() => {
-                if (i < text.length) {
-                    msgDiv.innerHTML += text.charAt(i) === "\n" ? "<br>" : text.charAt(i);
-                    i++;
-                    body.scrollTop = body.scrollHeight;
-                } else {
-                    clearInterval(timer);
-                }
-            }, 10);
+            UI.typeEffect(msgDiv, text, 12);
         } else {
             msgDiv.innerText = text;
             body.scrollTop = body.scrollHeight;
@@ -196,14 +216,16 @@ const Chat = {
             const data = await response.json();
             this.addMessage(data.text || "Yanıt alınamadı.", 'ai');
         } catch (e) {
-            this.addMessage("⚠️ Bağlantı hatası.", 'ai');
+            this.addMessage("⚠️ Hata: Motor yanıt vermiyor.", 'ai');
         }
     }
 };
 
+// MODÜLLERİ GLOBALE BAĞLA (index.html'den erişim hatalarını önlemek için)
 window.UI = UI;
 window.Chat = Chat;
 
+// Global tıklama dinleyicisi: Menü dışına tıklandığında dropdownları kapatır.
 document.addEventListener('click', e => {
     if (!e.target.closest('.dropdown')) UI.closeAllDropdowns();
 });

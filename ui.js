@@ -1,7 +1,6 @@
 /**
- * ui.js: MENOA AI Arayüz, Sohbet ve Analiz Yönetimi.
- * Özellikler: Daktilo efekti, Premium UI Kartları, Konfigürasyon Aktarımı.
- * Bağlantı: https://ai.airm4.workers.dev/
+ * ui.js: MENOA AI Arayüz ve Sohbet Yönetimi.
+ * GÜNCELLEME: Master ROI göstergeleri ve AI Rota Analizi desteği eklendi.
  */
 
 const UI = {
@@ -15,7 +14,7 @@ const UI = {
         
         UI.closeAllDropdowns();
         
-        // Rota sayfaları açıldığında uçak listelerini tazele
+        // Rota sayfaları açıldığında uçak listelerini doldur
         if (id && id.includes('route')) {
             UI.fillSelects();
         }
@@ -38,7 +37,7 @@ const UI = {
     },
 
     /**
-     * Oyun modunu (Easy/Realism) ayarlar ve UI'ı günceller.
+     * Oyun modunu (Easy/Realism) ayarlar.
      */
     setGameMode: function(mode) {
         window.gameMode = mode;
@@ -50,13 +49,13 @@ const UI = {
         
         const display = document.getElementById('modeDisplay');
         if (display) {
-            display.innerText = "Aktif Mod: " + (mode === 'easy' ? "Easy (1.1x)" : "Realism (1.0x)");
+            display.innerText = "Aktif Mod: " + (mode === 'easy' ? "Easy (Master)" : "Realism (1.0x)");
             display.className = "status-box " + (mode === 'easy' ? "status-success" : "status-danger");
         }
     },
 
     /**
-     * Uçak seçim kutularını (select) verilerle doldurur.
+     * Uçak seçim kutularını verilerle doldurur.
      */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
@@ -78,7 +77,7 @@ const UI = {
     },
 
     /**
-     * Daktilo (Typewriter) Efekti: Yapay zeka yanıtlarını karakter karakter basar.
+     * Daktilo (Typewriter) Efekti: AI yanıtlarını karakter karakter yazar.
      */
     typeEffect: function(element, text, speed = 10) {
         if (!element) return;
@@ -88,7 +87,6 @@ const UI = {
             if (i < text.length) {
                 element.innerHTML += text.charAt(i) === "\n" ? "<br>" : text.charAt(i);
                 i++;
-                // Chat penceresi içindeyse aşağı kaydır
                 const chatBody = document.getElementById('chat-body');
                 if (chatBody && element.closest('#chat-body')) {
                     chatBody.scrollTop = chatBody.scrollHeight;
@@ -100,17 +98,16 @@ const UI = {
     },
 
     /**
-     * Gemini AI'dan detaylı rota analizi talep eder.
+     * Cloudflare Worker üzerinden AI analizi talep eder.
      */
     askGemini: async function(planeName, routeData) {
-        const workerUrl = "https://ai.airm4.workers.dev/";
         const resultArea = document.getElementById('aiResultArea');
         if (!resultArea) return;
 
-        resultArea.innerHTML = '<div id="aiLoader">🤖 MENOA Stratejileri Analiz Ediyor...</div>';
+        resultArea.innerHTML = '<div class="status-box status-neutral">🤖 MENOA Master Verileri Analiz Ediyor...</div>';
 
         try {
-            const response = await fetch(workerUrl, {
+            const response = await fetch("https://ai.airm4.workers.dev/", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -125,7 +122,7 @@ const UI = {
             
             resultArea.innerHTML = `
                 <div class="ai-report-card">
-                    <h4 style="color:var(--primary); margin-bottom:10px;">🤖 MENOA AI ANALİZİ</h4>
+                    <h4 style="color:var(--primary); margin-bottom:10px;">🤖 MENOA MASTER ANALİZİ</h4>
                     <div id="typingArea" style="font-size:0.9rem; line-height:1.6;"></div>
                 </div>`;
             
@@ -133,48 +130,40 @@ const UI = {
             resultArea.scrollIntoView({ behavior: 'smooth' });
 
         } catch (error) {
-            resultArea.innerHTML = `<div class="status-box status-danger">Hata: Motor şu an meşgul.</div>`;
+            resultArea.innerHTML = `<div class="status-box status-danger">⚠️ Hata: Motor meşgul.</div>`;
         }
     },
 
     /**
-     * Bütçeye göre en verimli uçakları ve rotalarını listeler.
+     * Bütçeye göre en verimli uçakları ROI odaklı listeler.
      */
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
         const budget = Number(budgetInput?.value);
         const resultDiv = document.getElementById(cat + 'PlaneResult');
         
-        if (!budget || budget <= 0) {
-            if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Lütfen geçerli bir bütçe giriniz.</div>';
-            return;
-        }
+        if (!budget || budget <= 0) return;
 
         const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo');
         
-        if (bestPlanes.length === 0) {
-            resultDiv.innerHTML = '<div class="status-box status-neutral">Bu bütçeye uygun uçak bulunamadı.</div>';
-            return;
-        }
-
         resultDiv.innerHTML = bestPlanes.map(p => `
             <div class="plane-item">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <strong>${p.name}</strong>
-                    <span style="color:var(--primary); font-weight:800;">${Utils.formatPercent(p.efficiency)} Verim</span>
+                    <span style="color:var(--danger); font-weight:800;">ROI: ${p.roiDays.toFixed(1)} Gün</span>
                 </div>
-                <div style="font-size:0.8rem; margin-top:5px; color:var(--text-muted);">
-                    Fiyat: ${Utils.formatCurrency(p.price)} | Günlük Kâr: ${Utils.formatCurrency(p.dailyProfit)}
+                <div style="font-size:0.8rem; margin-top:5px; color:var(--secondary);">
+                    Hız: ${p.speed} km/s | Günlük Kâr: ${Utils.formatCurrency(p.dailyProfit)}
                 </div>
                 <small style="color:var(--success); font-weight:600; display:block; margin-top:5px;">
-                    En Karlı Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}
+                    Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}
                 </small>
             </div>
         `).join('');
     },
 
     /**
-     * Seçilen uçak için en kârlı rotaları ve ideal konfigleri listeler.
+     * Rota analiz sonuçlarını ekrana basar.
      */
     renderRouteAnalysis: function(cat) {
         const selectId = cat === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
@@ -184,7 +173,7 @@ const UI = {
         
         if (!planeName) return;
 
-        resultDiv.innerHTML = `<div id="aiResultArea"></div><h3 style="margin: 20px 0 15px 0;">Kârlı Rota Seçenekleri</h3>`;
+        resultDiv.innerHTML = `<div id="aiResultArea"></div><h3 style="margin:20px 0;">Master Strateji Rotaları</h3>`;
         const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10);
         
         topRoutes.forEach((r, i) => {
@@ -193,14 +182,14 @@ const UI = {
             
             const plane = aircraftData[planeName];
             const opt = plane.type === 'passenger' 
-                ? Configurator.calculateOptimalSeats(plane, r)
-                : Configurator.calculateOptimalCargo(plane, r);
+                ? Configurator.calculateOptimalSeats(plane, r, r.dailyTrips)
+                : Configurator.calculateOptimalCargo(plane, r, r.dailyTrips);
 
             card.innerHTML = `
                 <div class="route-header">
                     <div class="route-info">
                         <strong>#${i + 1} ${r.origin} ➔ ${r.destination}</strong>
-                        <small style="color:var(--secondary);">${r.distance} km | ${r.dailyTrips} Sefer / Gün</small>
+                        <small style="color:var(--secondary);">${r.distance} km | ${r.dailyTrips} Sefer</small>
                     </div>
                     <div class="route-stats">
                         <div class="profit-val">${Utils.formatCurrency(r.dailyProfit)}/G</div>
@@ -208,12 +197,12 @@ const UI = {
                     </div>
                 </div>
                 <div class="suggestion-bar">
-                    <div class="ideal-config">
-                        İDEAL: ${cat === 'pax' ? `Y:${opt.y} J:${opt.j} F:${opt.f}` : `L:${opt.l} H:${opt.h}`}
+                    <div class="ideal-config" style="font-size:0.8rem; font-weight:700;">
+                        ÖNERİ: ${cat === 'pax' ? `Y:${opt.y} J:${opt.j} F:${opt.f}` : `Large:${opt.l}`}
                     </div>
-                    <div class="action-buttons">
-                        <button class="ai-btn-small" onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/\"/g, '&quot;')})">🤖 AI</button>
-                        <button class="apply-btn-small" onclick="Configurator.applySuggestion(${opt.y || opt.l}, ${opt.j || opt.h}, ${opt.f || 'null'})">Yükle</button>
+                    <div class="action-buttons" style="display:flex; gap:5px;">
+                        <button class="ai-btn-small" onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/\"/g, '&quot;')})" style="width:auto; padding:5px 10px;">🤖 AI</button>
+                        <button class="apply-btn-small" onclick="Configurator.applySuggestion(${opt.y || opt.l}, ${opt.j || opt.h || 0}, ${opt.f || 'null'})" style="width:auto; padding:5px 10px; background:var(--success);">Yükle</button>
                     </div>
                 </div>
             `;
@@ -222,16 +211,11 @@ const UI = {
     }
 };
 
-/** --- AI SOHBET MODÜLÜ (CHAT WIDGET) --- */
+/** --- AI SOHBET MODÜLÜ --- */
 const Chat = {
     toggle: function() {
         const win = document.getElementById('chat-window');
-        if (win) {
-            win.classList.toggle('chat-hidden');
-            if (!win.classList.contains('chat-hidden')) {
-                document.getElementById('chatInput')?.focus();
-            }
-        }
+        if (win) win.classList.toggle('chat-hidden');
     },
 
     addMessage: function(text, sender) {
@@ -271,11 +255,11 @@ const Chat = {
     }
 };
 
-// MODÜLLERİ GLOBALE BAĞLA
+// Global erişim
 window.UI = UI;
 window.Chat = Chat;
 
-// Menü dışına tıklandığında dropdownları kapatan dinleyici
+// Dropdown dışı tıklama kontrolü
 document.addEventListener('click', e => {
     if (!e.target.closest('.dropdown')) UI.closeAllDropdowns();
 });

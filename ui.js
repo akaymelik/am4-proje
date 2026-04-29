@@ -1,29 +1,18 @@
 /**
  * ui.js: AM4 Strateji Merkezi Arayüz ve AI Motoru Bağlantısı.
- * Bu dosya, Cloudflare Worker (worker.airm4.workers.dev) ile haberleşir.
+ * Bu dosya, Cloudflare Worker üzerinden yapay zeka analizi yaptırır.
  */
 
 const UI = {
-    /**
-     * Sayfa değiştirme ve navigasyon yönetimi.
-     */
     showPage: function(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         const targetPage = document.getElementById(id);
         if (targetPage) targetPage.classList.add('active');
-        
         UI.closeAllDropdowns();
-        
-        // Rota sayfalarında uçak listelerini doldur
-        if (id.includes('route')) {
-            UI.fillSelects();
-        }
+        if (id.includes('route')) UI.fillSelects();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
-    /**
-     * Dropdown (Açılır Menü) yönetimi.
-     */
     toggleDropdown: function(id) {
         const el = document.getElementById(id);
         if (!el) return;
@@ -36,15 +25,11 @@ const UI = {
         document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
     },
 
-    /**
-     * Oyun modunu (Easy/Realism) ayarlar.
-     */
     setGameMode: function(mode) {
         window.gameMode = mode;
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
         const activeBtn = mode === 'easy' ? document.getElementById('btn-easy') : document.getElementById('id-real');
         if (activeBtn) activeBtn.classList.add('active');
-        
         const display = document.getElementById('modeDisplay');
         if (display) {
             display.innerText = "Aktif Mod: " + (mode === 'easy' ? "Easy (1.1x)" : "Realism (1.0x)");
@@ -52,20 +37,15 @@ const UI = {
         }
     },
 
-    /**
-     * Uçak seçim kutularını (select) veritabanındaki uçaklarla doldurur.
-     */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
         const cargoSelect = document.getElementById('cargoRouteSelect');
-        
         if (paxSelect) {
             paxSelect.innerHTML = '<option value="">-- Uçak Seçiniz --</option>';
             for (let name in aircraftData) {
                 if (aircraftData[name].type === "passenger") paxSelect.add(new Option(name, name));
             }
         }
-        
         if (cargoSelect) {
             cargoSelect.innerHTML = '<option value="">-- Uçak Seçiniz --</option>';
             for (let name in aircraftData) {
@@ -75,10 +55,10 @@ const UI = {
     },
 
     /**
-     * Gemini Yapay Zekasına (Cloudflare Worker) analiz talebi gönderir.
+     * Gemini Yapay Zekasına Analiz Talebi Gönderir
      */
     askGemini: async function(planeName, routeData) {
-        // Cloudflare Worker URL Adresin
+        // ÖNEMLİ: Eğer Worker URL'n değişirse burayı güncelle
         const workerUrl = "https://worker.airm4.workers.dev/";
         
         const resultArea = document.getElementById('aiResultArea');
@@ -99,11 +79,12 @@ const UI = {
                 })
             });
 
-            const data = await response.json();
-
             if (!response.ok) {
-                throw new Error(data.error || "Motor yanıt vermedi.");
+                const errData = await response.json();
+                throw new Error(errData.text || "Motor şu an meşgul.");
             }
+
+            const data = await response.json();
             
             resultArea.innerHTML = `
                 <div class="ai-report-card">
@@ -112,41 +93,35 @@ const UI = {
                         <h4 style="margin:0; color:var(--primary); font-weight:800;">MENOA AI ANALİZİ</h4>
                     </div>
                     <div style="font-size:0.9rem; line-height:1.7; color:var(--text);">
-                        ${data.text.replace(/\n/g, '<br>')}
+                        ${(data.text || "Analiz oluşturulamadı.").replace(/\n/g, '<br>')}
                     </div>
                 </div>`;
             resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         } catch (error) {
-            console.error("AI Bağlantı Hatası:", error);
+            console.error("Bağlantı Hatası:", error);
             resultArea.innerHTML = `
                 <div class="status-box status-danger">
                     <strong>HATA OLUŞTU:</strong><br>
-                    <small>${error.message}</small>
+                    <small>${error.message}</small><br>
+                    <p style="font-size:0.7rem;margin-top:5px;">Not: Motorun (Worker) linke tıklandığında sadece 'MOTOR AKTİF' yazısı görünmelidir.</p>
                 </div>`;
         }
     },
 
-    /**
-     * Bütçeye göre en verimli uçakları listeler.
-     */
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
         const budget = Number(budgetInput?.value);
         const resultDiv = document.getElementById(cat + 'PlaneResult');
-        
         if (!budget || budget <= 0) {
             if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Lütfen geçerli bir bütçe giriniz.</div>';
             return;
         }
-
         const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo');
-        
         if (bestPlanes.length === 0) {
             if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Bu bütçeye uygun kârlı uçak bulunamadı.</div>';
             return;
         }
-
         resultDiv.innerHTML = bestPlanes.map(p => `
             <div class="plane-item">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -161,30 +136,20 @@ const UI = {
         `).join('');
     },
 
-    /**
-     * Belirli bir uçak için tüm rotaları analiz eder ve AI butonlarını ekler.
-     */
     renderRouteAnalysis: function(cat) {
         const selectId = cat === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
         const resultId = cat === 'pax' ? 'paxRouteResult' : 'cargoRouteResult';
         const planeName = document.getElementById(selectId)?.value;
         const resultDiv = document.getElementById(resultId);
-
         if (!planeName) return;
-
         resultDiv.innerHTML = `<div id="aiResultArea"></div><h3>En Karlı Rotalar</h3>`;
-
         const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 12);
-
         topRoutes.forEach((r, i) => {
             const card = document.createElement('div');
             card.className = 'route-card';
-            
-            // Rota için ideal konfigürasyonu hesapla
             const opt = aircraftData[planeName].type === 'passenger' 
                 ? Configurator.calculateOptimalSeats(aircraftData[planeName], r)
                 : Configurator.calculateOptimalCargo(aircraftData[planeName], r);
-
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:start;">
                     <strong>#${i + 1} ${r.origin} ➔ ${r.destination}</strong>
@@ -202,16 +167,12 @@ const UI = {
                 </div>
                 <div style="display:flex; gap:15px; font-size:0.7rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:8px; margin-top:8px;">
                     <span>Mesafe: ${r.distance}km</span> <span>Sefer: ${r.dailyTrips}x</span> <span>Verim: ${Utils.formatPercent(r.efficiency)}</span>
-                </div>
-            `;
+                </div>`;
             resultDiv.appendChild(card);
         });
     }
 };
 
-/**
- * Global tıklama dinleyicisi: Dropdown dışına tıklandığında menüleri kapatır.
- */
 document.addEventListener('click', e => {
     if (!e.target.closest('.dropdown')) UI.closeAllDropdowns();
 });

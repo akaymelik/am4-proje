@@ -1,125 +1,162 @@
 /**
- * ui.js: AM4 Strateji Merkezi Arayüz Motoru.
- * Güncellemeler: 
- * - Splash Screen (Yükleme Ekranı) takılma sorunu için "Fail-safe" (Güvenlik Zamanlayıcısı) eklendi.
- * - Bakım (A-Check) maliyetleri ve Talep Senkronizasyonu uyarıları arayüze entegre edildi.
- * - Mobil/iPhone için dokunmatik menü (toggleDropdown) desteği stabilize edildi.
- * - Hata yakalama (try-catch) ile sistemin çökmesi engellendi.
+ * ui.js: AM4 Strateji Merkezi (MENOA) Arayüz ve AI Entegrasyon Motoru.
+ * GÜNCELLEME: Gemini 2.5 Flash API entegrasyonu ve Melik Akay strateji seti eklendi.
  */
 
 const UI = {
     /**
-     * Sayfalar arasında geçiş yapar.
-     * @param {string} pageId - Aktif edilecek sayfa ID'si.
+     * Sayfalar arası geçişi yönetir.
      */
     showPage: function(pageId) {
         try {
-            // Tüm sayfaları gizle
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            
-            // Hedef sayfayı göster
             const target = document.getElementById(pageId);
-            if (target) {
-                target.classList.add('active');
-            }
+            if (target) target.classList.add('active');
             
-            // Menü geçişlerinde açık dropdownları kapat
             this.closeAllDropdowns();
-            
-            // Rota analizi sayfalarındaysak uçak listelerini doldur
+            window.scrollTo(0, 0);
+
             if (pageId.includes('route')) {
                 this.fillSelects();
             }
-            
-            // Sayfa başına yumuşak kaydır
-            window.scrollTo(0, 0);
         } catch (error) {
-            console.error("Sayfa geçişi sırasında hata:", error);
-            // Hata durumunda ana sayfayı kurtar
-            const home = document.getElementById('home');
-            if (home) home.classList.add('active');
+            console.error("Sayfa geçiş hatası:", error);
         }
     },
 
-    /**
-     * Mobil cihazlarda menü başlıklarına tıklandığında alt menüyü açar/kapatır.
-     * @param {string} id - Dropdown kapsayıcısının ID'si.
-     */
     toggleDropdown: function(id) {
         const drop = document.getElementById(id);
         if (!drop) return;
-        
         const isOpen = drop.classList.contains('open');
-        
-        // Diğer açık menüleri temizle
         this.closeAllDropdowns();
-        
-        // Hedef menüyü aç veya kapat
-        if (!isOpen) {
-            drop.classList.add('open');
-        }
+        if (!isOpen) drop.classList.add('open');
     },
 
-    /**
-     * Tüm açık dropdown menüleri kapatır.
-     */
     closeAllDropdowns: function() {
         document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
     },
 
     /**
-     * Oyun modunu (Easy/Realism) değiştirir ve arayüzdeki buton stillerini günceller.
+     * Oyun modunu ve arayüzdeki durum kutusunu günceller.
      */
     setGameMode: function(mode) {
         window.gameMode = mode; 
-        
-        // Butonların görsel durumunu güncelle (Sadece aktif olan mavi olur)
         document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
         const targetId = mode === 'easy' ? 'btn-easy' : 'id-real';
         const activeBtn = document.getElementById(targetId);
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-        }
+        if (activeBtn) activeBtn.classList.add('active');
 
-        // Ana sayfadaki aktif mod bilgisini güncelle (Sade metin)
         const display = document.getElementById('modeDisplay');
         if (display) {
             display.innerText = mode === 'easy' ? "Aktif Mod: Easy" : "Aktif Mod: Realism";
             display.className = "status-box " + (mode === 'easy' ? "status-success" : "status-danger");
         }
-
-        // Mod değiştiğinde eski sonuçları temizle
-        ['paxRouteResult', 'cargoRouteResult', 'paxPlaneResult', 'cargoPlaneResult'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = "";
-        });
     },
 
     /**
-     * Uçak seçim listelerini planes.js verileriyle doldurur.
+     * Uçak listelerini güncel verilerle doldurur.
      */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
         const cargoSelect = document.getElementById('cargoRouteSelect');
-
         if (paxSelect) paxSelect.innerHTML = '<option value="">-- Bir Uçak Seçin --</option>';
         if (cargoSelect) cargoSelect.innerHTML = '<option value="">-- Bir Uçak Seçin --</option>';
 
         if (typeof aircraftData === 'undefined') return;
 
         for (let name in aircraftData) {
-            const plane = aircraftData[name];
-            const option = new Option(name, name);
-            if (plane.type === "passenger" && paxSelect) {
-                paxSelect.add(option);
-            } else if (plane.type === "cargo" && cargoSelect) {
-                cargoSelect.add(option);
-            }
+            const p = aircraftData[name];
+            const opt = new Option(name, name);
+            if (p.type === "passenger" && paxSelect) paxSelect.add(opt);
+            else if (p.type === "cargo" && cargoSelect) cargoSelect.add(opt);
         }
     },
 
     /**
-     * Bütçeye göre en verimli uçakları Hibrit Skor ile listeler.
+     * YAPAY ZEKA: Gemini 2.5 Flash Analiz Motoru
+     * Melik Akay strateji kurallarını kullanarak uçağı ve rotayı değerlendirir.
+     */
+    askGemini: async function(planeName, routeData) {
+        const apiKey = ""; // API anahtarı çalışma ortamı tarafından sağlanır.
+        const resultArea = document.getElementById('aiResultArea');
+        const loader = document.getElementById('aiLoader');
+
+        if (loader) loader.style.display = 'block';
+        if (resultArea) resultArea.innerHTML = '';
+        
+        // Rapor alanına odaklan
+        if (resultArea) resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        const systemPrompt = `Sen AM4 (Airline Manager 4) uzmanı bir yapay zekasın. 
+        Kullanıcının seçtiği uçak ve rota verilerini Melik Akay'ın MENOA strateji setine göre analiz et.
+        Analiz kriterlerin:
+        1. Hibrit Skor: %30 ROI (Amorti hızı) + %70 Günlük Net Kâr gücü dengesi.
+        2. Bakım Maliyeti: Uçuş saati başına uçağın liste fiyatının %0.00004'ü kadar bir gider düşülmeli.
+        3. Talep Senkronizasyonu: Uçak kapasitesi rotadaki günlük pazar talebini kesinlikle aşmamalı.
+        4. "MENOA AI Skoru" hesapla (0-100 arası).
+        
+        Format: Profesyonel, samimi, kısa ve öz bir Türkçe uzman yorumu yap. 
+        Sonuçta mutlaka 0-100 arası bir skor ver. "By Melik akay" imzalı strateji dilini kullan.`;
+
+        const userQuery = `Analiz Talebi:
+        Uçak: ${planeName}
+        Rota: ${routeData.origin} ➔ ${routeData.destination}
+        Mesafe: ${routeData.distance} km
+        Günlük Net Kar: ${Utils.formatCurrency(routeData.dailyProfit)}
+        Günlük Sefer: ${routeData.dailyTrips}
+        Verimlilik: ${Utils.formatPercent(routeData.efficiency)}
+        Bakım Gideri: ${Utils.formatCurrency(routeData.maintenanceCost)} / uçuş`;
+
+        const callAPI = async (retryCount = 0) => {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: userQuery }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] }
+                    })
+                });
+
+                if (!response.ok) throw new Error("API Connection Error");
+
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (loader) loader.style.display = 'none';
+                if (resultArea) {
+                    resultArea.innerHTML = `
+                        <div class="ai-report-card">
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+                                <span style="font-size:1.5rem;">🤖</span>
+                                <h4 style="margin:0; color:var(--primary); font-weight:800;">MENOA AI STRATEJİ RAPORU</h4>
+                            </div>
+                            <div style="font-size:0.95rem; line-height:1.6; color:var(--text);">
+                                ${text.replace(/\n/g, '<br>')}
+                            </div>
+                            <div style="margin-top:15px; padding-top:12px; border-top:1px solid var(--border); font-size:0.75rem; color:var(--text-muted); font-style:italic;">
+                                Veriler Gemini 2.5 Flash tarafından Melik Akay kriterleriyle işlenmiştir.
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                // Üstel geri çekilme (Exponential Backoff): 1s, 2s, 4s, 8s, 16s
+                if (retryCount < 5) {
+                    const delay = Math.pow(2, retryCount) * 1000;
+                    setTimeout(() => callAPI(retryCount + 1), delay);
+                } else {
+                    if (loader) loader.style.display = 'none';
+                    if (resultArea) resultArea.innerHTML = '<div class="status-box status-danger">Yapay zeka analiz motoru şu an meşgul. Lütfen 30 saniye sonra tekrar deneyin.</div>';
+                }
+            }
+        };
+
+        callAPI();
+    },
+
+    /**
+     * Bütçeye göre en iyi uçakları listeler.
      */
     renderSuggestions: function(cat) {
         try {
@@ -127,54 +164,34 @@ const UI = {
             const mTripsInput = document.getElementById(cat + 'ManualTrips');
             const resultDiv = document.getElementById(cat + 'PlaneResult');
             
-            if (!budgetInput || !budgetInput.value) return;
+            if (!budgetInput?.value) return;
 
-            const budget = Number(budgetInput.value);
-            const mTrips = Number(mTripsInput.value) || null;
-            const typeKey = cat === 'pax' ? 'passenger' : 'cargo';
-
-            const matches = Logic.getBestPlanesByType(budget, typeKey, mTrips);
+            const matches = Logic.getBestPlanesByType(budgetInput.value, cat === 'pax' ? 'passenger' : 'cargo', Number(mTripsInput.value) || null);
             
             if (matches.length === 0) {
-                resultDiv.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Bu bütçeye uygun uçak bulunamadı.</p>`;
+                resultDiv.innerHTML = `<p style="padding:20px;">Bu bütçeye uygun verimli uçak bulunamadı.</p>`;
                 return;
             }
 
             resultDiv.innerHTML = matches.map((m, index) => `
                 <div class="result-item" style="border-left: 5px solid ${index === 0 ? 'var(--success)' : 'var(--primary)'}">
                     <div style="flex: 2; text-align: left;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-                            <strong style="font-size: 1.15rem;">${m.name}</strong>
-                            <span style="background: var(--primary); color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">
-                                Skor: %${(m.finalScore * 100).toFixed(0)}
-                            </span>
-                        </div>
-                        <small style="color: var(--success); font-weight: 700; display: block; margin-bottom: 5px;">
-                            Rota: ${m.bestRouteOrigin} ➔ ${m.bestRouteName}
-                        </small>
-                        <div style="font-size: 0.85rem; color: var(--text);">
-                            Fiyat: <strong>${Utils.formatCurrency(m.price)}</strong> | 
-                            Kâr: <strong style="color: var(--primary);">${Utils.formatCurrency(m.profitPerFlight)}</strong>
-                        </div>
-                        <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 3px;">
-                            Operasyon: <strong>Günde ${m.appliedTrips} Sefer</strong>
-                        </small>
+                        <strong>${m.name}</strong> 
+                        <span class="suggest-badge" style="font-size:0.65rem;">Skor: %${(m.finalScore * 100).toFixed(0)}</span>
+                        <div style="font-size: 0.8rem; color: var(--success); margin: 3px 0;">${m.bestRouteOrigin} ➔ ${m.bestRouteName}</div>
+                        <div style="font-size: 0.85rem;">Kar: <strong>${Utils.formatCurrency(m.profitPerFlight)}</strong></div>
                     </div>
                     <div style="text-align: right; flex: 1; border-left: 1px solid var(--border); padding-left: 10px;">
-                        <div style="color: var(--primary); font-weight: 800; font-size: 1.1rem;">
-                            ${Utils.formatPercent(m.efficiency)}
-                        </div>
-                        <small style="color: var(--text-muted); font-weight: 600;">${m.roi} G. ROI</small>
+                        <div style="color: var(--primary); font-weight: 800;">${Utils.formatPercent(m.efficiency)}</div>
+                        <small style="color: var(--text-muted);">${m.roi} G. ROI</small>
                     </div>
                 </div>
             `).join('');
-        } catch (e) {
-            console.error("Öneri render hatası:", e);
-        }
+        } catch (e) { console.error(e); }
     },
 
     /**
-     * Seçilen uçak için en kârlı rotaları analiz eder (Bakım ve Talep Uyarıları Dahil).
+     * Rota analizini AI butonu ile birlikte render eder.
      */
     renderRouteAnalysis: function(cat) {
         try {
@@ -186,157 +203,91 @@ const UI = {
             if (!planeName) return;
             
             const plane = aircraftData[planeName];
-            const tripsValue = Number(mTripsInput.value) || null;
-            
-            // Mevcut koltuk/kargo konfigürasyonunu al
             const config = cat === 'pax' ? Configurator.getSeatConfig() : Configurator.getCargoConfig();
+            const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, config, Number(mTripsInput.value) || null);
 
-            const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, config, tripsValue);
-            const currentMode = window.gameMode || 'realism';
-
-            resultDiv.innerHTML = `<h3>En Karlı Rotalar (${currentMode.toUpperCase()})</h3>` + topRoutes.map((r, i) => {
+            // AI Sonuç Alanı ve Loader
+            resultDiv.innerHTML = `
+                <div id="aiResultArea"></div>
+                <div id="aiLoader" style="display:none; text-align:center; padding:20px;">
+                    <div class="loader-spinner"></div>
+                    <p style="margin-top:10px;">MENOA AI Verileri Analiz Ediyor...</p>
+                </div>
+                <h3>En Karlı Rotalar (Bakım & Talep Dahil)</h3>
+            ` + topRoutes.map((r, i) => {
                 const opt = (cat === 'pax') 
-                    ? Configurator.calculateOptimalSeats(plane, r, tripsValue) 
-                    : Configurator.calculateOptimalCargo(plane, r, tripsValue);
+                    ? Configurator.calculateOptimalSeats(plane, r, r.dailyTrips) 
+                    : Configurator.calculateOptimalCargo(plane, r, r.dailyTrips);
                 
                 return `
                 <div class="route-card" style="${r.demandWarning ? 'border-top: 4px solid var(--danger);' : ''}">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                         <div>
-                            <strong style="font-size: 1.05rem; display: block; text-align: left;">#${i + 1} ${r.origin} ➔ ${r.destination}</strong>
-                            ${r.demandWarning ? '<small style="color: var(--danger); font-weight: 800;">⚠️ KAPASİTE TALEBİ AŞIYOR!</small>' : ''}
+                            <strong style="font-size: 1rem;">#${i + 1} ${r.origin} ➔ ${r.destination}</strong>
+                            <button onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/"/g, '&quot;')})" 
+                                    class="ai-btn">
+                                🤖 Gemini AI Strateji Analizi
+                            </button>
                         </div>
                         <div style="text-align: right;">
-                            <div style="color: var(--success); font-weight: 800; font-size: 1.1rem;">
-                                ${Utils.formatCurrency(r.dailyProfit)} / Gün
-                            </div>
-                            <div style="color: var(--text-muted); font-size: 0.7rem; font-weight: 600;">
-                                Bakım Gideri: ${Utils.formatCurrency(r.maintenanceCost)} / Uçuş
-                            </div>
+                            <div style="color: var(--success); font-weight: 800;">${Utils.formatCurrency(r.dailyProfit)} / G.</div>
+                            <div style="color: var(--text-muted); font-size: 0.7rem;">Bakım: ${Utils.formatCurrency(r.maintenanceCost)}</div>
                         </div>
                     </div>
-                    
-                    <div style="background: var(--primary-light); padding: 12px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(37, 99, 235, 0.1);">
-                        <div style="text-align: left;">
-                            <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem; margin-right: 8px;">ÖNERİLEN:</span> 
+
+                    <div class="suggestion-box">
+                        <div style="font-size: 0.8rem;">
+                            <span style="color: var(--primary); font-weight: 800;">İDEAL:</span> 
                             ${cat === 'pax' 
                                 ? `<span class="suggest-badge">Y:${opt.y}</span> <span class="suggest-badge">J:${opt.j}</span> <span class="suggest-badge">F:${opt.f}</span>`
                                 : `<span class="suggest-badge">L:${opt.l}</span> <span class="suggest-badge">H:${opt.h}</span>`
                             }
                         </div>
                         <button onclick="Configurator.applySuggestion(${cat === 'pax' ? `${opt.y}, ${opt.j}, ${opt.f}` : `${opt.l}, ${opt.h}`})" 
-                                style="width: auto; padding: 6px 12px; margin: 0; font-size: 0.7rem; background: var(--success); border-radius: 8px;">
+                                class="apply-btn">
                             Yükle
                         </button>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 10px;">
-                        <span><strong>Mesafe:</strong> ${r.distance}km</span>
-                        <span><strong>Uçuş:</strong> ${Utils.formatDuration(r.duration)}</span>
-                        <span><strong>Sefer:</strong> ${r.dailyTrips}x</span>
-                        <span><strong>Verim:</strong> ${Utils.formatPercent(r.efficiency)}</span>
+                    <div class="route-footer">
+                        <span>Mesafe: ${r.distance}km</span>
+                        <span>Uçuş: ${Utils.formatDuration(r.duration)}</span>
+                        <span>Sefer: ${r.dailyTrips}x</span>
+                        <span>Verim: ${Utils.formatPercent(r.efficiency)}</span>
                     </div>
                 </div>`;
             }).join('');
-        } catch (e) {
-            console.error("Rota analiz hatası:", e);
-        }
+        } catch (e) { console.error(e); }
     }
 };
 
 /**
- * Giriş Ekranı (Splash) Kaldırma Mantığı
+ * Başlatıcı ve Splash Kontrolü
  */
-const hideSplashScreen = () => {
+const hideSplash = () => {
     const splash = document.getElementById('splash-screen');
-    if (splash && !splash.classList.contains('hidden')) {
-        splash.classList.add('hidden');
-    }
+    if (splash) splash.classList.add('hidden');
 };
 
-/**
- * Uygulama Başlatıcı
- */
 const initMenoa = () => {
     try {
         UI.fillSelects(); 
         UI.setGameMode('realism'); 
-        // Sayfa kaynakları yüklendikten 1.2 sn sonra ekranı aç
-        setTimeout(hideSplashScreen, 1200);
-    } catch (e) {
-        console.error("Başlatma hatası:", e);
-        hideSplashScreen(); // Hata olsa bile ekranı aç
-    }
+        setTimeout(hideSplash, 1500);
+    } catch (e) { hideSplash(); }
 };
 
-/**
- * Pencere Olayları
- */
-window.onload = function() {
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMenoa);
+} else {
     initMenoa();
-};
+}
 
-// GÜVENLİK ÖNLEMİ: Eğer sayfa kaynakları (font, resim vb) takılırsa ekranı 3.5 saniye sonra zorla aç.
-// Bilgisayarlardaki takılma sorununu bu satır çözer.
-setTimeout(hideSplashScreen, 3500);
+// Güvenlik zamanlayıcısı (Takılma önleyici)
+setTimeout(hideSplash, 3500);
 
-// Global tıklama dinleyici (Dropdown kapatmak için)
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.dropdown')) {
-        UI.closeAllDropdowns();
-    }
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.dropdown')) UI.closeAllDropdowns();
 });
 
-// Global kapasite kontrolü köprüsü
-window.updateCapacityCheck = () => {
-    if (typeof Configurator !== 'undefined') Configurator.updateCapacityCheck();
-};
-// GEMINI API ENTEGRASYONU
-askGemini: async function(planeName, routeData) {
-    const apiKey = ""; // Sistem tarafından sağlanan anahtar
-    const resultArea = document.getElementById('aiResultArea');
-    const loader = document.getElementById('aiLoader');
-
-    if (loader) loader.style.display = 'block';
-    if (resultArea) resultArea.innerHTML = '';
-
-    // Senin stratejini AI'ya öğreten sistem talimatı
-    const systemPrompt = `Sen AM4 (Airline Manager 4) uzmanı bir yapay zekasın. 
-    Kullanıcıya uçağı ve rotası hakkında stratejik analiz ver.
-    Kriterlerin:
-    1. Hibrit Skor: %30 ROI hızı + %70 Günlük Net Kâr gücü.
-    2. Bakım Maliyeti: Uçuş saati başına uçağın değerinin %0.00004'ü kârdan düşülmeli.
-    3. Talep Senkronizasyonu: Uçak kapasitesi rotadaki pazar talebini aşmamalı.
-    4. "MENOA AI Skoru" hesapla (0-100 arası).
-    Lütfen Melik Akay'ın geliştirdiği MENOA standartlarına göre profesyonel, kısa ve öz bir Türkçe yorum yap.`;
-
-    const userQuery = `Uçak: ${planeName}. Rota: ${routeData.origin} to ${routeData.destination}. Mesafe: ${routeData.distance}km. Günlük Kar: ${routeData.dailyProfit}. Sefer: ${routeData.dailyTrips}. Verimlilik: ${routeData.efficiency}.`;
-
-    // API'yi çağıran ve hata durumunda 5 kez tekrar deneyen yapı
-    const callAPI = async (retryCount = 0) => {
-        try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: userQuery }] }],
-                    systemInstruction: { parts: [{ text: systemPrompt }] }
-                })
-            });
-            const data = await response.json();
-            const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            
-            if (loader) loader.style.display = 'none';
-            if (resultArea) {
-                resultArea.innerHTML = `
-                    <div class="ai-report-card">
-                        <h4>🤖 Gemini AI Strateji Raporu</h4>
-                        <p>${aiText.replace(/\n/g, '<br>')}</p>
-                    </div>`;
-            }
-        } catch (error) {
-            if (retryCount < 5) setTimeout(() => callAPI(retryCount + 1), 1000);
-        }
-    };
-    callAPI();
-}
+window.updateCapacityCheck = () => Configurator.updateCapacityCheck();

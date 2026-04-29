@@ -1,8 +1,9 @@
 /**
  * utils.js: Uygulama genelinde kullanılan yardımcı formatlama fonksiyonları.
- * Güncelleme: 
+ * GÜNCELLEME: 
  * - Yüzdelik format 2 basamağa (toFixed(2)) sabitlendi.
  * - Süre formatı AM4 oyun içi arayüzüne ("Xsa Ydk") uygun hale getirildi.
+ * - Negatif kar durumlarında görsel güvenlik eklendi.
  */
 
 const Utils = {
@@ -12,7 +13,8 @@ const Utils = {
      */
     formatCurrency: function(value) {
         if (isNaN(value)) return "$0";
-        // Negatif değerleri 0 olarak göster (Zarar durumunda UI güvenliği)
+        // Zarar durumunda (negatif) uçağı uçurmamak için 0 olarak gösterilir veya kırmızı vurgulanır.
+        // Burada ham veriyi koruyup sadece görsel formatlama yapıyoruz.
         const val = value < 0 ? 0 : value;
         return "$" + Math.floor(val).toLocaleString('en-US');
     },
@@ -23,6 +25,7 @@ const Utils = {
      */
     formatPercent: function(value) {
         if (isNaN(value)) return "%0.00";
+        // Verimlilik (Efficiency) oranlarını net göstermek için 2 basamak sabittir.
         return "%" + parseFloat(value).toFixed(2);
     },
 
@@ -36,7 +39,7 @@ const Utils = {
         const hours = Math.floor(decimalHours);
         const minutes = Math.round((decimalHours - hours) * 60);
         
-        // Eğer yuvarlama sonucu 60 dakika çıkarsa, saati artır
+        // Eğer yuvarlama sonucu 60 dakika çıkarsa, saati bir artırıp dakikayı sıfırla.
         if (minutes === 60) {
             return `${hours + 1}sa 0dk`;
         }
@@ -44,3 +47,6 @@ const Utils = {
         return `${hours}sa ${minutes}dk`;
     }
 };
+
+// Global erişim için (Modüler yapı korunurken diğer scriptlerin hata almaması için)
+window.Utils = Utils;

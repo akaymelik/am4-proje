@@ -1,13 +1,10 @@
 /**
  * ui.js: AM4 Strateji Merkezi Arayüz ve AI Motoru Yönetimi.
- * Bu dosya; sayfa geçişleri, rota analizleri ve AI sohbetini kontrol eder.
- * Bağlantı: https://ai.airm4.workers.dev/
+ * GÜNCELLEME: Chat (Sohbet) modülü tıklama hataları giderildi ve globale bağlandı.
  */
 
+// --- ANA UI MODÜLÜ ---
 const UI = {
-    /**
-     * Sayfa değiştirme ve navigasyon yönetimi.
-     */
     showPage: function(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         const targetPage = document.getElementById(id);
@@ -21,9 +18,6 @@ const UI = {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
-    /**
-     * Dropdown (Açılır Menü) yönetimi.
-     */
     toggleDropdown: function(id) {
         const el = document.getElementById(id);
         if (!el) return;
@@ -36,9 +30,6 @@ const UI = {
         document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
     },
 
-    /**
-     * Oyun modunu (Easy/Realism) ayarlar.
-     */
     setGameMode: function(mode) {
         window.gameMode = mode;
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -52,9 +43,6 @@ const UI = {
         }
     },
 
-    /**
-     * Uçak seçim kutularını veritabanındaki uçaklarla doldurur.
-     */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
         const cargoSelect = document.getElementById('cargoRouteSelect');
@@ -74,9 +62,6 @@ const UI = {
         }
     },
 
-    /**
-     * Rota Analizi için AI talebi gönderir.
-     */
     askGemini: async function(planeName, routeData) {
         const workerUrl = "https://ai.airm4.workers.dev/";
         const resultArea = document.getElementById('aiResultArea');
@@ -117,9 +102,6 @@ const UI = {
         }
     },
 
-    /**
-     * Bütçeye göre en verimli uçakları listeler.
-     */
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
         const budget = Number(budgetInput?.value);
@@ -143,9 +125,6 @@ const UI = {
         `).join('');
     },
 
-    /**
-     * Rota analizlerini listeler.
-     */
     renderRouteAnalysis: function(cat) {
         const selectId = cat === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
         const resultId = cat === 'pax' ? 'paxRouteResult' : 'cargoRouteResult';
@@ -185,13 +164,16 @@ const UI = {
     }
 };
 
-/**
- * AI SOHBET MODÜLÜ
- */
+// --- AI SOHBET MODÜLÜ (Chat) ---
 const Chat = {
     toggle: function() {
         const win = document.getElementById('chat-window');
-        if (win) win.classList.toggle('chat-hidden');
+        if (win) {
+            win.classList.toggle('chat-hidden');
+            console.log("Chat penceresi durumu değiştirildi.");
+        } else {
+            console.error("Chat penceresi (chat-window) bulunamadı!");
+        }
     },
 
     addMessage: function(text, sender) {
@@ -209,7 +191,6 @@ const Chat = {
         const text = input?.value.trim();
         if (!text) return;
 
-        // Kullanıcı mesajını ekle
         this.addMessage(text, 'user');
         input.value = '';
 
@@ -221,19 +202,18 @@ const Chat = {
                 body: JSON.stringify({ chatMessage: text })
             });
             const data = await response.json();
-            
-            // AI yanıtını ekle
             this.addMessage(data.text || "Yanıt alınamadı.", 'ai');
         } catch (e) {
-            console.error("Chat Hatası:", e);
             this.addMessage("⚠️ Motorla bağlantı kurulamadı.", 'ai');
         }
     }
 };
 
-/**
- * Global tıklama dinleyicisi: Dropdown dışına tıklandığında menüleri kapatır.
- */
+// Modülleri globale bağla (HTML'den erişim için şart)
+window.UI = UI;
+window.Chat = Chat;
+
+// Global tıklama dinleyicisi: Dropdown dışına tıklandığında menüleri kapatır.
 document.addEventListener('click', e => {
     if (!e.target.closest('.dropdown')) UI.closeAllDropdowns();
 });

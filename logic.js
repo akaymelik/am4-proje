@@ -1,19 +1,14 @@
 /**
  * logic.js: Uçak ve Rota Analiz Motoru.
- * GÜNCELLEME: Uçak önerilerinde 'bestRouteOrigin' desteği eklendi.
+ * GÜNCELLEME: Master Eğitim Verileri (Hız > Yakıt kuralı, bilet çarpanları) eklendi.
  */
 
 const Logic = {
-    calculateFlightTime: function(distance, speed) {
-        if (!speed || speed <= 0) return 0;
-        return (distance / speed);
-    },
+    calculateFlightTime: (distance, speed) => distance / speed,
 
-    calculateMaintenanceCost: function(plane, airTime) {
-        return airTime * (plane.price * 0.00004);
-    },
+    calculateMaintenanceCost: (plane, airTime) => airTime * (plane.price * 0.00004),
 
-    calculateProfit: function(plane, route, config = null, manualTrips = null) {
+    calculateProfit: function(plane, route, manualTrips = null) {
         const currentMode = window.gameMode || 'realism';
         const multiplier = currentMode === 'easy' ? 1.1 : 1.0;
         const airTime = this.calculateFlightTime(route.distance, plane.cruise_speed);
@@ -21,71 +16,62 @@ const Logic = {
         const maxTrips = Math.floor(24 / cycleTime);
         let trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
         
-        if (trips <= 0) return { profitPerFlight: 0, appliedTrips: 0 };
+        if (trips <= 0) return { profit: 0, trips: 0 };
 
-        const prices = Configurator.getTicketMultipliers(route.distance);
-        let grossRevenue = 0;
-
+        let revenue = 0;
         if (plane.type === "cargo") {
-            if (!route.demand.c) return { profitPerFlight: 0 };
             const opt = Configurator.calculateOptimalCargo(plane, route, trips);
-            grossRevenue = (opt.l * prices.l) + (opt.h * prices.h);
+            // Kargo Gelir Formülü (Master Data: Large 1.1x, Heavy 1.08x)
+            const prices = Configurator.getTicketMultipliers(route.distance);
+            revenue = (opt.l * prices.l + opt.h * prices.h) * multiplier;
         } else {
             const opt = Configurator.calculateOptimalSeats(plane, route, trips);
-            grossRevenue = (opt.y * prices.y) + (opt.j * prices.j) + (opt.f * prices.f);
+            // Yolcu Gelir Formülü (Master Data: 1.1x, 1.08x, 1.06x)
+            const prices = Configurator.getTicketMultipliers(route.distance);
+            revenue = (opt.y * prices.y + opt.j * prices.j + opt.f * prices.f) * multiplier;
         }
 
-        const fuelCost = route.distance * plane.fuel_consumption * 1.1;
+        const fuelCost = route.distance * plane.fuel_consumption * 1.15; // Ortalama pazar fiyatı emniyeti
         const staffCost = plane.type === "cargo" ? plane.capacity * 0.01 : plane.capacity * 2.5;
-        const maintenanceCost = this.calculateMaintenanceCost(plane, airTime);
+        const maintenance = this.calculateMaintenanceCost(plane, airTime);
         
-        return {
-            profitPerFlight: grossRevenue - (fuelCost + staffCost + maintenanceCost),
-            appliedTrips: trips,
-            duration: airTime
-        };
-    },
-
-    analyzeTopRoutesForPlane: function(planeName, limit = 10) {
-        const plane = aircraftData[planeName];
-        if (!plane) return [];
-        let results = [];
-
-        popularRoutes.forEach(route => {
-            if (plane.type === "cargo" && !route.demand.c) return;
-            if (route.distance <= plane.range) {
-                const calc = this.calculateProfit(plane, route);
-                if (calc.profitPerFlight > 0) {
-                    const dailyProfit = calc.profitPerFlight * calc.appliedTrips;
-                    results.push({
-                        ...route,
-                        dailyProfit: dailyProfit,
-                        efficiency: (dailyProfit / plane.price) * 100
-                    });
-                }
-            }
-        });
-        return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
+        const totalNetProfit = (revenue - (fuelCost + staffCost + maintenance)) * trips;
+        return { profit: totalNetProfit, trips: trips };
     },
 
     getBestPlanesByType: function(budget, type) {
-        let candidates = [];
+        let results = [];
         for (let name in aircraftData) {
             const p = aircraftData[name];
-            if (p.price <= Number(budget) && p.type === type) {
-                const topRes = this.analyzeTopRoutesForPlane(name, 1);
-                if (topRes.length > 0) {
-                    candidates.push({
+            if (p.price <= budget && p.type === type) {
+                // Her uçak için en kârlı rotayı bul
+                const topRes = this.analyzeTopRoutesForPlane(name, 1)[0];
+                if (topRes) {
+                    results.push({
                         name: name,
-                        efficiency: topRes[0].efficiency,
-                        dailyProfit: topRes[0].dailyProfit,
-                        bestRouteOrigin: topRes[0].origin, // Nereden
-                        bestRouteName: topRes[0].destination, // Nereye
+                        efficiency: topRes.efficiency,
+                        dailyProfit: topRes.dailyProfit,
+                        bestRouteOrigin: topRes.origin,
+                        bestRouteName: topRes.destination,
                         price: p.price
                     });
                 }
             }
         }
-        return candidates.sort((a, b) => b.efficiency - a.efficiency).slice(0, 10);
+        // ROI/Efficiency'e göre sırala (Yatırım verimliliği)
+        return results.sort((a, b) => b.efficiency - a.efficiency).slice(0, 10);
+    },
+
+    analyzeTopRoutesForPlane: function(name, limit = 10) {
+        const p = aircraftData[name];
+        return popularRoutes.filter(r => r.distance <= p.range).map(r => {
+            const calc = this.calculateProfit(p, r);
+            return {
+                ...r,
+                dailyProfit: calc.profit,
+                dailyTrips: calc.trips,
+                efficiency: (calc.profit / p.price) * 100
+            };
+        }).sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
     }
 };

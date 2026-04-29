@@ -1,7 +1,7 @@
 /**
- * ui.js: AM4 Strateji Merkezi Arayüz.
- * Güncelleme: Worker URL adresi 'ai.airm4.workers.dev' olarak güncellendi.
- * Bağlantı: Gemini 2.5 Flash Motoru ile tam uyumlu.
+ * ui.js: AM4 Strateji Merkezi Arayüz ve AI Motoru Yönetimi.
+ * Bu dosya; sayfa geçişleri, rota analizleri ve AI sohbetini kontrol eder.
+ * Bağlantı: https://ai.airm4.workers.dev/
  */
 
 const UI = {
@@ -15,7 +15,6 @@ const UI = {
         
         UI.closeAllDropdowns();
         
-        // Rota sayfalarında uçak listelerini doldur
         if (id.includes('route')) {
             UI.fillSelects();
         }
@@ -54,7 +53,7 @@ const UI = {
     },
 
     /**
-     * Uçak seçim kutularını doldurur.
+     * Uçak seçim kutularını veritabanındaki uçaklarla doldurur.
      */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
@@ -76,12 +75,10 @@ const UI = {
     },
 
     /**
-     * Gemini Yapay Zekasına (ai.airm4.workers.dev) analiz talebi gönderir.
+     * Rota Analizi için AI talebi gönderir.
      */
     askGemini: async function(planeName, routeData) {
-        // AKTİF WORKER ADRESİN
         const workerUrl = "https://ai.airm4.workers.dev/";
-        
         const resultArea = document.getElementById('aiResultArea');
         if (!resultArea) return;
 
@@ -90,9 +87,7 @@ const UI = {
         try {
             const response = await fetch(workerUrl, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     plane: planeName,
                     route: `${routeData.origin} ➔ ${routeData.destination}`,
@@ -103,11 +98,8 @@ const UI = {
             });
 
             const data = await response.json();
+            if (!response.ok) throw new Error(data.text || "Bağlantı hatası.");
 
-            if (!response.ok) {
-                throw new Error(data.text || "Yapay zeka motoruna bağlanılamadı.");
-            }
-            
             resultArea.innerHTML = `
                 <div class="ai-report-card">
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
@@ -115,18 +107,13 @@ const UI = {
                         <h4 style="margin:0; color:var(--primary); font-weight:800;">MENOA AI ANALİZİ</h4>
                     </div>
                     <div style="font-size:0.9rem; line-height:1.7; color:var(--text);">
-                        ${(data.text || "Analiz raporu oluşturulamadı.").replace(/\n/g, '<br>')}
+                        ${(data.text || "Hata oluştu.").replace(/\n/g, '<br>')}
                     </div>
                 </div>`;
             resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         } catch (error) {
-            console.error("AI Bağlantı Hatası:", error);
-            resultArea.innerHTML = `
-                <div class="status-box status-danger">
-                    <strong>HATA OLUŞTU:</strong><br>
-                    <small>${error.message}</small>
-                </div>`;
+            resultArea.innerHTML = `<div class="status-box status-danger">HATA: ${error.message}</div>`;
         }
     },
 
@@ -138,18 +125,10 @@ const UI = {
         const budget = Number(budgetInput?.value);
         const resultDiv = document.getElementById(cat + 'PlaneResult');
         
-        if (!budget || budget <= 0) {
-            if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Lütfen geçerli bir bütçe giriniz.</div>';
-            return;
-        }
+        if (!budget || budget <= 0) return;
 
         const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo');
         
-        if (bestPlanes.length === 0) {
-            if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Bu bütçeye uygun kârlı uçak bulunamadı.</div>';
-            return;
-        }
-
         resultDiv.innerHTML = bestPlanes.map(p => `
             <div class="plane-item">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -165,7 +144,7 @@ const UI = {
     },
 
     /**
-     * Belirli bir uçak için tüm rotaları analiz eder.
+     * Rota analizlerini listeler.
      */
     renderRouteAnalysis: function(cat) {
         const selectId = cat === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
@@ -192,7 +171,6 @@ const UI = {
                     <strong>#${i + 1} ${r.origin} ➔ ${r.destination}</strong>
                     <div style="text-align:right;">
                         <div style="color:var(--success); font-weight:800; font-size:1.1rem;">${Utils.formatCurrency(r.dailyProfit)}/G.</div>
-                        <div style="font-size:0.7rem; color:var(--text-muted);">${Utils.formatCurrency(r.profitPerFlight)}/Uçuş</div>
                     </div>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; background:var(--primary-light); padding:10px; border-radius:10px;">
@@ -201,13 +179,55 @@ const UI = {
                         <button class="ai-btn-small" onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/\"/g, '&quot;')})">🤖 AI</button>
                         <button class="apply-btn-small" onclick="Configurator.applySuggestion(${opt.y || opt.l}, ${opt.j || opt.h}, ${opt.f || null})">Yükle</button>
                     </div>
-                </div>
-                <div style="display:flex; gap:15px; font-size:0.7rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:8px; margin-top:8px;">
-                    <span>Mesafe: ${r.distance}km</span> <span>Sefer: ${r.dailyTrips}x</span> <span>Verim: ${Utils.formatPercent(r.efficiency)}</span>
-                </div>
-            `;
+                </div>`;
             resultDiv.appendChild(card);
         });
+    }
+};
+
+/**
+ * AI SOHBET MODÜLÜ
+ */
+const Chat = {
+    toggle: function() {
+        const win = document.getElementById('chat-window');
+        if (win) win.classList.toggle('chat-hidden');
+    },
+
+    addMessage: function(text, sender) {
+        const body = document.getElementById('chat-body');
+        if (!body) return;
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-msg ${sender}-msg`;
+        msgDiv.innerText = text;
+        body.appendChild(msgDiv);
+        body.scrollTop = body.scrollHeight;
+    },
+
+    send: async function() {
+        const input = document.getElementById('chatInput');
+        const text = input?.value.trim();
+        if (!text) return;
+
+        // Kullanıcı mesajını ekle
+        this.addMessage(text, 'user');
+        input.value = '';
+
+        const workerUrl = "https://ai.airm4.workers.dev/";
+        try {
+            const response = await fetch(workerUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chatMessage: text })
+            });
+            const data = await response.json();
+            
+            // AI yanıtını ekle
+            this.addMessage(data.text || "Yanıt alınamadı.", 'ai');
+        } catch (e) {
+            console.error("Chat Hatası:", e);
+            this.addMessage("⚠️ Motorla bağlantı kurulamadı.", 'ai');
+        }
     }
 };
 

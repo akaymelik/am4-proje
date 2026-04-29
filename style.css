@@ -22,19 +22,18 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    /* Mobil cihazlarda tıklama sırasında oluşan mavi gölgeyi temizler */
     -webkit-tap-highlight-color: transparent;
 }
 
 body {
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
     background-color: var(--bg);
     color: var(--text);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
 }
 
-/* --- GİRİŞ EKRANI (SPLASH SCREEN) --- */
+/* --- GİRİŞ EKRANI (SPLASH) --- */
 #splash-screen {
     position: fixed;
     top: 0;
@@ -46,42 +45,24 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 10000;
-    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
-    pointer-events: all; /* Aktifken her şeyi bloklar */
+    transition: opacity 0.5s ease, visibility 0.5s;
 }
 
 #splash-screen.hidden {
     opacity: 0;
     visibility: hidden;
-    pointer-events: none; /* Gizlendiğinde tıklamaları arkaya geçirir, takılmayı önler */
 }
 
-.splash-content {
-    text-align: center;
-    color: white;
-}
-
-.splash-logo {
-    font-size: 3.5rem;
-    font-weight: 900;
-    letter-spacing: 4px;
-    margin-bottom: 5px;
-    text-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.splash-tagline {
-    font-size: 1.1rem;
-    font-weight: 500;
-    opacity: 0.9;
-    margin-bottom: 30px;
-}
+.splash-content { text-align: center; color: white; }
+.splash-logo { font-size: 3.5rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px; }
+.splash-tagline { font-size: 1rem; opacity: 0.9; font-weight: 500; }
 
 .splash-loader {
     width: 200px;
     height: 4px;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255,255,255,0.2);
     border-radius: 10px;
-    margin: 0 auto;
+    margin: 30px auto;
     overflow: hidden;
 }
 
@@ -89,164 +70,124 @@ body {
     width: 0%;
     height: 100%;
     background: white;
-    box-shadow: 0 0 15px rgba(255,255,255,0.8);
-    animation: loadProgress 2s ease-in-out forwards;
+    animation: splashLoad 2s ease-in-out forwards;
 }
 
-@keyframes loadProgress {
-    0% { width: 0%; }
-    50% { width: 70%; }
-    100% { width: 100%; }
-}
+@keyframes splashLoad { to { width: 100%; } }
 
 /* --- NAVİGASYON --- */
 nav {
     background: var(--card);
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 0 2rem;
+    padding: 0 20px;
     height: 70px;
-    border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
     z-index: 1000;
+    border-bottom: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
 }
 
-.nav-links {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
+.nav-links { display: flex; gap: 5px; align-items: center; }
 
-nav a, .nav-label {
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-weight: 600;
-    color: var(--text);
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.95rem;
-}
-
-nav a:hover, .nav-label:hover {
-    background: var(--primary-light);
-    color: var(--primary);
-}
-
-/* --- DROPDOWN VE MOD SEÇİCİ --- */
 .dropdown { position: relative; }
+
+.nav-label {
+    padding: 10px 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--text);
+    border-radius: 10px;
+    transition: 0.2s;
+}
+
+.nav-label:hover { background: var(--primary-light); color: var(--primary); }
+
 .dropdown-content {
     display: none;
     position: absolute;
-    top: 100%;
+    top: 55px;
     left: 0;
     background: var(--card);
-    min-width: 220px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    min-width: 200px;
+    border-radius: 14px;
     box-shadow: var(--shadow-lg);
-    z-index: 1001;
-}
-.dropdown.open .dropdown-content { display: block; }
-.dropdown-content a { 
-    padding: 12px 16px; 
-    display: block; 
-    text-decoration: none; 
-    color: var(--text); 
-    font-size: 0.9rem; 
-    border-bottom: 1px solid var(--neutral-bg); 
-}
-
-.mode-selector { display: flex; gap: 5px; background: var(--neutral-bg); padding: 4px; border-radius: 10px; }
-.mode-btn { padding: 6px 16px; border: none; border-radius: 7px; cursor: pointer; font-weight: 700; background: transparent; color: var(--text-muted); }
-.mode-btn.active { background: var(--primary) !important; color: white !important; }
-
-/* --- SAYFA YAPISI --- */
-.container {
-    max-width: 960px;
-    margin: 2rem auto;
-    padding: 0 20px;
-    display: flex;
-    flex-direction: column;
-    min-height: calc(100vh - 110px);
-}
-
-.page {
-    display: none;
-    background: var(--card);
-    padding: 40px;
-    border-radius: 20px;
     border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    margin-bottom: 2rem;
+    padding: 8px;
+    overflow: hidden;
 }
 
-.page.active { display: block; animation: pageFade 0.3s ease-in; }
+.dropdown.open .dropdown-content { display: block; animation: dropFade 0.2s ease-out; }
 
-@keyframes pageFade {
-    from { opacity: 0; transform: translateY(10px); }
+@keyframes dropFade {
+    from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- FOOTER (ALT BİLGİ) --- */
-.main-footer {
-    margin-top: auto;
-    padding: 2.5rem 0;
-    text-align: center;
-    border-top: 1px solid var(--border);
-    color: var(--text-muted);
+.dropdown-content a {
+    display: block;
+    padding: 12px 16px;
+    text-decoration: none;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    transition: 0.2s;
 }
 
-.main-footer p {
-    font-size: 0.85rem;
-    margin-bottom: 8px;
+.dropdown-content a:hover { background: var(--primary-light); color: var(--primary); }
+
+/* --- KONTEYNER VE SAYFALAR --- */
+.container {
+    max-width: 900px;
+    margin: 25px auto;
+    padding: 0 20px;
+    padding-bottom: 100px;
 }
 
-.main-footer .author {
-    font-weight: 800;
-    color: var(--primary);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    font-size: 0.75rem;
-}
+.page { display: none; }
+.page.active { display: block; animation: pageFade 0.3s ease-in-out; }
 
-/* --- FORM VE ANALİZ ELEMANLARI --- */
+@keyframes pageFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* --- FORM ELEMANLARI --- */
+h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 25px; letter-spacing: -0.5px; }
+h3 { margin-top: 30px; margin-bottom: 15px; font-size: 1.2rem; }
+
 label {
     display: block;
     margin-bottom: 8px;
     font-weight: 700;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
-    text-transform: uppercase;
 }
 
-input, select { 
-    width: 100%; 
-    padding: 12px; 
-    margin-bottom: 20px; 
-    border-radius: 10px; 
-    border: 1px solid var(--border); 
-    background: var(--neutral-bg);
-    transition: all 0.2s;
-}
-
-input:focus, select:focus {
-    border-color: var(--primary);
+input, select {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
     background: white;
+    font-size: 1rem;
+    font-family: inherit;
+    margin-bottom: 20px;
     outline: none;
-    box-shadow: 0 0 0 3px var(--primary-light);
+    transition: border-color 0.2s;
 }
 
-button { 
-    background: var(--primary); 
-    color: white; 
-    border: none; 
-    padding: 15px; 
-    border-radius: 12px; 
-    cursor: pointer; 
+input:focus, select:focus { border-color: var(--primary); }
+
+button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 1rem;
     font-weight: 700; 
     width: 100%; 
     transition: background 0.2s;
@@ -275,14 +216,56 @@ button:hover { background: var(--primary-hover); }
     border-left: 5px solid var(--primary);
 }
 
-.suggest-badge {
-    background: var(--primary-light);
+/* --- AI ANALİZ TASARIMI (YENİ EKLENENLER) --- */
+.ai-report-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+    border: 2.2px solid var(--primary);
+    padding: 18px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-lg);
+    animation: aiFadeIn 0.5s ease-out;
+}
+
+@keyframes aiFadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.action-group { 
+    display: flex; 
+    gap: 8px; 
+    margin-top: 10px; 
+}
+
+.ai-btn-small { 
+    background: #000 !important; 
+    color: white; 
+    border: none; 
+    padding: 7px 14px; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-weight: 700; 
+    font-size: 0.75rem; 
+    transition: 0.2s; 
+}
+
+.ai-btn-small:hover { 
+    transform: scale(1.05); 
+    background: #333 !important; 
+}
+
+#aiLoader {
+    text-align: center;
+    padding: 20px;
+    font-weight: 800;
     color: var(--primary);
-    padding: 4px 12px;
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 0.85rem;
-    margin: 0 2px;
+    animation: aiPulse 1.5s infinite;
+}
+
+@keyframes aiPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
 }
 
 /* --- DURUM KUTULARI --- */
@@ -291,10 +274,22 @@ button:hover { background: var(--primary-hover); }
 .status-danger { background: var(--danger-bg); color: var(--danger); }
 .status-neutral { background: var(--neutral-bg); color: var(--text-muted); }
 
-/* --- MOBİL UYARLAMA --- */
-@media (max-width: 768px) {
-    nav { flex-direction: column; height: auto; padding: 15px; gap: 15px; }
-    .nav-links { width: 100%; justify-content: space-around; }
-    .dropdown-content { position: fixed; top: 140px; left: 5%; width: 90%; }
-    .result-item { flex-direction: column; text-align: center; gap: 10px; }
+/* --- FOOTER --- */
+.main-footer {
+    text-align: center;
+    padding: 50px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+    color: var(--text-muted);
+}
+
+.author { font-weight: 800; color: var(--text); margin-top: 5px; font-size: 0.9rem; }
+
+/* --- MOBİL UYUMLULUK --- */
+@media (max-width: 600px) {
+    nav { height: 60px; }
+    .nav-label { font-size: 0.85rem; padding: 8px 12px; }
+    .container { padding: 0 15px; margin: 15px auto; }
+    h2 { font-size: 1.5rem; }
+    .dropdown-content { position: fixed; bottom: 0; left: 0; width: 100%; top: auto; border-radius: 20px 20px 0 0; }
 }

@@ -1,4 +1,4 @@
-/* --- DEĞİŞKENLER VE TEMA SİSTEMİ --- */
+/* --- DEĞİŞKENLER VE TEMEL --- */
 :root {
     --primary: #2563eb;
     --primary-hover: #1d4ed8;
@@ -14,214 +14,75 @@
     --danger-bg: #fee2e2;
     --neutral-bg: #f1f5f9;
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Inter', -apple-system, sans-serif; background-color: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
 
-body {
-    font-family: 'Inter', -apple-system, sans-serif;
-    background-color: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-}
-
-/* --- GİRİŞ EKRANI (SPLASH SCREEN) --- */
-#splash-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: var(--primary);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
-    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
-    pointer-events: all;
-}
-
-#splash-screen.hidden {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none; /* Takılmayı önleyen kritik satır */
-}
-
-.splash-content {
-    text-align: center;
-    color: white;
-}
-
-.splash-logo {
-    font-size: 3.5rem;
-    font-weight: 900;
-    letter-spacing: 4px;
-    margin-bottom: 5px;
-    text-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.splash-progress {
-    width: 0%;
-    height: 4px;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 0 15px rgba(255,255,255,0.8);
-    animation: loadProgress 2s ease-in-out forwards;
-}
-
-@keyframes loadProgress {
-    0% { width: 0%; }
-    100% { width: 100%; }
-}
+/* --- GİRİŞ EKRANI --- */
+#splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 10000; transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s; pointer-events: all; }
+#splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.splash-content { text-align: center; color: white; }
+.splash-logo { font-size: 3rem; font-weight: 900; letter-spacing: 4px; margin-bottom: 5px; }
+.splash-progress { width: 0%; height: 4px; background: white; border-radius: 10px; animation: loadProgress 2s ease-in-out forwards; }
+@keyframes loadProgress { from { width: 0%; } to { width: 100%; } }
 
 /* --- NAVİGASYON --- */
-nav {
-    background: var(--card);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 2rem;
-    height: 70px;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    box-shadow: var(--shadow-sm);
-}
-
+nav { background: var(--card); display: flex; justify-content: space-between; align-items: center; padding: 0 2rem; height: 70px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; box-shadow: var(--shadow-sm); }
 .nav-links { display: flex; gap: 8px; align-items: center; }
-
-nav a, .nav-label {
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-weight: 600;
-    color: var(--text);
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
+nav a, .nav-label { padding: 10px 14px; border-radius: 8px; font-weight: 600; color: var(--text); text-decoration: none; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; }
 nav a:hover, .nav-label:hover { background: var(--primary-light); color: var(--primary); }
 
-/* --- DROPDOWN VE MOD SEÇİCİ --- */
+/* --- DROPDOWN & MOD --- */
 .dropdown { position: relative; }
-.dropdown-content {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: var(--card);
-    min-width: 220px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    box-shadow: var(--shadow-lg);
-}
+.dropdown-content { display: none; position: absolute; top: 100%; left: 0; background: var(--card); min-width: 220px; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg); }
 .dropdown.open .dropdown-content { display: block; }
-
 .mode-selector { display: flex; gap: 5px; background: var(--neutral-bg); padding: 4px; border-radius: 10px; }
-.mode-btn { padding: 6px 16px; border: none; border-radius: 7px; cursor: pointer; font-weight: 700; background: transparent; color: var(--text-muted); }
+.mode-btn { padding: 6px 16px; border: none; border-radius: 7px; cursor: pointer; font-weight: 700; background: transparent; color: var(--text-muted); font-size: 0.8rem; }
 .mode-btn.active { background: var(--primary) !important; color: white !important; }
 
-/* --- YAPAY ZEKA (AI) RAPOR KARTI --- */
-.ai-report-card {
-    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
-    border: 2px solid var(--primary);
-    padding: 24px;
-    border-radius: 18px;
-    margin-bottom: 25px;
-    box-shadow: var(--shadow-lg);
-    animation: aiFadeIn 0.5s ease-out;
-}
+/* --- AI RAPOR KARTI --- */
+.ai-report-card { background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%); border: 1.5px solid var(--primary); padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: var(--shadow); animation: aiFadeIn 0.4s ease-out; }
+@keyframes aiFadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-@keyframes aiFadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.ai-btn {
-    width: auto !important;
-    padding: 6px 12px !important;
-    font-size: 0.75rem !important;
-    margin-top: 8px;
-    background: var(--text) !important;
-    color: white;
-}
-
-/* --- SAYFA YAPISI VE KARTLAR --- */
-.container { max-width: 960px; margin: 2rem auto; padding: 0 20px; }
-
-.page {
-    display: none;
-    background: var(--card);
-    padding: 30px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-}
+/* --- ROTA KARTLARI & BUTONLAR --- */
+.container { max-width: 900px; margin: 1.5rem auto; padding: 0 15px; }
+.page { display: none; background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid var(--border); box-shadow: var(--shadow); }
 .page.active { display: block; }
 
-.route-card {
-    background: white;
-    border: 1px solid var(--border);
-    padding: 20px;
-    margin: 15px 0;
-    border-radius: 16px;
-    display: flex;
-    flex-direction: column;
-    border-left: 5px solid var(--primary);
-}
+.route-card { background: white; border: 1px solid var(--border); padding: 15px; margin: 12px 0; border-radius: 12px; border-left: 5px solid var(--primary); display: flex; flex-direction: column; }
 
-.suggestion-box {
-    background: var(--primary-light);
-    padding: 12px;
-    border-radius: 12px;
-    margin: 12px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+.suggestion-box { background: var(--primary-light); padding: 10px 12px; border-radius: 10px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.config-text { flex: 1; min-width: 0; }
 
-.apply-btn { width: auto !important; padding: 6px 15px !important; font-size: 0.75rem !important; border-radius: 8px !important; }
+.action-group { display: flex; gap: 6px; flex-shrink: 0; }
 
-.route-footer {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    border-top: 1px solid var(--border);
-    padding-top: 10px;
-}
+/* Buton Düzenlemesi: Yükle Butonu 1/4 Boyut Hissi İçin Daraltıldı */
+.apply-btn-small { background: var(--success) !important; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 0.7rem; transition: 0.2s; min-width: 60px; }
+.ai-btn-small { background: var(--text) !important; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 0.7rem; transition: 0.2s; min-width: 80px; }
 
-/* --- FOOTER --- */
-.main-footer {
-    margin-top: 50px;
-    padding: 30px 0;
-    text-align: center;
-    border-top: 1px solid var(--border);
-}
-.main-footer .author { font-weight: 800; color: var(--primary); margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
+.apply-btn-small:hover, .ai-btn-small:hover { opacity: 0.9; transform: scale(1.02); }
 
-/* --- FORM ELEMANLARI --- */
-input, select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 10px; border: 1px solid var(--border); background: var(--neutral-bg); }
-button { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.2s; }
-button:hover { opacity: 0.9; transform: translateY(-1px); }
+.route-footer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 8px; }
 
-.status-box { padding: 15px; border-radius: 12px; font-weight: 700; text-align: center; margin-bottom: 20px; }
+.suggest-badge { background: white; color: var(--primary); padding: 2px 8px; border-radius: 5px; font-weight: 800; font-size: 0.75rem; margin-right: 3px; border: 1px solid var(--primary-light); }
+
+/* --- GENEL FORM --- */
+input, select { width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--neutral-bg); font-size: 0.9rem; }
+button { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 700; width: 100%; }
+
+.status-box { padding: 12px; border-radius: 10px; font-weight: 700; text-align: center; margin-bottom: 15px; font-size: 0.85rem; }
 .status-success { background: var(--success-bg); color: var(--success); }
 .status-danger { background: var(--danger-bg); color: var(--danger); }
 
 /* --- MOBİL --- */
-@media (max-width: 768px) {
-    nav { flex-direction: column; height: auto; padding: 15px; gap: 10px; }
+@media (max-width: 600px) {
+    nav { height: auto; padding: 10px; flex-direction: column; gap: 10px; }
+    .nav-links { width: 100%; justify-content: space-around; }
     .route-footer { grid-template-columns: repeat(2, 1fr); }
-    .dropdown-content { position: fixed; width: 90%; left: 5%; top: 150px; }
+    .suggestion-box { flex-direction: column; align-items: flex-start; }
+    .action-group { width: 100%; }
+    .apply-btn-small, .ai-btn-small { flex: 1; }
 }

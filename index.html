@@ -143,17 +143,21 @@
 <script src="ui.js"></script>
 
 <script>
-    window.onload = () => {
+    // Sayfa tamamen yüklendiğinde çalışacak güvenli fonksiyon
+    window.addEventListener('load', () => {
         // Splash screen'i kaldır
         setTimeout(() => {
-            document.getElementById('splash-screen').classList.add('hidden');
+            const splash = document.getElementById('splash-screen');
+            if(splash) splash.classList.add('hidden');
         }, 1200);
         
-        // İlk mesajı daktilo efektiyle gönder
+        // Chat nesnesinin tanımlı olduğundan emin ol ve ilk mesajı at
         setTimeout(() => {
-            Chat.addMessage("Selam Melik! Bugün filonu nasıl geliştirelim?", "ai");
+            if (window.Chat && typeof window.Chat.addMessage === 'function') {
+                window.Chat.addMessage("Selam Melik! Bugün filonu nasıl geliştirelim?", "ai");
+            }
         }, 2000);
-    };
+    });
 </script>
 
 </body>

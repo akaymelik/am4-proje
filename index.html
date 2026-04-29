@@ -102,6 +102,26 @@
     </footer>
 </div>
 
+<!-- --- AI SOHBET BALONCUĞU --- -->
+<div id="ai-chat-widget">
+    <div id="chat-window" class="chat-hidden">
+        <div class="chat-header">
+            <span>🤖 MENOA AI</span>
+            <button onclick="Chat.toggle()">✕</button>
+        </div>
+        <div id="chat-body">
+            <div class="chat-msg ai-msg">Selam Melik! Bugün filonu nasıl geliştirelim?</div>
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="chatInput" placeholder="Mesajınızı yazın..." onkeypress="if(event.key === 'Enter') Chat.send()">
+            <button onclick="Chat.send()">➤</button>
+        </div>
+    </div>
+    <button id="chat-toggle-btn" onclick="Chat.toggle()">
+        <span class="chat-icon">🤖</span>
+    </button>
+</div>
+
 <script src="planes.js"></script>
 <script src="routes.js"></script>
 <script src="utils.js"></script>

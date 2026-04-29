@@ -1,283 +1,150 @@
 /**
- * ui.js: AM4 Strateji Merkezi Arayüz Motoru.
- * Güncellemeler: 
- * - Splash Screen (Yükleme Ekranı) takılma sorunu için "Fail-safe" eklendi.
- * - Hata yakalama (try-catch) ile sistem stabilitesi artırıldı.
- * - iPhone/Mobil için dokunmatik menü (toggleDropdown) desteği.
- * - ROI doğrulaması için "Günlük Sefer" ve "Uçuş Başı Kâr" bilgileri entegre edildi.
+ * logic.js: AM4 Pazar Talebi (Demand) Kısıtlamalı ve Hibrit Puanlama Destekli Hesaplama Motoru.
+ * GÜNCELLEME: 
+ * - Kargo kâr hesabı Hafif (Large) ve Ağır (Heavy) konfigürasyonuna göre revize edildi.
+ * - Kargo için Configurator.calculateOptimalCargo entegrasyonu sağlandı.
  */
 
-const UI = {
+const Logic = {
     /**
-     * Sayfalar arasında geçiş yapar.
-     * @param {string} pageId - Aktif edilecek sayfa ID'si.
+     * Sadece uçağın havada kaldığı süreyi hesaplar (Arayüzde gösterilir).
      */
-    showPage: function(pageId) {
-        try {
-            // Tüm sayfaları gizle
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            
-            // Hedef sayfayı göster
-            const target = document.getElementById(pageId);
-            if (target) {
-                target.classList.add('active');
-            }
-            
-            // Menü geçişlerinde açık dropdownları kapat
-            this.closeAllDropdowns();
-            
-            // Rota analizi sayfalarındaysak uçak listelerini doldur
-            if (pageId.includes('route')) {
-                this.fillSelects();
-            }
-            
-            // Sayfa başına yumuşak kaydır
-            window.scrollTo(0, 0);
-        } catch (error) {
-            console.error("Sayfa geçişi sırasında hata:", error);
-            // Hata durumunda ana sayfayı kurtar
-            const home = document.getElementById('home');
-            if (home) home.classList.add('active');
-        }
+    calculateFlightTime: function(distance, speed) {
+        if (!speed || speed <= 0) return 0;
+        return (distance / speed);
     },
 
     /**
-     * Mobil cihazlarda menü başlıklarına tıklandığında alt menüyü açar/kapatır.
-     * @param {string} id - Dropdown kapsayıcısının ID'si.
+     * Tek bir uçuşun net kârını, süresini ve günlük sefer limitlerini hesaplar.
      */
-    toggleDropdown: function(id) {
-        const drop = document.getElementById(id);
-        if (!drop) return;
+    calculateProfit: function(plane, route, config = null, manualTrips = null) {
+        const currentMode = typeof window.gameMode !== 'undefined' ? window.gameMode : 'realism';
+        const multiplier = currentMode === 'easy' ? 1.1 : 1.0;
+
+        const airTime = this.calculateFlightTime(route.distance, plane.cruise_speed);
+        const cycleTime = airTime + 0.5; // 30dk hazırlık
         
-        const isOpen = drop.classList.contains('open');
+        const maxTrips = Math.floor(24 / cycleTime);
+        let trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
         
-        // Diğer açık menüleri temizle
-        this.closeAllDropdowns();
+        if (trips <= 0) return { profitPerFlight: 0, appliedTrips: 0, duration: airTime };
+
+        let grossRevenue = 0;
+        const prices = Configurator.getTicketMultipliers(route.distance);
+
+        // --- KARGO GELİR HESABI ---
+        if (plane.type === "cargo") {
+            // Eğer manuel kargo konfigürasyonu girilmemişse, en ideal dağılımı bul
+            const activeCargo = (config && (config.l + config.h > 0)) 
+                ? config 
+                : Configurator.calculateOptimalCargo(plane, route, trips);
+
+            // Talep Kontrolü (L ve H için pazar talebi sınırlandırması)
+            const totalDemand = route.demand.c || (route.demand.y * 500);
+            const demandL = (totalDemand * 0.7) / trips; // Tahmini L talebi
+            const demandH = (totalDemand * 0.3) / trips; // Tahmini H talebi
+
+            const carryL = Math.min(activeCargo.l, demandL);
+            const carryH = Math.min(activeCargo.h, demandH);
+
+            grossRevenue = (carryL * prices.l) + (carryH * prices.h);
+        } 
+        // --- YOLCU (PAX) GELİR HESABI ---
+        else {
+            const activeSeats = (config && (config.y + config.j + config.f > 0)) 
+                ? config 
+                : Configurator.calculateOptimalSeats(plane, route, trips);
+
+            const carryY = Math.min(activeSeats.y * trips, route.demand.y || 0) / trips;
+            const carryJ = Math.min(activeSeats.j * trips, route.demand.j || 0) / trips;
+            const carryF = Math.min(activeSeats.f * trips, route.demand.f || 0) / trips;
+
+            grossRevenue = (carryY * prices.y) + (carryJ * prices.j) + (carryF * prices.f);
+        }
+
+        // --- GİDERLER ---
+        const fuelCost = route.distance * plane.fuel_consumption * 1.1;
+        const staffCost = plane.type === "cargo" ? plane.capacity * 0.01 : plane.capacity * 2.5;
         
-        // Hedef menüyü aç veya kapat
-        if (!isOpen) {
-            drop.classList.add('open');
-        }
+        const netProfitPerFlight = grossRevenue - (fuelCost + staffCost);
+
+        return {
+            profitPerFlight: netProfitPerFlight,
+            appliedTrips: trips,
+            duration: airTime
+        };
     },
 
     /**
-     * Tüm açık dropdown menüleri kapatır.
+     * Belirli bir uçak için en kârlı 10 rotayı analiz eder.
      */
-    closeAllDropdowns: function() {
-        document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
-    },
+    analyzeTopRoutesForPlane: function(planeName, limit = 10, customConfig = null, manualTrips = null) {
+        const plane = aircraftData[planeName];
+        if (!plane) return [];
 
-    /**
-     * Oyun modunu (Easy/Realism) değiştirir ve arayüzdeki buton stillerini günceller.
-     */
-    setGameMode: function(mode) {
-        window.gameMode = mode; 
-        
-        // Butonların görsel durumunu güncelle (Sadece aktif olan mavi olur)
-        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-        const targetId = mode === 'easy' ? 'btn-easy' : 'id-real';
-        const activeBtn = document.getElementById(targetId);
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-        }
-
-        // Ana sayfadaki aktif mod bilgisini güncelle (Sade metin)
-        const display = document.getElementById('modeDisplay');
-        if (display) {
-            display.innerText = mode === 'easy' ? "Aktif Mod: Easy" : "Aktif Mod: Realism";
-            display.className = "status-box " + (mode === 'easy' ? "status-success" : "status-danger");
-        }
-
-        // Mod değiştiğinde eski sonuçları temizle
-        ['paxRouteResult', 'cargoRouteResult', 'paxPlaneResult', 'cargoPlaneResult'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = "";
-        });
-    },
-
-    /**
-     * Uçak seçim listelerini planes.js verileriyle doldurur.
-     */
-    fillSelects: function() {
-        const paxSelect = document.getElementById('paxRouteSelect');
-        const cargoSelect = document.getElementById('cargoRouteSelect');
-
-        if (paxSelect) paxSelect.innerHTML = '<option value="">-- Bir Uçak Seçin --</option>';
-        if (cargoSelect) cargoSelect.innerHTML = '<option value="">-- Bir Uçak Seçin --</option>';
-
-        if (typeof aircraftData === 'undefined') return;
-
-        for (let name in aircraftData) {
-            const plane = aircraftData[name];
-            const option = new Option(name, name);
-            if (plane.type === "passenger" && paxSelect) {
-                paxSelect.add(option);
-            } else if (plane.type === "cargo" && cargoSelect) {
-                cargoSelect.add(option);
-            }
-        }
-    },
-
-    /**
-     * Bütçeye göre en verimli uçakları Hibrit Skor ile listeler.
-     */
-    renderSuggestions: function(cat) {
-        try {
-            const budgetInput = document.getElementById(cat + 'BudgetInput');
-            const mTripsInput = document.getElementById(cat + 'ManualTrips');
-            const resultDiv = document.getElementById(cat + 'PlaneResult');
-            
-            if (!budgetInput || !budgetInput.value) return;
-
-            const budget = Number(budgetInput.value);
-            const mTrips = Number(mTripsInput.value) || null;
-            const typeKey = cat === 'pax' ? 'passenger' : 'cargo';
-
-            const matches = Logic.getBestPlanesByType(budget, typeKey, mTrips);
-            
-            if (matches.length === 0) {
-                resultDiv.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">Bu bütçeye uygun uçak bulunamadı.</p>`;
-                return;
-            }
-
-            resultDiv.innerHTML = matches.map((m, index) => `
-                <div class="result-item" style="border-left: 5px solid ${index === 0 ? 'var(--success)' : 'var(--primary)'}">
-                    <div style="flex: 2; text-align: left;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-                            <strong style="font-size: 1.15rem;">${m.name}</strong>
-                            <span style="background: var(--primary); color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">
-                                Skor: %${(m.finalScore * 100).toFixed(0)}
-                            </span>
-                        </div>
-                        <small style="color: var(--success); font-weight: 700; display: block; margin-bottom: 5px;">
-                            Rota: ${m.bestRouteOrigin} ➔ ${m.bestRouteName}
-                        </small>
-                        <div style="font-size: 0.85rem; color: var(--text);">
-                            Fiyat: <strong>${Utils.formatCurrency(m.price)}</strong> | 
-                            Kâr: <strong style="color: var(--primary);">${Utils.formatCurrency(m.profitPerFlight)}</strong>
-                        </div>
-                        <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 3px;">
-                            Operasyon: <strong>Günde ${m.appliedTrips} Sefer</strong>
-                        </small>
-                    </div>
-                    <div style="text-align: right; flex: 1; border-left: 1px solid var(--border); padding-left: 10px;">
-                        <div style="color: var(--primary); font-weight: 800; font-size: 1.1rem;">
-                            ${Utils.formatPercent(m.efficiency)}
-                        </div>
-                        <small style="color: var(--text-muted); font-weight: 600;">${m.roi} G. ROI</small>
-                    </div>
-                </div>
-            `).join('');
-        } catch (e) {
-            console.error("Öneri render hatası:", e);
-        }
-    },
-
-    /**
-     * Seçilen uçak için en kârlı rotaları analiz eder.
-     */
-    renderRouteAnalysis: function(cat) {
-        try {
-            const select = document.getElementById(cat + 'RouteSelect');
-            const mTripsInput = document.getElementById(cat + 'RouteManualTrips');
-            const resultDiv = document.getElementById(cat + 'RouteResult');
-            
-            const planeName = select.value;
-            if (!planeName) return;
-            
-            const plane = aircraftData[planeName];
-            const mTrips = Number(mTripsInput.value) || null;
-            let seats = cat === 'pax' ? Configurator.getSeatConfig() : null;
-
-            const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, seats, mTrips);
-            const currentMode = window.gameMode || 'realism';
-
-            resultDiv.innerHTML = `<h3 style="margin: 20px 0 15px 0;">En Karlı Rotalar (${currentMode.toUpperCase()})</h3>` + topRoutes.map((r, i) => {
-                const opt = (cat === 'pax') ? Configurator.calculateOptimalSeats(plane, r, mTrips) : null;
+        let results = [];
+        popularRoutes.forEach(route => {
+            if (route.distance <= plane.range) {
+                const calculation = this.calculateProfit(plane, route, customConfig, manualTrips);
                 
-                return `
-                <div class="route-card">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                        <strong style="font-size: 1.05rem; flex: 1; text-align: left;">#${i + 1} ${r.origin} ➔ ${r.destination}</strong>
-                        <div style="text-align: right;">
-                            <div style="color: var(--success); font-weight: 800; font-size: 1.1rem;">
-                                ${Utils.formatCurrency(r.dailyProfit)} / Gün
-                            </div>
-                            <div style="color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">
-                                ${Utils.formatCurrency(r.profitPerFlight)} / Uçuş
-                            </div>
-                        </div>
-                    </div>
-                    
-                    ${cat === 'pax' ? `
-                    <div style="background: var(--primary-light); padding: 12px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(37, 99, 235, 0.1);">
-                        <div style="text-align: left;">
-                            <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem; margin-right: 8px;">İDEAL:</span> 
-                            <span class="suggest-badge">Y:${opt.y}</span>
-                            <span class="suggest-badge">J:${opt.j}</span>
-                            <span class="suggest-badge">F:${opt.f}</span>
-                        </div>
-                        <button onclick="Configurator.applySuggestion(${opt.y}, ${opt.j}, ${opt.f})" 
-                                style="width: auto; padding: 6px 12px; margin: 0; font-size: 0.7rem; background: var(--success); border-radius: 8px;">
-                            Yükle
-                        </button>
-                    </div>
-                    ` : `
-                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; text-align: left;">
-                        <span style="font-weight: 700; color: var(--text);">Kargo Talebi:</span> ${r.demand.c || (r.demand.y * 500)} birim
-                    </div>
-                    `}
+                if (calculation.profitPerFlight > 0) {
+                    const dailyProfit = calculation.profitPerFlight * calculation.appliedTrips;
+                    results.push({
+                        ...route,
+                        profitPerFlight: calculation.profitPerFlight,
+                        dailyProfit: dailyProfit,
+                        dailyTrips: calculation.appliedTrips,
+                        duration: calculation.duration,
+                        efficiency: (dailyProfit / plane.price) * 100,
+                        roiDays: (plane.price / dailyProfit).toFixed(1)
+                    });
+                }
+            }
+        });
 
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 10px;">
-                        <span><strong>Mesafe:</strong> ${r.distance}km</span>
-                        <span><strong>Uçuş:</strong> ${Utils.formatDuration(r.duration)}</span>
-                        <span><strong>Sefer:</strong> ${r.dailyTrips}x</span>
-                        <span><strong>Verim:</strong> ${Utils.formatPercent(r.efficiency)}</span>
-                    </div>
-                </div>`;
-            }).join('');
-        } catch (e) {
-            console.error("Rota analiz hatası:", e);
+        return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
+    },
+
+    /**
+     * Bütçeye göre en verimli uçakları listeler (%30 Verim + %70 Kâr).
+     */
+    getBestPlanesByType: function(budget, type, manualTrips = null) {
+        const numericBudget = Number(budget);
+        let candidates = [];
+        
+        for (let name in aircraftData) {
+            const p = aircraftData[name];
+            if (p.price <= numericBudget && p.type === type) {
+                const topResults = this.analyzeTopRoutesForPlane(name, 1, null, manualTrips);
+                if (topResults.length > 0) {
+                    const best = topResults[0];
+                    candidates.push({
+                        name: name,
+                        efficiency: best.efficiency,
+                        dailyProfit: best.dailyProfit,
+                        profitPerFlight: best.profitPerFlight,
+                        roi: best.roiDays,
+                        duration: best.duration,
+                        bestRouteOrigin: best.origin,
+                        bestRouteName: best.destination,
+                        price: p.price,
+                        appliedTrips: best.dailyTrips
+                    });
+                }
+            }
         }
+
+        if (candidates.length === 0) return [];
+
+        const maxEff = Math.max(...candidates.map(c => c.efficiency)) || 1;
+        const maxProfit = Math.max(...candidates.map(c => c.dailyProfit)) || 1;
+
+        candidates.forEach(c => {
+            const normEff = c.efficiency / maxEff;
+            const normProfit = c.dailyProfit / maxProfit;
+            c.finalScore = (normEff * 0.3) + (normProfit * 0.7);
+        });
+
+        return candidates.sort((a, b) => b.finalScore - a.finalScore);
     }
 };
-
-/**
- * Giriş Ekranı (Splash) Kaldırma Mantığı
- */
-const hideSplashScreen = () => {
-    const splash = document.getElementById('splash-screen');
-    if (splash && !splash.classList.contains('hidden')) {
-        splash.classList.add('hidden');
-    }
-};
-
-/**
- * Global başlatıcılar ve Pencere (Window) olayları.
- */
-window.updateCapacityCheck = function() { 
-    if (typeof Configurator !== 'undefined') Configurator.updateCapacityCheck(); 
-};
-
-window.onload = function() { 
-    try {
-        UI.fillSelects(); 
-        UI.setGameMode('realism'); 
-
-        // Sayfa kaynakları tamamen yüklendikten 1.5 sn sonra kapat
-        setTimeout(hideSplashScreen, 1500);
-    } catch (e) {
-        console.error("Başlatma hatası:", e);
-        hideSplashScreen(); // Hata olsa bile ekranı aç
-    }
-};
-
-// GÜVENLİK ÖNLEMİ: Eğer sayfa kaynakları (font, resim vb) takılırsa ekranı 4 saniye sonra zorla aç.
-setTimeout(hideSplashScreen, 4000);
-
-// Global tıklama dinleyici (Dropdown kapatmak için)
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.dropdown')) {
-        UI.closeAllDropdowns();
-    }
-});

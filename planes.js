@@ -316,7 +316,6 @@ const aircraftData = {
     "Dassault Mercure": { type: "passenger", capacity: 150, fuel_consumption: 25.22, range: 1700, cruise_speed: 833, price: 8434010 },
 
     // --- KARGO UÇAKLARI (CARGO) ---
-    // Kapasiteler "H Cargo" (Ağır Kargo) değerleridir.
     "A310-300F": { type: "cargo", capacity: 66000, fuel_consumption: 19.53, range: 7330, cruise_speed: 816, price: 7936782 },
     "A400M": { type: "cargo", capacity: 81600, fuel_consumption: 24.24, range: 3298, cruise_speed: 827, price: 12823606 },
     "A300-600ST": { type: "cargo", capacity: 103617, fuel_consumption: 27, range: 4632, cruise_speed: 876, price: 21999869 },

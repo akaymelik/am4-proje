@@ -78,7 +78,7 @@ const UI = {
      * Gemini Yapay Zekasına (Cloudflare Worker) analiz talebi gönderir.
      */
     askGemini: async function(planeName, routeData) {
-        // SENİN WORKER URL ADRESİN (Sonunda / olduğundan emin ol)
+        // Cloudflare Worker URL Adresin
         const workerUrl = "https://worker.airm4.workers.dev/";
         
         const resultArea = document.getElementById('aiResultArea');
@@ -102,8 +102,7 @@ const UI = {
             const data = await response.json();
 
             if (!response.ok) {
-                // Worker'dan gelen özel hata mesajını göster
-                throw new Error(data.error || "Sunucu Hatası");
+                throw new Error(data.error || "Motor yanıt vermedi.");
             }
             
             resultArea.innerHTML = `
@@ -211,7 +210,7 @@ const UI = {
 };
 
 /**
- * Sayfa tıklandığında dropdownları kapatan global dinleyici.
+ * Global tıklama dinleyicisi: Dropdown dışına tıklandığında menüleri kapatır.
  */
 document.addEventListener('click', e => {
     if (!e.target.closest('.dropdown')) UI.closeAllDropdowns();

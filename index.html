@@ -9,7 +9,7 @@
 </head>
 <body>
 
-<!-- Splash Screen (Giriş Ekranı) -->
+<!-- Giriş Ekranı (Splash) -->
 <div id="splash-screen">
     <div class="splash-content">
         <h1 class="splash-logo">MENOA</h1>
@@ -18,9 +18,10 @@
     </div>
 </div>
 
-<!-- Navigasyon -->
+<!-- Navigasyon Çubuğu -->
 <nav>
     <div class="nav-links">
+        <!-- Logo Alanı -->
         <a onclick="UI.showPage('home')" style="font-weight: 800; color: var(--primary); cursor:pointer; font-size: 1.2rem; letter-spacing: -1px;">
             MENOA <span style="color: var(--secondary); font-weight: 400; font-size: 0.8rem; letter-spacing: 0;">AI</span>
         </a>
@@ -112,11 +113,11 @@
     </div>
 
     <footer class="main-footer">
-        <p>© 2024 MENOA AI. Powered by Melik Akay</p>
+        <p>© 2024 MENOA AI. Strateji ve Analiz Paneli</p>
     </footer>
 </div>
 
-<!-- AI Chat Widget -->
+<!-- AI Sohbet Baloncuğu -->
 <div id="ai-chat-widget">
     <div id="chat-window" class="chat-hidden">
         <div class="chat-header">
@@ -134,7 +135,7 @@
     </button>
 </div>
 
-<!-- Dosyalar -->
+<!-- Script Yükleme Sırası (Kritik) -->
 <script src="planes.js"></script>
 <script src="routes.js"></script>
 <script src="utils.js"></script>
@@ -143,7 +144,7 @@
 <script src="ui.js"></script>
 
 <script>
-    // Sayfa tamamen yüklendiğinde çalışacak güvenli fonksiyon
+    // Sayfa ve tüm scriptler tamamen yüklendiğinde çalışır
     window.addEventListener('load', () => {
         // Splash screen'i kaldır
         setTimeout(() => {
@@ -151,10 +152,12 @@
             if(splash) splash.classList.add('hidden');
         }, 1200);
         
-        // Chat nesnesinin tanımlı olduğundan emin ol ve ilk mesajı at
+        // Chat modülünün yüklenip yüklenmediğini kontrol et ve ilk mesajı gönder
         setTimeout(() => {
             if (window.Chat && typeof window.Chat.addMessage === 'function') {
-                window.Chat.addMessage("Selam Melik! Bugün filonu nasıl geliştirelim?", "ai");
+                window.Chat.addMessage("Selam! Bugün filonu nasıl yönetelim ve hangi rotaları analiz edelim?", "ai");
+            } else {
+                console.warn("MENOA Chat modülü henüz hazır değil, tekrar deneniyor...");
             }
         }, 2000);
     });

@@ -1,14 +1,14 @@
 /**
  * configurator.js: Rota bazlı dinamik koltuk ve kargo optimizasyonu.
- * AM4 Standartları: 
- * - Yolcu: Economy (1), Business (2), First (3) birim yer kaplar.
- * - Kargo: Hafif (Large-L) ve Ağır (Heavy-H) yükler 1:1 oranında kapasite kullanır.
- * Güncelleme: Kargo L/H fiyat katsayıları ve pazar talebi bölüştürme mantığı eklendi.
+ * GÜNCELLEME: 
+ * - Kargo için yolcu talebinden kargo üretme (fallback) mantığı tamamen kaldırıldı.
+ * - Sadece rota verisinde 'c' (Cargo) talebi olan uçuşlar için yük hesabı yapar.
+ * - Kapasite kontrolü Kargo ve Yolcu sayfalarına göre dinamik çalışır.
  */
 
 const Configurator = {
     /**
-     * Kullanıcının arayüzden girdiği koltuk sayılarını (PAX) çeker.
+     * Mevcut koltuk konfigürasyonunu (Y, J, F) DOM'dan çeker.
      */
     getSeatConfig: function() {
         return {
@@ -19,7 +19,7 @@ const Configurator = {
     },
 
     /**
-     * Kullanıcının arayüzden girdiği kargo yük miktarlarını (Cargo) çeker.
+     * Mevcut kargo yük konfigürasyonunu (L, H) DOM'dan çeker.
      */
     getCargoConfig: function() {
         return {
@@ -29,37 +29,40 @@ const Configurator = {
     },
 
     /**
-     * Rota talebine göre en kârlı kargo dağılımını hesaplar.
-     * AM4 Kuralı: Ağır (Heavy) yük birim başına her zaman daha çok kazandırır.
+     * Kargo yükünü optimize eder (Ağır yük öncelikli).
+     * Sadece 'c' verisi olan rotalarda çalışır.
      */
     calculateOptimalCargo: function(plane, route, manualTrips = null) {
+        // Rota verisinde kargo talebi (c) yoksa işlem yapma
+        if (!route.demand || !route.demand.c) return { l: 0, h: 0 };
+
         const airTime = Logic.calculateFlightTime(route.distance, plane.cruise_speed);
-        const cycleTime = airTime + 0.5; // 30dk hazırlık payı
+        const cycleTime = airTime + 0.5; // 30dk hazırlık
         const maxTrips = Math.floor(24 / cycleTime);
         const trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
 
         if (trips <= 0) return { l: 0, h: 0 };
 
-        // Toplam kargo talebi (Veritabanında 'c' yoksa yolcu talebinden simüle edilir)
-        const totalDailyDemand = route.demand.c || (route.demand.y * 500) || 0;
+        // Toplam günlük talebi sefer sayısına bölerek tek uçuşluk limitleri bul
+        const totalDailyDemand = route.demand.c;
         const perFlightDemand = Math.floor(totalDailyDemand / trips);
 
-        // Kargo dağılımı: Ağır yük daha kârlı olduğu için önce kapasiteyi onunla doldur.
-        // AM4 pazar standardı: Talebin yaklaşık %30'u Ağır (H), %70'i Hafif (L) yükten oluşur.
+        // AM4 Pazar Standardı: Talebin ~%30'u Ağır (H), %70'i Hafif (L) yükten oluşur.
         let demandH = Math.floor(perFlightDemand * 0.3);
         let demandL = perFlightDemand - demandH;
 
         let remCap = plane.capacity;
-        let sH = Math.min(demandH, remCap); // Önce Ağır Yükü doldur
+        // 1. Önce en kârlı olan Ağır Yükü doldur
+        let sH = Math.min(demandH, remCap); 
         remCap -= sH;
-        let sL = Math.min(demandL, remCap); // Kalan boşluğa Hafif Yük koy
+        // 2. Kalan kapasiteye Hafif Yük koy
+        let sL = Math.min(demandL, remCap); 
         
         return { l: sL, h: sH };
     },
 
     /**
-     * Uçak ve rota için en kârlı koltuk dağılımını hesaplar (PAX).
-     * Kar Önceliği: First (3x) > Business (2x) > Economy (1x)
+     * Yolcu koltuklarını optimize eder (F > J > Y).
      */
     calculateOptimalSeats: function(plane, route, manualTrips = null) {
         const airTime = Logic.calculateFlightTime(route.distance, plane.cruise_speed);
@@ -75,26 +78,28 @@ const Configurator = {
 
         let remCap = plane.capacity;
         
-        // 1. Önce First Class (Kapasite başına en kârlı)
+        // Önce First Class (3x yer kaplar, birim başına en kârlıdır)
         let sF = Math.min(maxF, Math.floor(remCap / 3));
         remCap -= (sF * 3);
         
-        // 2. Sonra Business Class
+        // Sonra Business Class (2x yer kaplar)
         let sJ = Math.min(maxJ, Math.floor(remCap / 2));
         remCap -= (sJ * 2);
         
-        // 3. Kalan her yer Economy
+        // En son kalan her yer Economy
         let sY = Math.min(maxY, remCap);
         
         return { y: sY, j: sJ, f: sF };
     },
 
     /**
-     * Uçağın kapasite durumunu kontrol eder ve görsel geri bildirim verir.
+     * Uçağın kapasite aşımını kontrol eder ve görsel geri bildirim verir.
      */
     updateCapacityCheck: function() {
-        // Aktif sayfanın hangisi olduğunu bul (Yolcu mu Kargo mu?)
-        const isPaxPage = document.getElementById('pax-route').classList.contains('active');
+        // Aktif sayfanın hangisi olduğunu kontrol et
+        const paxRoutePage = document.getElementById('pax-route');
+        const isPaxPage = paxRoutePage && paxRoutePage.classList.contains('active');
+        
         const planeSelectId = isPaxPage ? 'paxRouteSelect' : 'cargoRouteSelect';
         const infoDivId = isPaxPage ? 'capacityInfo' : 'cargoCapacityInfo';
         
@@ -102,54 +107,58 @@ const Configurator = {
         const infoDiv = document.getElementById(infoDivId);
         
         if (!planeName || !aircraftData[planeName]) {
-            if (infoDiv) infoDiv.innerText = "Lütfen uçak seçin.";
+            if (infoDiv) infoDiv.innerText = "Lütfen bir uçak seçin.";
             return false;
         }
 
         const plane = aircraftData[planeName];
-        let used = 0;
+        let usedCapacity = 0;
 
         if (isPaxPage) {
             const config = this.getSeatConfig();
-            // PAX Formülü: Y + 2J + 3F
-            used = config.y + (config.j * 2) + (config.f * 3);
+            // PAX: Y(1) + J(2) + F(3)
+            usedCapacity = config.y + (config.j * 2) + (config.f * 3);
         } else {
             const config = this.getCargoConfig();
-            // Cargo Formülü: L + H (1:1 oran)
-            used = config.l + config.h;
+            // Cargo: L(1) + H(1)
+            usedCapacity = config.l + config.h;
         }
 
-        const remaining = plane.capacity - used;
+        const remaining = plane.capacity - usedCapacity;
         
         if (infoDiv) {
             if (remaining < 0) {
                 infoDiv.className = "status-box status-danger";
-                infoDiv.innerText = `Kapasite Aşıldı! (${used} / ${plane.capacity})`;
+                infoDiv.innerText = `Kapasite Aşıldı! (${usedCapacity} / ${plane.capacity})`;
             } else {
                 infoDiv.className = "status-box status-success";
-                infoDiv.innerText = `Kapasite Uygun: ${used} / ${plane.capacity} (Boş: ${remaining})`;
+                infoDiv.innerText = `Kapasite Uygun: ${usedCapacity} / ${plane.capacity} (Boş: ${remaining})`;
             }
         }
-        return used <= plane.capacity;
+        return usedCapacity <= plane.capacity;
     },
 
     /**
-     * Analiz sonuçlarından gelen ideal değerleri otomatik olarak giriş alanlarına aktarır.
+     * Analizden gelen ideal değerleri inputlara aktarır.
      */
     applySuggestion: function(v1, v2, v3 = null) {
-        if (v3 !== null) { // Yolcu Modu (Y, J, F)
-            document.getElementById('seatsY').value = v1;
-            document.getElementById('seatsJ').value = v2;
-            document.getElementById('seatsF').value = v3;
-        } else { // Kargo Modu (L, H)
-            document.getElementById('cargoL').value = v1;
-            document.getElementById('cargoH').value = v2;
+        if (v3 !== null) { // Yolcu Modu
+            const yInput = document.getElementById('seatsY');
+            const jInput = document.getElementById('seatsJ');
+            const fInput = document.getElementById('seatsF');
+            if (yInput) yInput.value = v1;
+            if (jInput) jInput.value = v2;
+            if (fInput) fInput.value = v3;
+        } else { // Kargo Modu
+            const lInput = document.getElementById('cargoL');
+            const hInput = document.getElementById('cargoH');
+            if (lInput) lInput.value = v1;
+            if (hInput) hInput.value = v2;
         }
         
-        // Değerler aktarıldıktan sonra kapasite kutusunu güncelle
         this.updateCapacityCheck();
         
-        // Kullanıcıyı ayarlar kısmına yumuşak kaydır
+        // Kullanıcıyı yukarı (ayarlar paneline) yumuşak bir şekilde kaydır
         const focusId = v3 !== null ? 'paxRouteSelect' : 'cargoRouteSelect';
         const anchor = document.getElementById(focusId);
         if (anchor) {
@@ -160,22 +169,20 @@ const Configurator = {
     },
 
     /**
-     * Aktif oyun moduna (Easy/Realism) göre bilet ve yük fiyatlarını döndürür.
-     * Formüller AM4 Command Center standartlarındadır.
+     * Aktif oyun moduna göre ideal bilet ve kargo yük fiyatlarını döndürür.
      */
     getTicketMultipliers: function(distance) {
         const mode = window.gameMode || 'realism';
         const multiplier = mode === 'easy' ? 1.1 : 1.0;
         
         return {
-            // --- Yolcu Bilet Fiyatları ---
+            // Yolcu Fiyatları
             y: ((0.4 * distance) + 170) * multiplier,
             j: ((0.8 * distance) + 560) * multiplier,
             f: ((1.2 * distance) + 1200) * multiplier,
-            
-            // --- Kargo Yük Fiyatları ---
-            l: ((0.07 * distance) + 50) * multiplier, // Hafif (Large)
-            h: ((0.11 * distance) + 150) * multiplier  // Ağır (Heavy)
+            // Kargo Fiyatları
+            l: ((0.07 * distance) + 50) * multiplier,
+            h: ((0.11 * distance) + 150) * multiplier
         };
     }
 };

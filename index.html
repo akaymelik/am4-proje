@@ -3,23 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AM4 Strateji Merkezi - MENOA</title>
+    <title>MENOA AI - AM4 Strateji Merkezi</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<!-- Giriş Ekranı (Splash) -->
 <div id="splash-screen">
     <div class="splash-content">
         <h1 class="splash-logo">MENOA</h1>
-        <p class="splash-tagline">AM4 Strateji Merkezi</p>
+        <p class="splash-tagline">AI Strateji Motoru</p>
         <div class="splash-loader"><div class="splash-progress"></div></div>
     </div>
 </div>
 
+<!-- Üst Navigasyon -->
 <nav>
     <div class="nav-links">
-        <a onclick="UI.showPage('home')" style="font-weight: 800; color: var(--primary); cursor:pointer;">MENOA</a>
+        <a onclick="UI.showPage('home')" style="font-weight: 800; color: var(--primary); cursor:pointer; font-size: 1.2rem; letter-spacing: -1px;">
+            MENOA <span style="color: var(--secondary); font-weight: 400; font-size: 0.8rem; letter-spacing: 0;">AI</span>
+        </a>
+        
         <div class="dropdown" id="paxDrop">
             <span class="nav-label" onclick="UI.toggleDropdown('paxDrop')">Yolcu ▾</span>
             <div class="dropdown-content">
@@ -27,6 +32,7 @@
                 <a onclick="UI.showPage('pax-route')">Rota & Analiz</a>
             </div>
         </div>
+        
         <div class="dropdown" id="cargoDrop">
             <span class="nav-label" onclick="UI.toggleDropdown('cargoDrop')">Kargo ▾</span>
             <div class="dropdown-content">
@@ -35,6 +41,7 @@
             </div>
         </div>
     </div>
+    
     <div class="mode-selector">
         <button id="btn-easy" class="mode-btn" onclick="UI.setGameMode('easy')">Easy</button>
         <button id="id-real" class="mode-btn active" onclick="UI.setGameMode('realism')">Realism</button>
@@ -42,10 +49,13 @@
 </nav>
 
 <div class="container">
+    <!-- Ana Sayfa -->
     <div id="home" class="page active">
         <h2>MENOA Strateji Merkezi</h2>
         <div id="modeDisplay" class="status-box status-danger">Aktif Mod: Realism</div>
-        <p style="margin: 20px 0; color: var(--text-muted);">AM4 pazar verilerini Melik Akay stratejileriyle analiz eden profesyonel filo yönetim aracı.</p>
+        <p style="margin: 20px 0; color: var(--text-muted);">
+            Airline Manager 4 pazar verilerini Gemini 2.5 Flash mimarisiyle işleyen profesyonel filo yönetim aracı.
+        </p>
     </div>
 
     <!-- Yolcu Sayfaları -->
@@ -61,6 +71,7 @@
         <h2>Yolcu: Rota & Koltuk Analizi</h2>
         <label>Uçak Seçiniz:</label>
         <select id="paxRouteSelect" onchange="Configurator.updateCapacityCheck()"></select>
+        
         <div style="margin: 20px 0; background: var(--neutral-bg); padding: 20px; border-radius: 15px; border: 1px solid var(--border);">
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
                 <div><label>Eco</label><input type="number" id="seatsY" value="0" oninput="Configurator.updateCapacityCheck()"></div>
@@ -86,6 +97,7 @@
         <h2>Kargo: Rota & Yük Analizi</h2>
         <label>Uçak Seçiniz:</label>
         <select id="cargoRouteSelect" onchange="Configurator.updateCapacityCheck()"></select>
+        
         <div style="margin: 20px 0; background: var(--neutral-bg); padding: 20px; border-radius: 15px; border: 1px solid var(--border);">
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
                 <div><label>Hafif (L)</label><input type="number" id="cargoL" value="0" oninput="Configurator.updateCapacityCheck()"></div>
@@ -98,11 +110,11 @@
     </div>
 
     <footer class="main-footer">
-        <p>© 2024 AM4 Strateji Merkezi. <strong>By Melik akay</strong></p>
+        <p>© 2024 MENOA AI. Powered by Melik Akay</p>
     </footer>
 </div>
 
-<!-- --- AI SOHBET BALONCUĞU --- -->
+<!-- AI Chat Baloncuğu -->
 <div id="ai-chat-widget">
     <div id="chat-window" class="chat-hidden">
         <div class="chat-header">
@@ -110,7 +122,7 @@
             <button onclick="Chat.toggle()">✕</button>
         </div>
         <div id="chat-body">
-            <div class="chat-msg ai-msg">Selam Melik! Bugün filonu nasıl geliştirelim?</div>
+            <div class="chat-msg ai-msg">Selam! Bugün filonu nasıl geliştirelim?</div>
         </div>
         <div class="chat-footer">
             <input type="text" id="chatInput" placeholder="Mesajınızı yazın..." onkeypress="if(event.key === 'Enter') Chat.send()">
@@ -122,6 +134,7 @@
     </button>
 </div>
 
+<!-- Script Bağlantıları -->
 <script src="planes.js"></script>
 <script src="routes.js"></script>
 <script src="utils.js"></script>
@@ -133,7 +146,7 @@
     window.onload = () => {
         setTimeout(() => {
             document.getElementById('splash-screen').classList.add('hidden');
-        }, 1500);
+        }, 1200);
     };
 </script>
 

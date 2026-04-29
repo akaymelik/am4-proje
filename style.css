@@ -22,6 +22,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    /* Mobil cihazlarda tıklama sırasında oluşan mavi gölgeyi temizler */
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -216,7 +217,7 @@ button:hover { background: var(--primary-hover); }
     border-left: 5px solid var(--primary);
 }
 
-/* --- AI ANALİZ TASARIMI (YENİ EKLENENLER) --- */
+/* --- AI ANALİZ TASARIMI (YAPAY ZEKA) --- */
 .ai-report-card {
     background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
     border: 2.2px solid var(--primary);

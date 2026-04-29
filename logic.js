@@ -1,77 +1,124 @@
 /**
- * logic.js: Uçak ve Rota Analiz Motoru.
- * GÜNCELLEME: Master Eğitim Verileri (Hız > Yakıt kuralı, bilet çarpanları) eklendi.
+ * logic.js: AM4 Master Strateji ve Analiz Motoru.
+ * GÜNCELLEME: ROI (Amorti Süresi), Hız Önceliği ve Sınıf Bazlı Bilet Çarpanları eklendi.
  */
 
 const Logic = {
-    calculateFlightTime: (distance, speed) => distance / speed,
+    /**
+     * Uçuş süresini hesaplar (saat cinsinden).
+     */
+    calculateFlightTime: function(distance, speed) {
+        if (!speed || speed <= 0) return 0;
+        return (distance / speed);
+    },
 
-    calculateMaintenanceCost: (plane, airTime) => airTime * (plane.price * 0.00004),
+    /**
+     * Uçağın aşınma ve bakım (A-Check) maliyetini simüle eder.
+     */
+    calculateMaintenanceCost: function(plane, airTime) {
+        // AM4 standart bakım maliyet katsayısı
+        return airTime * (plane.price * 0.00004);
+    },
 
+    /**
+     * Tek bir uçuşun ve toplam günün net kârını hesaplar.
+     * Master Data: Easy modda Y:1.10, J:1.08, F:1.06 çarpanları kullanılır.
+     */
     calculateProfit: function(plane, route, manualTrips = null) {
         const currentMode = window.gameMode || 'realism';
-        const multiplier = currentMode === 'easy' ? 1.1 : 1.0;
         const airTime = this.calculateFlightTime(route.distance, plane.cruise_speed);
-        const cycleTime = airTime + 0.5; 
+        const cycleTime = airTime + 0.5; // 30 dakikalık hazırlık/turnaround süresi dahil
         const maxTrips = Math.floor(24 / cycleTime);
         let trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
         
         if (trips <= 0) return { profit: 0, trips: 0 };
 
-        let revenue = 0;
+        // Bilet/Kargo fiyatlarını Configurator'daki Master çarpanlarla al
+        const prices = Configurator.getTicketMultipliers(route.distance, currentMode);
+        let revenuePerFlight = 0;
+
         if (plane.type === "cargo") {
+            // Master Kural: Kargo rotasında 'c' talebi yoksa kâr 0'dır.
+            if (!route.demand || !route.demand.c) return { profit: 0, trips: 0 };
             const opt = Configurator.calculateOptimalCargo(plane, route, trips);
-            // Kargo Gelir Formülü (Master Data: Large 1.1x, Heavy 1.08x)
-            const prices = Configurator.getTicketMultipliers(route.distance);
-            revenue = (opt.l * prices.l + opt.h * prices.h) * multiplier;
+            // Large 1.1x, Heavy 1.08x (Easy mod)
+            revenuePerFlight = (opt.l * prices.l + opt.h * prices.h);
         } else {
             const opt = Configurator.calculateOptimalSeats(plane, route, trips);
-            // Yolcu Gelir Formülü (Master Data: 1.1x, 1.08x, 1.06x)
-            const prices = Configurator.getTicketMultipliers(route.distance);
-            revenue = (opt.y * prices.y + opt.j * prices.j + opt.f * prices.f) * multiplier;
+            // PAX Hiyerarşisi: F > J > Y (Master Konfigürasyon)
+            revenuePerFlight = (opt.y * prices.y + opt.j * prices.j + opt.f * prices.f);
         }
 
-        const fuelCost = route.distance * plane.fuel_consumption * 1.15; // Ortalama pazar fiyatı emniyeti
+        // Giderler: Yakıt ($1.15 emniyet katsayısı), Personel ve Bakım
+        const fuelCost = route.distance * plane.fuel_consumption * 1.15;
         const staffCost = plane.type === "cargo" ? plane.capacity * 0.01 : plane.capacity * 2.5;
         const maintenance = this.calculateMaintenanceCost(plane, airTime);
         
-        const totalNetProfit = (revenue - (fuelCost + staffCost + maintenance)) * trips;
-        return { profit: totalNetProfit, trips: trips };
+        const netProfitPerFlight = revenuePerFlight - (fuelCost + staffCost + maintenance);
+        return { profit: netProfitPerFlight * trips, trips: trips };
     },
 
+    /**
+     * Bütçeye göre en mantıklı uçakları ROI ve Hız önceliğine göre sıralar.
+     */
     getBestPlanesByType: function(budget, type) {
-        let results = [];
+        let candidates = [];
         for (let name in aircraftData) {
             const p = aircraftData[name];
-            if (p.price <= budget && p.type === type) {
-                // Her uçak için en kârlı rotayı bul
+            if (p.price <= Number(budget) && p.type === type) {
+                // Her uçak için veritabanındaki en kârlı rotayı simüle et
                 const topRes = this.analyzeTopRoutesForPlane(name, 1)[0];
                 if (topRes) {
-                    results.push({
+                    const dailyProfit = topRes.dailyProfit;
+                    const roiDays = p.price / dailyProfit;
+                    
+                    candidates.push({
                         name: name,
                         efficiency: topRes.efficiency,
-                        dailyProfit: topRes.dailyProfit,
-                        bestRouteOrigin: topRes.origin,
-                        bestRouteName: topRes.destination,
-                        price: p.price
+                        dailyProfit: dailyProfit,
+                        roiDays: roiDays, // Amorti süresi (Gün)
+                        bestRouteOrigin: topRes.origin, // Nereden bilgisi UI'ya taşınır
+                        bestRouteName: topRes.destination, // Nereye
+                        price: p.price,
+                        speed: p.cruise_speed
                     });
                 }
             }
         }
-        // ROI/Efficiency'e göre sırala (Yatırım verimliliği)
-        return results.sort((a, b) => b.efficiency - a.efficiency).slice(0, 10);
+        
+        // Master Sıralama Algoritması: 
+        // 1. En düşük ROI (En hızlı amorti eden)
+        // 2. ROI eşitse, en yüksek Hız (Hız > Yakıt kuralı)
+        return candidates.sort((a, b) => (a.roiDays - b.roiDays) || (b.speed - a.speed)).slice(0, 10);
     },
 
+    /**
+     * Seçilen uçak için en yüksek kâr getiren rotaları listeler.
+     */
     analyzeTopRoutesForPlane: function(name, limit = 10) {
         const p = aircraftData[name];
-        return popularRoutes.filter(r => r.distance <= p.range).map(r => {
-            const calc = this.calculateProfit(p, r);
-            return {
-                ...r,
-                dailyProfit: calc.profit,
-                dailyTrips: calc.trips,
-                efficiency: (calc.profit / p.price) * 100
-            };
-        }).sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
+        if (!p) return [];
+
+        let results = [];
+        popularRoutes.forEach(route => {
+            // Menzil uçağa uygun mu kontrol et
+            if (route.distance <= p.range) {
+                const calc = this.calculateProfit(p, route);
+                if (calc.profit > 0) {
+                    results.push({
+                        ...route,
+                        dailyProfit: calc.profit,
+                        dailyTrips: calc.trips,
+                        efficiency: (calc.profit / p.price) * 100
+                    });
+                }
+            }
+        });
+
+        // Günlük net kâra göre sırala
+        return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
     }
 };
+
+// Modüler yapı: Global pencereye bağla
+window.Logic = Logic;

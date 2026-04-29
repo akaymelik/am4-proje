@@ -1,20 +1,32 @@
 /**
  * ui.js: AM4 Strateji Merkezi Arayüz ve AI Motoru Bağlantısı.
- * Önemli: worker.airm4.workers.dev adresine bağlanır.
+ * Bu dosya, Cloudflare Worker (worker.airm4.workers.dev) ile haberleşir.
  */
 
 const UI = {
+    /**
+     * Sayfa değiştirme ve navigasyon yönetimi.
+     */
     showPage: function(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         const targetPage = document.getElementById(id);
         if (targetPage) targetPage.classList.add('active');
+        
         UI.closeAllDropdowns();
-        if (id.includes('route')) UI.fillSelects();
+        
+        // Rota sayfalarında uçak listelerini doldur
+        if (id.includes('route')) {
+            UI.fillSelects();
+        }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
+    /**
+     * Dropdown (Açılır Menü) yönetimi.
+     */
     toggleDropdown: function(id) {
         const el = document.getElementById(id);
+        if (!el) return;
         const isOpen = el.classList.contains('open');
         UI.closeAllDropdowns();
         if (!isOpen) el.classList.add('open');
@@ -24,6 +36,9 @@ const UI = {
         document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
     },
 
+    /**
+     * Oyun modunu (Easy/Realism) ayarlar.
+     */
     setGameMode: function(mode) {
         window.gameMode = mode;
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -37,15 +52,20 @@ const UI = {
         }
     },
 
+    /**
+     * Uçak seçim kutularını (select) veritabanındaki uçaklarla doldurur.
+     */
     fillSelects: function() {
         const paxSelect = document.getElementById('paxRouteSelect');
         const cargoSelect = document.getElementById('cargoRouteSelect');
+        
         if (paxSelect) {
             paxSelect.innerHTML = '<option value="">-- Uçak Seçiniz --</option>';
             for (let name in aircraftData) {
                 if (aircraftData[name].type === "passenger") paxSelect.add(new Option(name, name));
             }
         }
+        
         if (cargoSelect) {
             cargoSelect.innerHTML = '<option value="">-- Uçak Seçiniz --</option>';
             for (let name in aircraftData) {
@@ -54,15 +74,17 @@ const UI = {
         }
     },
 
-    // --- KRİTİK AI FONKSİYONU ---
+    /**
+     * Gemini Yapay Zekasına (Cloudflare Worker) analiz talebi gönderir.
+     */
     askGemini: async function(planeName, routeData) {
-        const workerUrl = "https://worker.airm4.workers.dev/"; // Senin Worker URL'in
+        // SENİN WORKER URL ADRESİN
+        const workerUrl = "https://worker.airm4.workers.dev/";
         
         const resultArea = document.getElementById('aiResultArea');
-        const loader = document.getElementById('aiLoader');
+        if (!resultArea) return;
 
-        if (loader) loader.style.display = 'block';
-        if (resultArea) resultArea.innerHTML = '';
+        resultArea.innerHTML = '<div id="aiLoader">🤖 MENOA Analiz Ediyor...</div>';
 
         try {
             const response = await fetch(workerUrl, {
@@ -77,34 +99,48 @@ const UI = {
                 })
             });
 
+            if (!response.ok) throw new Error("Worker yanıt vermedi.");
+
             const data = await response.json();
             
-            if (loader) loader.style.display = 'none';
-            if (resultArea) {
-                resultArea.innerHTML = `
-                    <div class="ai-report-card">
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                            <span style="font-size:1.4rem;">🤖</span>
-                            <h4 style="margin:0; color:var(--primary); font-weight:800;">MENOA AI ANALİZ RAPORU</h4>
-                        </div>
-                        <div style="font-size:0.9rem; line-height:1.7; color:var(--text);">
-                            ${data.text.replace(/\n/g, '<br>')}
-                        </div>
-                    </div>`;
-                resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            resultArea.innerHTML = `
+                <div class="ai-report-card">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                        <span style="font-size:1.4rem;">🤖</span>
+                        <h4 style="margin:0; color:var(--primary); font-weight:800;">MENOA AI ANALİZ RAPORU</h4>
+                    </div>
+                    <div style="font-size:0.9rem; line-height:1.7; color:var(--text);">
+                        ${data.text.replace(/\n/g, '<br>')}
+                    </div>
+                </div>`;
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
         } catch (error) {
-            if (loader) loader.style.display = 'none';
-            if (resultArea) resultArea.innerHTML = '<div class="status-box status-danger">AI Motoru şu an meşgul. Lütfen 10 saniye bekleyip tekrar deneyin.</div>';
+            console.error("AI Hatası:", error);
+            resultArea.innerHTML = '<div class="status-box status-danger">AI Motoru şu an meşgul veya API anahtarı hatalı.</div>';
         }
     },
 
+    /**
+     * Bütçeye göre en verimli uçakları listeler.
+     */
     renderSuggestions: function(cat) {
-        const budget = Number(document.getElementById(cat + 'BudgetInput').value);
+        const budgetInput = document.getElementById(cat + 'BudgetInput');
+        const budget = Number(budgetInput?.value);
         const resultDiv = document.getElementById(cat + 'PlaneResult');
-        if (!budget) return;
+        
+        if (!budget || budget <= 0) {
+            if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Lütfen geçerli bir bütçe giriniz.</div>';
+            return;
+        }
 
         const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo');
+        
+        if (bestPlanes.length === 0) {
+            if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Bu bütçeye uygun kârlı uçak bulunamadı.</div>';
+            return;
+        }
+
         resultDiv.innerHTML = bestPlanes.map(p => `
             <div class="plane-item">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -114,40 +150,62 @@ const UI = {
                 <div style="font-size:0.8rem; margin-top:5px; color:var(--text-muted);">
                     Fiyat: ${Utils.formatCurrency(p.price)} | Günlük Kâr: ${Utils.formatCurrency(p.dailyProfit)}
                 </div>
-                <small style="color:var(--success); font-weight:600;">En İyi Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}</small>
+                <small style="color:var(--success); font-weight:600;">En Karlı Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}</small>
             </div>
         `).join('');
     },
 
+    /**
+     * Belirli bir uçak için tüm rotaları analiz eder ve AI butonlarını ekler.
+     */
     renderRouteAnalysis: function(cat) {
-        const select = document.getElementById(cat + 'RouteSelect');
-        const resultDiv = document.getElementById(cat + 'RouteResult');
-        const planeName = select.value;
+        const selectId = cat === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
+        const resultId = cat === 'pax' ? 'paxRouteResult' : 'cargoRouteResult';
+        const planeName = document.getElementById(selectId)?.value;
+        const resultDiv = document.getElementById(resultId);
+
         if (!planeName) return;
 
-        resultDiv.innerHTML = `
-            <div id="aiResultArea"></div>
-            <div id="aiLoader" style="display:none; text-align:center; padding:15px; font-weight:800; color:var(--primary);">🤖 MENOA Analiz Ediyor...</div>
-            <h3>En Karlı Rotalar</h3>
-        `;
+        resultDiv.innerHTML = `<div id="aiResultArea"></div><h3>En Karlı Rotalar</h3>`;
 
         const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 12);
+
         topRoutes.forEach((r, i) => {
             const card = document.createElement('div');
             card.className = 'route-card';
+            
+            // Rota için ideal konfigürasyonu hesapla
+            const opt = aircraftData[planeName].type === 'passenger' 
+                ? Configurator.calculateOptimalSeats(aircraftData[planeName], r)
+                : Configurator.calculateOptimalCargo(aircraftData[planeName], r);
+
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:start;">
                     <strong>#${i + 1} ${r.origin} ➔ ${r.destination}</strong>
-                    <div style="color:var(--success); font-weight:800;">${Utils.formatCurrency(r.dailyProfit)}/G.</div>
+                    <div style="text-align:right;">
+                        <div style="color:var(--success); font-weight:800; font-size:1.1rem;">${Utils.formatCurrency(r.dailyProfit)}/G.</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted);">${Utils.formatCurrency(r.profitPerFlight)}/Uçuş</div>
+                    </div>
                 </div>
-                <div class="action-group" style="margin-top:10px; display:flex; gap:10px;">
-                    <button class="ai-btn-small" onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/"/g, '&quot;')})">🤖 AI Analiz Et</button>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; background:var(--primary-light); padding:10px; border-radius:10px;">
+                    <div style="font-size:0.75rem; font-weight:700;">İDEAL: ${cat === 'pax' ? `Y:${opt.y} J:${opt.j} F:${opt.f}` : `L:${opt.l} H:${opt.h}`}</div>
+                    <div style="display:flex; gap:5px;">
+                        <button class="ai-btn-small" onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/"/g, '&quot;')})">🤖 AI</button>
+                        <button class="apply-btn-small" onclick="Configurator.applySuggestion(${opt.y || opt.l}, ${opt.j || opt.h}, ${opt.f || null})">Yükle</button>
+                    </div>
                 </div>
-                <div style="margin-top:8px; font-size:0.7rem; color:var(--text-muted);">
-                    Mesafe: ${r.distance}km | Verim: ${Utils.formatPercent(r.efficiency)}
+                <div style="display:flex; gap:15px; font-size:0.7rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:8px; margin-top:8px;">
+                    <span>Mesafe: ${r.distance}km</span> <span>Sefer: ${r.dailyTrips}x</span> <span>Verim: ${Utils.formatPercent(r.efficiency)}</span>
                 </div>
             `;
             resultDiv.appendChild(card);
         });
     }
 };
+
+/**
+ * Sayfa tıklandığında dropdownları kapatan global dinleyici.
+ */
+document.addEventListener('click', e => {
+    if (!e.target.closest('.dropdown')) UI.closeAllDropdowns();
+});

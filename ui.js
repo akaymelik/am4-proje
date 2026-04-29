@@ -291,3 +291,52 @@ document.addEventListener('click', function(e) {
 window.updateCapacityCheck = () => {
     if (typeof Configurator !== 'undefined') Configurator.updateCapacityCheck();
 };
+// GEMINI API ENTEGRASYONU
+askGemini: async function(planeName, routeData) {
+    const apiKey = ""; // Sistem tarafından sağlanan anahtar
+    const resultArea = document.getElementById('aiResultArea');
+    const loader = document.getElementById('aiLoader');
+
+    if (loader) loader.style.display = 'block';
+    if (resultArea) resultArea.innerHTML = '';
+
+    // Senin stratejini AI'ya öğreten sistem talimatı
+    const systemPrompt = `Sen AM4 (Airline Manager 4) uzmanı bir yapay zekasın. 
+    Kullanıcıya uçağı ve rotası hakkında stratejik analiz ver.
+    Kriterlerin:
+    1. Hibrit Skor: %30 ROI hızı + %70 Günlük Net Kâr gücü.
+    2. Bakım Maliyeti: Uçuş saati başına uçağın değerinin %0.00004'ü kârdan düşülmeli.
+    3. Talep Senkronizasyonu: Uçak kapasitesi rotadaki pazar talebini aşmamalı.
+    4. "MENOA AI Skoru" hesapla (0-100 arası).
+    Lütfen Melik Akay'ın geliştirdiği MENOA standartlarına göre profesyonel, kısa ve öz bir Türkçe yorum yap.`;
+
+    const userQuery = `Uçak: ${planeName}. Rota: ${routeData.origin} to ${routeData.destination}. Mesafe: ${routeData.distance}km. Günlük Kar: ${routeData.dailyProfit}. Sefer: ${routeData.dailyTrips}. Verimlilik: ${routeData.efficiency}.`;
+
+    // API'yi çağıran ve hata durumunda 5 kez tekrar deneyen yapı
+    const callAPI = async (retryCount = 0) => {
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] }
+                })
+            });
+            const data = await response.json();
+            const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            if (loader) loader.style.display = 'none';
+            if (resultArea) {
+                resultArea.innerHTML = `
+                    <div class="ai-report-card">
+                        <h4>🤖 Gemini AI Strateji Raporu</h4>
+                        <p>${aiText.replace(/\n/g, '<br>')}</p>
+                    </div>`;
+            }
+        } catch (error) {
+            if (retryCount < 5) setTimeout(() => callAPI(retryCount + 1), 1000);
+        }
+    };
+    callAPI();
+}

@@ -145,7 +145,7 @@
     </button>
 </div>
 
-<!-- Harici JavaScript Dosyaları -->
+<!-- Harici JavaScript Dosyaları (Yükleme sırası önemlidir) -->
 <script src="planes.js"></script>
 <script src="routes.js"></script>
 <script src="utils.js"></script>
@@ -158,12 +158,13 @@
     window.addEventListener('load', () => {
         // Splash ekranını gizle
         setTimeout(() => {
-            document.getElementById('splash-screen').classList.add('hidden');
+            const splash = document.getElementById('splash-screen');
+            if (splash) splash.classList.add('hidden');
         }, 1200);
         
         // İlk karşılama mesajı
         setTimeout(() => {
-            if (typeof Chat !== 'undefined') {
+            if (typeof Chat !== 'undefined' && Chat.addMessage) {
                 Chat.addMessage("Merhaba! Melik Akay stratejileri ve AM4 Master eğitimimle yardıma hazırım. Nereden başlayalım?", "ai");
             }
         }, 2000);

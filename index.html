@@ -67,7 +67,7 @@
             <p style="font-size: 0.95rem; margin-bottom: 0;">
                 1. <strong>Uçak Önerileri</strong> kısmından bütçenize en uygun uçağı bulun.<br>
                 2. <strong>Rota Analizi</strong> kısmına giderek seçtiğiniz uçağın en kârlı uçuşlarını görün.<br>
-                3. "Konfigi Yükle" diyerek ideal koltuk dağılımını (F > J > Y) uçağınıza uygulayın.
+                3. "Konfigi Yükle" diyerek ideal koltuk/yük dağılımını uçağınıza uygulayın.
             </p>
         </div>
     </div>
@@ -117,14 +117,24 @@
         <div id="cargoPlaneResult"></div>
     </div>
 
-    <!-- KARGO: ROTA ANALİZİ -->
+    <!-- KARGO: ROTA ANALİZİ (YENİLENMİŞ) -->
     <div id="cargo-route" class="page">
-        <h2>Kargo: Rota Analizi</h2>
+        <h2>Kargo: Rota & Yük Analizi</h2>
         <label>Uçak Seçiniz:</label>
-        <select id="cargoRouteSelect"></select>
+        <select id="cargoRouteSelect" onchange="updateCapacityCheck()"></select>
         
         <label>Hedef Günlük Sefer:</label>
         <input type="number" id="cargoRouteManualTrips" placeholder="Hıza göre otomatik hesaplanır">
+
+        <!-- Kargo Yük Yapılandırma Alanı -->
+        <div style="margin: 20px 0; background: var(--neutral-bg); padding: 20px; border-radius: 15px; border: 1px solid var(--border);">
+            <label style="margin-bottom: 10px; color: var(--text); font-weight: 800;">Kargo Yapılandırması (L + H)</label>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                <div><label>Hafif (Large)</label><input type="number" id="cargoL" value="0" oninput="updateCapacityCheck()"></div>
+                <div><label>Ağır (Heavy)</label><input type="number" id="cargoH" value="0" oninput="updateCapacityCheck()"></div>
+            </div>
+            <div id="cargoCapacityInfo" class="status-box status-neutral">Lütfen uçak seçin.</div>
+        </div>
 
         <button onclick="UI.renderRouteAnalysis('cargo')">Rotaları Analiz Et</button>
         <div id="cargoRouteResult"></div>
@@ -132,7 +142,7 @@
 
     <!-- Ortak Alt Bilgi (Footer) -->
     <footer class="main-footer">
-        <p>© 2026 AM4 Strateji Merkezi. Tüm hakları saklıdır.</p>
+        <p>© 2024 AM4 Strateji Merkezi. Tüm hakları saklıdır.</p>
         <p class="author">By Melik akay</p>
     </footer>
 

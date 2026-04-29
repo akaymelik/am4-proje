@@ -78,13 +78,13 @@ const UI = {
      * Gemini Yapay Zekasına (Cloudflare Worker) analiz talebi gönderir.
      */
     askGemini: async function(planeName, routeData) {
-        // SENİN WORKER URL ADRESİN
+        // SENİN WORKER URL ADRESİN (Sonunda / olduğundan emin ol)
         const workerUrl = "https://worker.airm4.workers.dev/";
         
         const resultArea = document.getElementById('aiResultArea');
         if (!resultArea) return;
 
-        resultArea.innerHTML = '<div id="aiLoader">🤖 MENOA Analiz Ediyor...</div>';
+        resultArea.innerHTML = '<div id="aiLoader">🤖 MENOA Verileri İşliyor...</div>';
 
         try {
             const response = await fetch(workerUrl, {
@@ -99,15 +99,18 @@ const UI = {
                 })
             });
 
-            if (!response.ok) throw new Error("Worker yanıt vermedi.");
-
             const data = await response.json();
+
+            if (!response.ok) {
+                // Worker'dan gelen özel hata mesajını göster
+                throw new Error(data.error || "Sunucu Hatası");
+            }
             
             resultArea.innerHTML = `
                 <div class="ai-report-card">
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
                         <span style="font-size:1.4rem;">🤖</span>
-                        <h4 style="margin:0; color:var(--primary); font-weight:800;">MENOA AI ANALİZ RAPORU</h4>
+                        <h4 style="margin:0; color:var(--primary); font-weight:800;">MENOA AI ANALİZİ</h4>
                     </div>
                     <div style="font-size:0.9rem; line-height:1.7; color:var(--text);">
                         ${data.text.replace(/\n/g, '<br>')}
@@ -116,8 +119,12 @@ const UI = {
             resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         } catch (error) {
-            console.error("AI Hatası:", error);
-            resultArea.innerHTML = '<div class="status-box status-danger">AI Motoru şu an meşgul veya API anahtarı hatalı.</div>';
+            console.error("AI Bağlantı Hatası:", error);
+            resultArea.innerHTML = `
+                <div class="status-box status-danger">
+                    <strong>HATA OLUŞTU:</strong><br>
+                    <small>${error.message}</small>
+                </div>`;
         }
     },
 
@@ -148,7 +155,7 @@ const UI = {
                     <span style="color:var(--primary); font-weight:800;">${Utils.formatPercent(p.efficiency)} Verim</span>
                 </div>
                 <div style="font-size:0.8rem; margin-top:5px; color:var(--text-muted);">
-                    Fiyat: ${Utils.formatCurrency(p.price)} | Günlük Kâr: ${Utils.formatCurrency(p.dailyProfit)}
+                    Fiyat: ${Utils.formatCurrency(p.price)} | Kâr: ${Utils.formatCurrency(p.dailyProfit)}
                 </div>
                 <small style="color:var(--success); font-weight:600;">En Karlı Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}</small>
             </div>
@@ -190,7 +197,7 @@ const UI = {
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; background:var(--primary-light); padding:10px; border-radius:10px;">
                     <div style="font-size:0.75rem; font-weight:700;">İDEAL: ${cat === 'pax' ? `Y:${opt.y} J:${opt.j} F:${opt.f}` : `L:${opt.l} H:${opt.h}`}</div>
                     <div style="display:flex; gap:5px;">
-                        <button class="ai-btn-small" onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/"/g, '&quot;')})">🤖 AI</button>
+                        <button class="ai-btn-small" onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/\"/g, '&quot;')})">🤖 AI</button>
                         <button class="apply-btn-small" onclick="Configurator.applySuggestion(${opt.y || opt.l}, ${opt.j || opt.h}, ${opt.f || null})">Yükle</button>
                     </div>
                 </div>

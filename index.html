@@ -4,28 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AM4 Strateji Merkezi - MENOA</title>
-    <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- Animasyonlu Giriş Ekranı (Splash Screen) -->
 <div id="splash-screen">
     <div class="splash-content">
         <h1 class="splash-logo">MENOA</h1>
         <p class="splash-tagline">AM4 Strateji Merkezi</p>
-        <div class="splash-loader">
-            <div class="splash-progress"></div>
-        </div>
+        <div class="splash-loader"><div class="splash-progress"></div></div>
     </div>
 </div>
 
-<!-- Üst Navigasyon Menüsü -->
 <nav>
     <div class="nav-links">
-        <a onclick="UI.showPage('home')" style="font-weight: 800; color: var(--primary);">MENOA</a>
-        
+        <a onclick="UI.showPage('home')" style="font-weight: 800; color: var(--primary); cursor:pointer;">MENOA</a>
         <div class="dropdown" id="paxDrop">
             <span class="nav-label" onclick="UI.toggleDropdown('paxDrop')">Yolcu ▾</span>
             <div class="dropdown-content">
@@ -33,7 +27,6 @@
                 <a onclick="UI.showPage('pax-route')">Rota & Koltuk Analizi</a>
             </div>
         </div>
-
         <div class="dropdown" id="cargoDrop">
             <span class="nav-label" onclick="UI.toggleDropdown('cargoDrop')">Kargo ▾</span>
             <div class="dropdown-content">
@@ -42,8 +35,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Oyun Modu Seçici -->
     <div class="mode-selector">
         <button id="btn-easy" class="mode-btn" onclick="UI.setGameMode('easy')">Easy</button>
         <button id="id-real" class="mode-btn active" onclick="UI.setGameMode('realism')">Realism</button>
@@ -51,109 +42,84 @@
 </nav>
 
 <div class="container">
-    
-    <!-- ANA SAYFA -->
     <div id="home" class="page active">
-        <h2 style="font-size: 2rem; margin-bottom: 10px;">MENOA Strateji Merkezi</h2>
-        <div id="modeDisplay" class="status-box status-danger">
-            Aktif Mod: Realism
-        </div>
-        <p style="margin: 20px 0; color: var(--text-muted);">
-            AM4 dünyasında en kârlı rotaları, verimli uçakları ve ideal konfigürasyonları bulmanız için tasarlanmış profesyonel analiz motoru.
-        </p>
-        
-        <div class="info-box" style="background: var(--primary-light); padding: 20px; border-radius: 15px; border: 1px solid rgba(37, 99, 235, 0.1);">
-            <h4 style="margin-top: 0; color: var(--primary); font-weight: 800;">Hızlı Başlangıç:</h4>
-            <p style="font-size: 0.95rem; margin-bottom: 0;">
-                1. <strong>Uçak Önerileri</strong> kısmından bütçenize en uygun uçağı bulun.<br>
-                2. <strong>Rota Analizi</strong> kısmına giderek seçtiğiniz uçağın en kârlı uçuşlarını görün.<br>
-                3. "Konfigi Yükle" diyerek ideal koltuk/yük dağılımını uçağınıza uygulayın.
-            </p>
-        </div>
+        <h2>MENOA Strateji Merkezi</h2>
+        <div id="modeDisplay" class="status-box status-danger">Aktif Mod: Realism</div>
+        <p style="margin: 20px 0; color: var(--text-muted);">AM4 pazar verilerini Melik Akay stratejileriyle analiz eden profesyonel filo yönetim aracı.</p>
     </div>
 
-    <!-- YOLCU: UÇAK ÖNERİLERİ -->
+    <!-- YOLCU UÇAK -->
     <div id="pax-plane" class="page">
         <h2>Yolcu: Bütçe Odaklı Öneriler</h2>
         <label>Yatırım Bütçeniz ($):</label>
         <input type="number" id="paxBudgetInput" placeholder="Örn: 50000000">
-        <label>Hedef Günlük Sefer (Opsiyonel):</label>
-        <input type="number" id="paxManualTrips" placeholder="Boş bırakılırsa maksimum hesaplanır">
         <button onclick="UI.renderSuggestions('pax')">Analizi Başlat</button>
         <div id="paxPlaneResult"></div>
     </div>
 
-    <!-- YOLCU: ROTA VE KOLTUK ANALİZİ -->
+    <!-- YOLCU ROTA -->
     <div id="pax-route" class="page">
         <h2>Yolcu: Rota & Koltuk Analizi</h2>
         <label>Uçak Seçiniz:</label>
-        <select id="paxRouteSelect" onchange="updateCapacityCheck()"></select>
-        
-        <label>Hedef Günlük Sefer:</label>
-        <input type="number" id="paxRouteManualTrips" placeholder="Hıza göre otomatik hesaplanır">
-
+        <select id="paxRouteSelect" onchange="Configurator.updateCapacityCheck()"></select>
         <div style="margin: 20px 0; background: var(--neutral-bg); padding: 20px; border-radius: 15px; border: 1px solid var(--border);">
-            <label style="margin-bottom: 10px; color: var(--text); font-weight: 800;">Koltuk Yapılandırması</label>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                <div><label>Eco (Y)</label><input type="number" id="seatsY" value="0" oninput="updateCapacityCheck()"></div>
-                <div><label>Bus (J)</label><input type="number" id="seatsJ" value="0" oninput="updateCapacityCheck()"></div>
-                <div><label>First (F)</label><input type="number" id="seatsF" value="0" oninput="updateCapacityCheck()"></div>
+                <div><label>Eco</label><input type="number" id="seatsY" value="0" oninput="Configurator.updateCapacityCheck()"></div>
+                <div><label>Bus</label><input type="number" id="seatsJ" value="0" oninput="Configurator.updateCapacityCheck()"></div>
+                <div><label>First</label><input type="number" id="seatsF" value="0" oninput="Configurator.updateCapacityCheck()"></div>
             </div>
             <div id="capacityInfo" class="status-box status-neutral">Lütfen uçak seçin.</div>
         </div>
-
-        <button onclick="UI.renderRouteAnalysis('pax')">En Kârlı Rotaları Listele</button>
+        <button onclick="UI.renderRouteAnalysis('pax')">Rotaları Analiz Et</button>
         <div id="paxRouteResult"></div>
     </div>
 
-    <!-- KARGO: UÇAK ÖNERİLERİ -->
+    <!-- KARGO UÇAK -->
     <div id="cargo-plane" class="page">
         <h2>Kargo: Bütçe Odaklı Öneriler</h2>
         <label>Yatırım Bütçeniz ($):</label>
         <input type="number" id="cargoBudgetInput" placeholder="Örn: 100000000">
-        <label>Hedef Günlük Sefer (Opsiyonel):</label>
-        <input type="number" id="cargoManualTrips" placeholder="Boş bırakın">
         <button onclick="UI.renderSuggestions('cargo')">Uçakları Listele</button>
         <div id="cargoPlaneResult"></div>
     </div>
 
-    <!-- KARGO: ROTA VE YÜK ANALİZİ -->
+    <!-- KARGO ROTA -->
     <div id="cargo-route" class="page">
         <h2>Kargo: Rota & Yük Analizi</h2>
         <label>Uçak Seçiniz:</label>
-        <select id="cargoRouteSelect" onchange="updateCapacityCheck()"></select>
-        
-        <label>Hedef Günlük Sefer:</label>
-        <input type="number" id="cargoRouteManualTrips" placeholder="Hıza göre otomatik hesaplanır">
-
+        <select id="cargoRouteSelect" onchange="Configurator.updateCapacityCheck()"></select>
         <div style="margin: 20px 0; background: var(--neutral-bg); padding: 20px; border-radius: 15px; border: 1px solid var(--border);">
-            <label style="margin-bottom: 10px; color: var(--text); font-weight: 800;">Kargo Yapılandırması (L + H)</label>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                <div><label>Hafif (Large)</label><input type="number" id="cargoL" value="0" oninput="updateCapacityCheck()"></div>
-                <div><label>Ağır (Heavy)</label><input type="number" id="cargoH" value="0" oninput="updateCapacityCheck()"></div>
+                <div><label>Hafif (L)</label><input type="number" id="cargoL" value="0" oninput="Configurator.updateCapacityCheck()"></div>
+                <div><label>Ağır (H)</label><input type="number" id="cargoH" value="0" oninput="Configurator.updateCapacityCheck()"></div>
             </div>
             <div id="cargoCapacityInfo" class="status-box status-neutral">Lütfen uçak seçin.</div>
         </div>
-
         <button onclick="UI.renderRouteAnalysis('cargo')">Rotaları Analiz Et</button>
         <div id="cargoRouteResult"></div>
     </div>
 
-    <!-- Ortak Alt Bilgi (Footer) -->
     <footer class="main-footer">
-        <p>© 2024 AM4 Strateji Merkezi. Tüm hakları saklıdır.</p>
-        <p class="author">By Melik akay</p>
+        <p>© 2024 AM4 Strateji Merkezi. Tüm hakları saklıdır. <strong>By Melik akay</strong></p>
     </footer>
-
 </div>
 
-<!-- KOMPONENTLER -->
+<!-- JS Dosyalarını Doğru Sırayla Yüklüyoruz -->
 <script src="planes.js"></script>
 <script src="routes.js"></script>
 <script src="utils.js"></script>
 <script src="configurator.js"></script>
 <script src="logic.js"></script>
 <script src="ui.js"></script>
+
+<script>
+    // Açılış Animasyonu Yönetimi
+    window.onload = () => {
+        setTimeout(() => {
+            document.getElementById('splash-screen').classList.add('hidden');
+        }, 2000);
+    };
+</script>
 
 </body>
 </html>

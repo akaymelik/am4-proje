@@ -1,41 +1,42 @@
 /**
- * configurator.js: Master Verilere Dayalı Konfigürasyon Algoritması.
+ * configurator.js: Master Verilere Dayalı Konfigürasyon ve Fiyatlandırma Modülü.
  * GÜNCELLEME: 
- * - PAX Hiyerarşisi (F > J > Y) eklendi.
+ * - Bilet çarpanları (1.10, 1.08, 1.06) aşağı yuvarlanarak (floor) Master kurallarına bağlandı.
+ * - PAX Hiyerarşisi (F > J > Y) kâr maksimizasyonu için önceliklendirildi.
  * - Kargo %70 Kapasite Sınırı ve Large Load önceliği eklendi.
- * - Sınıf bazlı bilet çarpanları (1.10, 1.08, 1.06) entegre edildi.
  */
 
 const Configurator = {
     /**
      * Master Veri: Bilet ve Kargo birim fiyatlarını hesaplar.
-     * Easy modda sınıfa özel çarpanlar (1.10, 1.08, 1.06) uygulanır.
+     * Easy modda sınıfa özel çarpanlar (Y:1.10, J:1.08, F:1.06) uygulanır.
      */
     getTicketMultipliers: function(distance, mode = window.gameMode) {
         const isEasy = (mode === 'easy');
         
-        // Yolcu Bilet Formülleri (Master Data)
-        const yBase = (0.4 * distance) + 170;
-        const jBase = (0.8 * distance) + 560;
-        const fBase = (1.2 * distance) + 1200;
+        // Yolcu Bilet Formülleri (Master Data - Auto Price x Multiplier)
+        // Master Kuralı: Hesaplanan fiyatlar 1$ aşağı yuvarlanmalıdır.
+        const yPrice = ((0.4 * distance) + 170) * (isEasy ? 1.10 : 1.0);
+        const jPrice = ((0.8 * distance) + 560) * (isEasy ? 1.08 : 1.0);
+        const fPrice = ((1.2 * distance) + 1200) * (isEasy ? 1.06 : 1.0);
 
-        // Kargo Gelir Formülleri (Mesafe dilimlerine göre)
+        // Kargo Gelir Formülleri (Mesafe dilimlerine göre katsayı seçimi)
         const cargoRate = (distance < 2000 ? 0.56 : distance < 5000 ? 0.52 : 0.47);
-        const lBase = cargoRate * distance;
-        const hBase = (cargoRate - 0.08) * distance;
+        const lPrice = cargoRate * (isEasy ? 1.10 : 1.0) * distance;
+        const hPrice = (cargoRate - 0.08) * (isEasy ? 1.08 : 1.0) * distance;
 
         return {
-            y: Math.floor(yBase * (isEasy ? 1.10 : 1.0)),
-            j: Math.floor(jBase * (isEasy ? 1.08 : 1.0)),
-            f: Math.floor(fBase * (isEasy ? 1.06 : 1.0)),
-            l: (lBase * (isEasy ? 1.10 : 1.0)).toFixed(2),
-            h: (hBase * (isEasy ? 1.08 : 1.0)).toFixed(2)
+            y: Math.floor(yPrice),
+            j: Math.floor(jPrice),
+            f: Math.floor(fPrice),
+            l: lPrice, // logic.js içinde /100 işlemi yapılır
+            h: hPrice
         };
     },
 
     /**
      * Kapasite Dolum Hiyerarşisi: Master Rehber uyarınca F > J > Y.
-     * Bu fonksiyon uçağın alanını en kârlı şekilde doldurur.
+     * Bu fonksiyon uçağın alanını en kârlı sınıflardan başlayarak doldurur.
      */
     calculateOptimalSeats: function(plane, route, trips = 1) {
         let remainingArea = plane.capacity;
@@ -47,11 +48,11 @@ const Configurator = {
 
         // 1. Önce First Class (F) - Her koltuk 3 birim yer kaplar
         const f = Math.min(flightF, Math.floor(remainingArea / 3));
-        remainingArea -= f * 3;
+        remainingArea -= (f * 3);
 
         // 2. Kalan yere Business (J) - Her koltuk 2 birim yer kaplar
         const j = Math.min(flightJ, Math.floor(remainingArea / 2));
-        remainingArea -= j * 2;
+        remainingArea -= (j * 2);
 
         // 3. En son kalan tüm boşluğa Economy (Y)
         const y = Math.min(flightY, remainingArea);
@@ -75,6 +76,7 @@ const Configurator = {
 
     /**
      * UI üzerindeki kapasite çubuğunu ve uyarılarını günceller.
+     * Uçağın fiziksel limitlerini kontrol eder.
      */
     updateCapacityCheck: function() {
         const isPax = document.getElementById('pax-route').classList.contains('active');
@@ -85,22 +87,27 @@ const Configurator = {
         let used = 0;
         
         if (isPax) {
-            used = Number(document.getElementById('seatsY').value || 0) + 
-                   (Number(document.getElementById('seatsJ').value || 0) * 2) + 
-                   (Number(document.getElementById('seatsF').value || 0) * 3);
+            used = (Number(document.getElementById('seatsY').value) || 0) + 
+                   (Number(document.getElementById('seatsJ').value) * 2 || 0) + 
+                   (Number(document.getElementById('seatsF').value) * 3 || 0);
         } else {
-            used = Number(document.getElementById('cargoL').value || 0) + 
-                   Number(document.getElementById('cargoH').value || 0);
+            used = (Number(document.getElementById('cargoL').value) || 0) + 
+                   (Number(document.getElementById('cargoH').value) || 0);
         }
 
         const info = document.getElementById(isPax ? 'capacityInfo' : 'cargoCapacityInfo');
-        // Kargo için Master %70 limitini baz al
+        // Kargo için Master %70 limitini baz al, Yolcu için tam kapasite
         const maxCap = (p.type === "cargo") ? p.capacity * 0.7 : p.capacity;
         
         const remaining = Math.floor(maxCap - used);
-        info.innerText = `Kullanılan: ${used} / Limit: ${Math.floor(maxCap)} (${remaining >= 0 ? remaining + ' boş' : 'LİMİT AŞILDI!'})`;
         
-        info.className = "status-box " + (used > maxCap ? "status-danger" : "status-success");
+        if (used > maxCap) {
+            info.innerText = `LİMİT AŞILDI! (${used} / ${Math.floor(maxCap)})`;
+            info.className = "status-box status-danger";
+        } else {
+            info.innerText = `Kapasite: ${used} / ${Math.floor(maxCap)} (${remaining} boş)`;
+            info.className = "status-box status-success";
+        }
     },
 
     /**
@@ -115,6 +122,8 @@ const Configurator = {
             document.getElementById('cargoL').value = v1;
             document.getElementById('cargoH').value = v2;
         }
+        
+        // Kapasite bilgisini anlık güncelle
         this.updateCapacityCheck();
         
         // Kullanıcıyı yukarıdaki konfigürasyon paneline yumuşak bir geçişle taşır
@@ -126,5 +135,5 @@ const Configurator = {
     }
 };
 
-// Global erişim için bağla
+// Modüler erişim için global pencereye bağla
 window.Configurator = Configurator;

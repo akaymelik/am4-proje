@@ -1,90 +1,116 @@
 /**
- * logic.js: AM4 Strateji Motoru.
- * GÜNCELLEME: Dinamik Talep Kilidi (Daily Demand Cap) eklendi.
- * Artık uçağın günlük taşıdığı yolcu sayısı, rotadaki toplam talebi asla aşamaz.
+ * logic.js: AM4 Master Strateji ve Analiz Motoru.
+ * GÜNCELLEME: 
+ * - Günlük Talep Kilidi (Daily Demand Cap) eklendi (9km hatası giderildi).
+ * - Personel maliyeti koltuk bazlı (slot değil) hale getirildi.
+ * - ROI ve Hız öncelikli sıralama optimize edildi.
  */
 
 const Logic = {
-    calculateFlightTime: (distance, speed) => (!speed || speed <= 0) ? 0 : (distance / speed),
-
-    calculateMaintenanceCost: (plane, airTime) => airTime * (plane.price * 0.00004),
+    /**
+     * Uçuş süresini hesaplar (saat).
+     */
+    calculateFlightTime: function(distance, speed) {
+        if (!speed || speed <= 0) return 0;
+        return (distance / speed);
+    },
 
     /**
-     * Kâr Hesaplama: Talebe göre dinamik sınırlandırma.
+     * Uçağın bakım maliyetini (A-Check) hesaplar.
+     */
+    calculateMaintenanceCost: function(plane, airTime) {
+        return airTime * (plane.price * 0.00004);
+    },
+
+    /**
+     * Günlük Net Kâr Hesaplama (Dinamik Talep Kontrolü ile).
+     * @param {Object} config - Manuel {y, j, f} veya {l, h} konfigürasyonu.
      */
     calculateProfit: function(plane, route, config = null, manualTrips = null) {
         const currentMode = window.gameMode || 'realism';
         const airTime = this.calculateFlightTime(route.distance, plane.cruise_speed);
-        const cycleTime = airTime + 0.5; // Turnaround (30dk) dahil
+        const cycleTime = airTime + 0.5; // 30dk hazırlık payı
         const maxTrips = Math.floor(24 / cycleTime);
         let trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
         
         if (trips <= 0) return { profit: 0, trips: 0 };
 
-        // Bilet fiyatlarını çarpanlarıyla al (Configurator'dan)
+        // Bilet fiyatlarını Configurator'daki Master çarpanlarla al (Çifte çarpan engellendi)
         const prices = Configurator.getTicketMultipliers(route.distance, currentMode);
         
         let dailyRevenue = 0;
-        let totalDailySeatsUsed = 0;
+        let totalPhysicalSeats = 0;
 
         if (plane.type === "cargo") {
             const opt = config || Configurator.calculateOptimalCargo(plane, route, trips);
-            // Master Kargo Kısıtı: Günlük toplam lbs, rotadaki 'c' talebini aşamaz.
+            // Master Kargo Kısıtı: Toplam taşınan lbs, günlük rota talebini asla aşamaz.
             const totalDailyLbs = Math.min((opt.l + opt.h) * trips, route.demand.c || 0);
             dailyRevenue = (totalDailyLbs * (opt.l > opt.h ? prices.l : prices.h)) / 100;
-            totalDailySeatsUsed = (totalDailyLbs / trips) / 1000; // Personel yükü tahmini
+            totalPhysicalSeats = (opt.l + opt.h) / 1000; // Sembolik personel yükü
         } else {
             const opt = config || Configurator.calculateOptimalSeats(plane, route, trips);
             
-            // KRİTİK DÜZELTME: Günlük taşınan yolcu sayısı talebi aşamaz (Ezbere değil, veriye göre).
-            const dailyY = Math.min(opt.y * trips, route.demand.y || 0);
-            const dailyJ = Math.min(opt.j * trips, route.demand.j || 0);
-            const dailyF = Math.min(opt.f * trips, route.demand.f || 0);
+            // TALEP KİLİDİ (Demand Cap): Günlük taşınan yolcu sayısı talebi aşamaz.
+            // Eğer uçak günde 5000 koltuk arz ediyorsa ama talep 200 ise, sadece 200 bilet satılır.
+            const soldY = Math.min(opt.y * trips, route.demand.y || 0);
+            const soldJ = Math.min(opt.j * trips, route.demand.j || 0);
+            const soldF = Math.min(opt.f * trips, route.demand.f || 0);
             
-            dailyRevenue = (dailyY * prices.y) + (dailyJ * prices.j) + (dailyF * prices.f);
-            
-            // Personel maliyeti uçağın fiziksel koltuk kapasitesi üzerinden hesaplanır.
-            totalDailySeatsUsed = (Number(opt.y) + Number(opt.j) + Number(opt.f)) * trips;
+            dailyRevenue = (soldY * prices.y) + (soldJ * prices.j) + (soldF * prices.f);
+            totalPhysicalSeats = Number(opt.y) + Number(opt.j) + Number(opt.f);
         }
 
-        // Giderler
-        const fuelCostTotal = (route.distance * plane.fuel_consumption * 1.15) * trips;
-        const staffCostTotal = (plane.type === "cargo" ? plane.capacity * 0.005 : (totalDailySeatsUsed / trips) * 2.5) * trips;
-        const maintenanceTotal = this.calculateMaintenanceCost(plane, airTime) * trips;
+        // Giderler (Günlük)
+        const dailyFuelCost = (route.distance * plane.fuel_consumption * 1.15) * trips;
+        // DÜZELTME: Personel gideri uçağın toplam kapasitesi üzerinden değil, konfigüre edilmiş koltuk sayısı üzerinden.
+        const dailyStaffCost = (plane.type === "cargo" ? plane.capacity * 0.005 : totalPhysicalSeats * 2.5) * trips;
+        const dailyMaintenance = this.calculateMaintenanceCost(plane, airTime) * trips;
         
-        const totalNetProfit = dailyRevenue - (fuelCostTotal + staffCostTotal + maintenanceTotal);
+        const totalDailyNetProfit = dailyRevenue - (dailyFuelCost + dailyStaffCost + dailyMaintenance);
         
         return { 
-            profit: totalNetProfit > 0 ? totalNetProfit : 0, 
+            profit: totalDailyNetProfit > 0 ? totalDailyNetProfit : 0, 
             trips: trips 
         };
     },
 
+    /**
+     * Bütçeye göre en iyi uçakları ROI (Amorti) ve Hız odaklı bulur.
+     */
     getBestPlanesByType: function(budget, type) {
         let candidates = [];
         for (let name in aircraftData) {
             const p = aircraftData[name];
             if (p.price <= Number(budget) && p.type === type) {
+                // Her uçak için en kârlı rotayı bul (Talep kısıtlı)
                 const topRes = this.analyzeTopRoutesForPlane(name, 1)[0];
                 if (topRes && topRes.dailyProfit > 0) {
+                    const roiDays = p.price / topRes.dailyProfit;
                     candidates.push({
-                        name, ...p,
-                        roiDays: p.price / topRes.dailyProfit,
+                        name: name,
+                        efficiency: (topRes.dailyProfit / p.price) * 100,
                         dailyProfit: topRes.dailyProfit,
+                        roiDays: roiDays,
                         bestRouteOrigin: topRes.origin,
                         bestRouteName: topRes.destination,
-                        efficiency: (topRes.dailyProfit / p.price) * 100
+                        price: p.price,
+                        cruise_speed: p.cruise_speed
                     });
                 }
             }
         }
+        // Sıralama: En kısa sürede parasını çıkaran (Düşük ROI) ve en hızlı olan üste gelir.
         return candidates.sort((a, b) => (a.roiDays - b.roiDays) || (b.cruise_speed - a.cruise_speed)).slice(0, 10);
     },
 
+    /**
+     * Seçilen uçak için en kârlı 10 rotayı analiz eder.
+     */
     analyzeTopRoutesForPlane: function(name, limit = 10, manualConfig = null) {
         const p = aircraftData[name];
         if (!p) return [];
         let results = [];
+        
         popularRoutes.forEach(route => {
             if (route.distance <= p.range) {
                 const calc = this.calculateProfit(p, route, manualConfig);
@@ -98,6 +124,8 @@ const Logic = {
                 }
             }
         });
+        
+        // Günlük Net Kâra göre sırala
         return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
     }
 };

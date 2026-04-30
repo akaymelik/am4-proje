@@ -1,18 +1,26 @@
 /**
  * ui.js: MENOA AI Arayüz ve Sohbet Yönetimi.
- * GÜNCELLEME: Tüm '/G' ifadeleri yapay zekanın daha iyi anlaması için '/Day' olarak değiştirildi.
+ * GÜNCELLEME: Manuel Sefer Sayısı (Manual Trips) girişi ve /Day etiketleri eklendi.
  */
 
 const UI = {
+    /**
+     * Sayfa değiştirme ve navigasyon yönetimi.
+     */
     showPage: function(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         const targetPage = document.getElementById(id);
         if (targetPage) targetPage.classList.add('active');
         UI.closeAllDropdowns();
+        
+        // Rota sayfaları açıldığında uçak seçim listelerini doldur
         if (id && id.includes('route')) UI.fillSelects();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
+    /**
+     * Açılır menü (Dropdown) kontrolü.
+     */
     toggleDropdown: function(id) {
         const el = document.getElementById(id);
         if (!el) return;
@@ -21,16 +29,15 @@ const UI = {
         if (!isOpen) el.classList.add('open');
     },
 
-    closeAllDropdowns: function() {
-        document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
-    },
+    closeAllDropdowns: () => document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open')),
 
+    /**
+     * Oyun modunu (Easy/Realism) ayarlar.
+     */
     setGameMode: function(mode) {
         window.gameMode = mode;
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        const activeBtnId = mode === 'easy' ? 'btn-easy' : 'id-real';
-        const activeBtn = document.getElementById(activeBtnId);
-        if (activeBtn) activeBtn.classList.add('active');
+        document.getElementById(mode === 'easy' ? 'btn-easy' : 'id-real').classList.add('active');
         const display = document.getElementById('modeDisplay');
         if (display) {
             display.innerText = "Aktif Mod: " + (mode === 'easy' ? "Easy (Master)" : "Realism (1.0x)");
@@ -38,19 +45,25 @@ const UI = {
         }
     },
 
+    /**
+     * Uçak seçim kutularını doldurur.
+     */
     fillSelects: function() {
-        const paxSelect = document.getElementById('paxRouteSelect');
-        const cargoSelect = document.getElementById('cargoRouteSelect');
-        if (paxSelect) {
-            paxSelect.innerHTML = '<option value="">-- Uçak Seçiniz --</option>';
-            for (let name in aircraftData) if (aircraftData[name].type === "passenger") paxSelect.add(new Option(name, name));
+        const ps = document.getElementById('paxRouteSelect');
+        const cs = document.getElementById('cargoRouteSelect');
+        if (ps) {
+            ps.innerHTML = '<option value="">-- Uçak Seçiniz --</option>';
+            for (let n in aircraftData) if (aircraftData[n].type === 'passenger') ps.add(new Option(n, n));
         }
-        if (cargoSelect) {
-            cargoSelect.innerHTML = '<option value="">-- Uçak Seçiniz --</option>';
-            for (let name in aircraftData) if (aircraftData[name].type === "cargo") cargoSelect.add(new Option(name, name));
+        if (cs) {
+            cs.innerHTML = '<option value="">-- Uçak Seçiniz --</option>';
+            for (let n in aircraftData) if (aircraftData[n].type === 'cargo') cs.add(new Option(n, n));
         }
     },
 
+    /**
+     * Daktilo Efekti: AI yanıtlarını akıcı bir şekilde yazar.
+     */
     typeEffect: function(element, text, speed = 10) {
         if (!element) return;
         let i = 0;
@@ -66,76 +79,94 @@ const UI = {
     },
 
     /**
-     * DÜZELTME: Yapay zekaya gönderilen 'profit' verisine açıkça 'per Day' eklendi.
+     * Cloudflare Worker üzerinden Gemini AI analizi talep eder.
      */
     askGemini: async function(planeName, routeData) {
-        const resultArea = document.getElementById('aiResultArea');
-        if (!resultArea) return;
-        resultArea.innerHTML = '<div class="status-box status-neutral">🤖 MENOA Stratejileri Analiz Ediyor...</div>';
-
+        const area = document.getElementById('aiResultArea');
+        if (!area) return;
+        area.innerHTML = '<div class="status-box status-neutral">🤖 MENOA Stratejileri Analiz Ediyor...</div>';
+        
         try {
-            const response = await fetch("https://ai.airm4.workers.dev/", {
+            const res = await fetch("https://ai.airm4.workers.dev/", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    plane: planeName,
-                    route: `${routeData.origin} ➔ ${routeData.destination}`,
-                    profit: Utils.formatCurrency(routeData.dailyProfit) + " per Day", // Zeka karmaşasını çözen ek
+                body: JSON.stringify({ 
+                    plane: planeName, 
+                    route: `${routeData.origin} ➔ ${routeData.destination}`, 
+                    profit: Utils.formatCurrency(routeData.dailyProfit) + " per Day", 
                     distance: routeData.distance + " km",
                     efficiency: Utils.formatPercent(routeData.efficiency)
                 })
             });
-            const data = await response.json();
-            resultArea.innerHTML = `
+            const data = await res.json();
+            area.innerHTML = `
                 <div class="ai-report-card">
                     <h4 style="color:var(--primary); margin-bottom:10px;">🤖 MENOA MASTER ANALİZİ</h4>
                     <div id="typingArea" style="font-size:0.9rem; line-height:1.6;"></div>
                 </div>`;
             this.typeEffect(document.getElementById('typingArea'), data.text);
-            resultArea.scrollIntoView({ behavior: 'smooth' });
-        } catch (error) {
-            resultArea.innerHTML = `<div class="status-box status-danger">⚠️ Hata: Motor meşgul.</div>`;
-        }
+            area.scrollIntoView({ behavior: 'smooth' });
+        } catch (e) { area.innerHTML = `<div class="status-box status-danger">⚠️ Hata: Motor meşgul.</div>`; }
     },
 
+    /**
+     * Bütçeye göre en iyi uçakları ROI odaklı listeler.
+     */
     renderSuggestions: function(cat) {
         const budget = Number(document.getElementById(cat + 'BudgetInput')?.value);
         if (!budget || budget <= 0) return;
-        const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo');
-        document.getElementById(cat + 'PlaneResult').innerHTML = bestPlanes.map(p => `
+        const res = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo');
+        document.getElementById(cat + 'PlaneResult').innerHTML = res.map(p => `
             <div class="plane-item">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <strong>${p.name}</strong>
                     <span style="color:var(--danger); font-weight:800;">ROI: ${p.roiDays.toFixed(1)} Gün</span>
                 </div>
                 <div style="font-size:0.8rem; margin-top:5px; color:var(--secondary);">
-                    Hız: ${p.speed} km/s | Kâr: ${Utils.formatCurrency(p.dailyProfit)}/Day
+                    Hız: ${p.cruise_speed} km/s | Kâr: ${Utils.formatCurrency(p.dailyProfit)}/Day
                 </div>
                 <small style="color:var(--success); font-weight:600; display:block; margin-top:5px;">
-                    Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}
+                    En Karlı Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}
                 </small>
             </div>
         `).join('');
     },
 
+    /**
+     * Rota analiz sonuçlarını ekrana basar.
+     */
     renderRouteAnalysis: function(cat) {
         const selectId = cat === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
-        const resultId = cat === 'pax' ? 'paxRouteResult' : 'cargoRouteResult';
         const planeName = document.getElementById(selectId)?.value;
-        const resultDiv = document.getElementById(resultId);
-        if (!planeName) return;
+        const resDiv = document.getElementById(cat + 'RouteResult');
+        const manualTripsInput = document.getElementById(cat === 'pax' ? 'paxTripsInput' : 'cargoTripsInput');
+        const manualTrips = parseInt(manualTripsInput?.value) || null;
 
-        resultDiv.innerHTML = `<div id="aiResultArea"></div><h3 style="margin:20px 0;">Master Strateji Rotaları</h3>`;
-        const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10);
+        if (!planeName || !resDiv) return;
+
+        // Manuel konfigürasyon kontrolü
+        let manualConfig = null;
+        if (cat === 'pax') {
+            const y = parseInt(document.getElementById('seatsY').value) || 0;
+            const j = parseInt(document.getElementById('seatsJ').value) || 0;
+            const f = parseInt(document.getElementById('seatsF').value) || 0;
+            if (y > 0 || j > 0 || f > 0) manualConfig = { y, j, f };
+        } else {
+            const l = parseInt(document.getElementById('cargoL').value) || 0;
+            const h = parseInt(document.getElementById('cargoH').value) || 0;
+            if (l > 0 || h > 0) manualConfig = { l, h };
+        }
+
+        resDiv.innerHTML = '<div id="aiResultArea"></div><h3 style="margin:20px 0;">Rota Kâr Analizi</h3>';
         
-        topRoutes.forEach((r, i) => {
+        Logic.analyzeTopRoutesForPlane(planeName, 10, manualConfig, manualTrips).forEach((r, i) => {
+            const plane = aircraftData[planeName];
+            const opt = manualConfig || (plane.type === 'passenger' 
+                ? Configurator.calculateOptimalSeats(plane, r, r.dailyTrips)
+                : Configurator.calculateOptimalCargo(plane, r, r.dailyTrips));
+
             const card = document.createElement('div');
             card.className = 'route-card';
-            const plane = aircraftData[planeName];
-            const opt = plane.type === 'passenger' 
-                ? Configurator.calculateOptimalSeats(plane, r, r.dailyTrips)
-                : Configurator.calculateOptimalCargo(plane, r, r.dailyTrips);
-
             card.innerHTML = `
                 <div class="route-header">
                     <div class="route-info">
@@ -143,52 +174,47 @@ const UI = {
                         <small style="color:var(--secondary);">${r.distance} km | ${r.dailyTrips} Sefer/Day</small>
                     </div>
                     <div class="route-stats">
-                        <div class="profit-val">${Utils.formatCurrency(r.dailyProfit)}/Day</div> <!-- /G -> /Day yapıldı -->
+                        <div class="profit-val">${Utils.formatCurrency(r.dailyProfit)}/Day</div>
                         <div class="efficiency-tag">Verim: ${Utils.formatPercent(r.efficiency)}</div>
                     </div>
                 </div>
                 <div class="suggestion-bar">
-                    <div class="ideal-config" style="font-size:0.8rem; font-weight:700;">
-                        ÖNERİ: ${cat === 'pax' ? `Y:${opt.y} J:${opt.j} F:${opt.f}` : `Large:${opt.l}`}
-                    </div>
-                    <div class="action-buttons" style="display:flex; gap:5px;">
-                        <button class="ai-btn-small" onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/\"/g, '&quot;')})" style="width:auto; padding:5px 10px;">🤖 AI</button>
-                        <button class="apply-btn-small" onclick="Configurator.applySuggestion(${opt.y || opt.l}, ${opt.j || opt.h || 0}, ${opt.f || 'null'})" style="width:auto; padding:5px 10px; background:var(--success);">Yükle</button>
+                    <span class="ideal-config">ÖNERİ: ${cat === 'pax' ? `Y:${opt.y} J:${opt.j} F:${opt.f}` : `L:${opt.l} H:${opt.h}`}</span>
+                    <div class="action-buttons">
+                        <button class="ai-btn-small" onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/\"/g, '&quot;')})">🤖 AI</button>
+                        <button class="apply-btn-small" onclick="Configurator.applySuggestion(${opt.y || opt.l}, ${opt.j || opt.h || 0}, ${opt.f || 'null'})">Yükle</button>
                     </div>
                 </div>`;
-            resultDiv.appendChild(card);
+            resDiv.appendChild(card);
         });
     }
 };
 
+/** --- AI SOHBET MODÜLÜ --- */
 const Chat = {
-    toggle: function() {
-        const win = document.getElementById('chat-window');
-        if (win) win.classList.toggle('chat-hidden');
+    toggle: () => document.getElementById('chat-window').classList.toggle('chat-hidden'),
+    
+    addMessage: (t, s) => {
+        const b = document.getElementById('chat-body');
+        if (!b) return;
+        const d = document.createElement('div');
+        d.className = `chat-msg ${s}-msg`;
+        b.appendChild(d);
+        if (s === 'ai') UI.typeEffect(d, t, 12);
+        else { d.innerText = t; b.scrollTop = b.scrollHeight; }
     },
-    addMessage: function(text, sender) {
-        const body = document.getElementById('chat-body');
-        if (!body) return;
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `chat-msg ${sender}-msg`;
-        body.appendChild(msgDiv);
-        if (sender === 'ai') UI.typeEffect(msgDiv, text, 12);
-        else { msgDiv.innerText = text; body.scrollTop = body.scrollHeight; }
-    },
+    
     send: async function() {
-        const input = document.getElementById('chatInput');
-        const text = input?.value.trim();
-        if (!text) return;
-        this.addMessage(text, 'user');
-        input.value = '';
+        const i = document.getElementById('chatInput');
+        const t = i.value.trim(); if (!t) return;
+        this.addMessage(t, 'user'); i.value = '';
         try {
-            const response = await fetch("https://ai.airm4.workers.dev/", {
-                method: 'POST',
+            const r = await fetch("https://ai.airm4.workers.dev/", { 
+                method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chatMessage: text })
+                body: JSON.stringify({ chatMessage: t }) 
             });
-            const data = await response.json();
-            this.addMessage(data.text || "Yanıt alınamadı.", 'ai');
+            const d = await r.json(); this.addMessage(d.text || "Yanıt alınamadı.", 'ai');
         } catch (e) { this.addMessage("⚠️ Hata: Motor şu an yanıt vermiyor.", 'ai'); }
     }
 };

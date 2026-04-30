@@ -28,7 +28,7 @@
         
         <!-- Yolcu Menüsü -->
         <div class="dropdown" id="paxDrop">
-            <span class="nav-label" onclick="UI.toggleDropdown('paxDrop')">Yolcu ▾</span>
+            <span class="nav-label" onclick="UI.toggleDropdown('paxDrop')">PAX ▾</span>
             <div class="dropdown-content">
                 <a onclick="UI.showPage('pax-plane')">Uçak Önerileri</a>
                 <a onclick="UI.showPage('pax-route')">Rota & Analiz</a>
@@ -60,13 +60,13 @@
         <h2>MENOA Strateji Merkezi</h2>
         <div id="modeDisplay" class="status-box status-danger">Aktif Mod: Realism</div>
         <p style="margin: 20px 0; color: var(--text-muted);">
-            Melik Akay stratejileri ve AM4 Master verileriyle güçlendirilmiş profesyonel filo yönetim aracı.
+            AM4 Master verileriyle güçlendirilmiş profesyonel filo yönetim aracı.
         </p>
     </div>
 
     <!-- Sayfa: Yolcu Uçak Önerileri -->
     <div id="pax-plane" class="page">
-        <h2>Yolcu: Bütçe Odaklı Öneriler</h2>
+        <h2>PAX: Bütçe Odaklı Uçak Önerileri</h2>
         <label>Yatırım Bütçeniz ($):</label>
         <input type="number" id="paxBudgetInput" placeholder="Örn: 50.000.000">
         <button onclick="UI.renderSuggestions('pax')">En Verimli Uçakları Bul</button>
@@ -95,7 +95,7 @@
 
     <!-- Sayfa: Kargo Uçak Önerileri -->
     <div id="cargo-plane" class="page">
-        <h2>Kargo: Bütçe Odaklı Öneriler</h2>
+        <h2>Kargo: Bütçe Odaklı Uçak Önerileri</h2>
         <label>Yatırım Bütçeniz ($):</label>
         <input type="number" id="cargoBudgetInput" placeholder="Örn: 100.000.000">
         <button onclick="UI.renderSuggestions('cargo')">En Verimli Uçakları Bul</button>
@@ -165,7 +165,7 @@
         // İlk karşılama mesajı
         setTimeout(() => {
             if (typeof Chat !== 'undefined' && Chat.addMessage) {
-                Chat.addMessage("Merhaba! Melik Akay stratejileri ve AM4 Master eğitimimle yardıma hazırım. Nereden başlayalım?", "ai");
+                Chat.addMessage("Merhaba! AM4 Master eğitimimle yardıma hazırım. Nereden başlayalım?", "ai");
             }
         }, 2000);
     });

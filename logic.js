@@ -1,7 +1,7 @@
 /**
- * logic.js: AM4 Master Strateji ve Analiz Motoru.
- * DÜZELTME: Çifte çarpan hatası giderildi. Personel maliyeti koltuk bazlı yapıldı.
- * 9km gibi kısa mesafelerde gerçekçi kâr analizi için demand kontrolü optimize edildi.
+ * logic.js: AM4 Strateji Motoru.
+ * GÜNCELLEME: Dinamik Talep Kilidi (Daily Demand Cap) eklendi.
+ * Artık uçağın günlük taşıdığı yolcu sayısı, rotadaki toplam talebi asla aşamaz.
  */
 
 const Logic = {
@@ -10,46 +10,54 @@ const Logic = {
     calculateMaintenanceCost: (plane, airTime) => airTime * (plane.price * 0.00004),
 
     /**
-     * Kâr Hesaplama Motoru (Fixed)
+     * Kâr Hesaplama: Talebe göre dinamik sınırlandırma.
      */
     calculateProfit: function(plane, route, config = null, manualTrips = null) {
         const currentMode = window.gameMode || 'realism';
         const airTime = this.calculateFlightTime(route.distance, plane.cruise_speed);
-        const cycleTime = airTime + 0.5; // Hazırlık süresi dahil
+        const cycleTime = airTime + 0.5; // Turnaround (30dk) dahil
         const maxTrips = Math.floor(24 / cycleTime);
         let trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
         
-        if (trips <= 0) return { profit: 0, trips: trips };
+        if (trips <= 0) return { profit: 0, trips: 0 };
 
-        // Bilet fiyatlarını Configurator'dan al (Çarpanlar zaten orada uygulanıyor)
+        // Bilet fiyatlarını çarpanlarıyla al (Configurator'dan)
         const prices = Configurator.getTicketMultipliers(route.distance, currentMode);
-        let revenuePerFlight = 0;
-        let totalSeats = 0;
+        
+        let dailyRevenue = 0;
+        let totalDailySeatsUsed = 0;
 
         if (plane.type === "cargo") {
             const opt = config || Configurator.calculateOptimalCargo(plane, route, trips);
-            // Master Kargo Formülü: (lbs * mesafe * katsayı) / 100
-            revenuePerFlight = ((opt.l * prices.l) + (opt.h * prices.h)) / 100;
-            totalSeats = (opt.l + opt.h) / 1000; // Sembolik personel yükü
+            // Master Kargo Kısıtı: Günlük toplam lbs, rotadaki 'c' talebini aşamaz.
+            const totalDailyLbs = Math.min((opt.l + opt.h) * trips, route.demand.c || 0);
+            dailyRevenue = (totalDailyLbs * (opt.l > opt.h ? prices.l : prices.h)) / 100;
+            totalDailySeatsUsed = (totalDailyLbs / trips) / 1000; // Personel yükü tahmini
         } else {
             const opt = config || Configurator.calculateOptimalSeats(plane, route, trips);
-            // DİKKAT: Burada multiplier ile tekrar çarpmıyoruz! Configurator zaten çarptı.
-            revenuePerFlight = (opt.y * prices.y + opt.j * prices.j + opt.f * prices.f);
-            totalSeats = Number(opt.y) + Number(opt.j) + Number(opt.f);
+            
+            // KRİTİK DÜZELTME: Günlük taşınan yolcu sayısı talebi aşamaz (Ezbere değil, veriye göre).
+            const dailyY = Math.min(opt.y * trips, route.demand.y || 0);
+            const dailyJ = Math.min(opt.j * trips, route.demand.j || 0);
+            const dailyF = Math.min(opt.f * trips, route.demand.f || 0);
+            
+            dailyRevenue = (dailyY * prices.y) + (dailyJ * prices.j) + (dailyF * prices.f);
+            
+            // Personel maliyeti uçağın fiziksel koltuk kapasitesi üzerinden hesaplanır.
+            totalDailySeatsUsed = (Number(opt.y) + Number(opt.j) + Number(opt.f)) * trips;
         }
 
-        const fuelCost = route.distance * plane.fuel_consumption * 1.15; // Ortalama yakıt $1.15
+        // Giderler
+        const fuelCostTotal = (route.distance * plane.fuel_consumption * 1.15) * trips;
+        const staffCostTotal = (plane.type === "cargo" ? plane.capacity * 0.005 : (totalDailySeatsUsed / trips) * 2.5) * trips;
+        const maintenanceTotal = this.calculateMaintenanceCost(plane, airTime) * trips;
         
-        // DÜZELTME: Personel maliyeti slot kapasitesi üzerinden değil, gerçek koltuk sayısı üzerinden.
-        const staffCost = plane.type === "cargo" ? plane.capacity * 0.005 : totalSeats * 2.5;
-        const maintenance = this.calculateMaintenanceCost(plane, airTime);
+        const totalNetProfit = dailyRevenue - (fuelCostTotal + staffCostTotal + maintenanceTotal);
         
-        const netProfitPerFlight = revenuePerFlight - (fuelCost + staffCost + maintenance);
-        
-        // Master Kural: Negatif kâr varsa uçağı uçurma
-        const finalProfit = netProfitPerFlight > 0 ? netProfitPerFlight * trips : 0;
-        
-        return { profit: finalProfit, trips: trips };
+        return { 
+            profit: totalNetProfit > 0 ? totalNetProfit : 0, 
+            trips: trips 
+        };
     },
 
     getBestPlanesByType: function(budget, type) {
@@ -65,13 +73,12 @@ const Logic = {
                         dailyProfit: topRes.dailyProfit,
                         bestRouteOrigin: topRes.origin,
                         bestRouteName: topRes.destination,
-                        efficiency: topRes.efficiency
+                        efficiency: (topRes.dailyProfit / p.price) * 100
                     });
                 }
             }
         }
-        // ROI (Geri Dönüş) en kısa olandan en uzuna sırala
-        return candidates.sort((a, b) => a.roiDays - b.roiDays).slice(0, 10);
+        return candidates.sort((a, b) => (a.roiDays - b.roiDays) || (b.cruise_speed - a.cruise_speed)).slice(0, 10);
     },
 
     analyzeTopRoutesForPlane: function(name, limit = 10, manualConfig = null) {

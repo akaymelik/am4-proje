@@ -52,14 +52,18 @@ const Logic = {
         let results = [];
 
         popularRoutes.forEach(route => {
+            // Kargo uçağı ama rotada kargo talebi yoksa atla
             if (plane.type === "cargo" && !route.demand.c) return;
+            
             if (route.distance <= plane.range) {
                 const calc = this.calculateProfit(plane, route);
-                if (calc.profitPerFlight > 0) {
+                if (calc.profitPerFlight > 0 && calc.appliedTrips > 0) {
                     const dailyProfit = calc.profitPerFlight * calc.appliedTrips;
                     results.push({
                         ...route,
                         dailyProfit: dailyProfit,
+                        dailyTrips: calc.appliedTrips,   // ← eksik olan buydu, ui.js bunu kullanıyor
+                        duration: calc.duration,
                         efficiency: (dailyProfit / plane.price) * 100
                     });
                 }

@@ -9,7 +9,8 @@ const COST_INDEX = 200; // varsayılan CI
 const Logic = {
     calculateFlightTime: function(distance, speed) {
         if (!speed || speed <= 0) return 0;
-        return (distance / speed);
+        const effectiveSpeed = (window.gameMode === 'easy') ? speed * 4 : speed;
+        return (distance / effectiveSpeed);
     },
 
     calculateMaintenanceCost: function(plane, airTime) {
@@ -17,8 +18,6 @@ const Logic = {
     },
 
     calculateProfit: function(plane, route, config = null, manualTrips = null) {
-        const currentMode = window.gameMode || 'realism';
-        const multiplier = currentMode === 'easy' ? 1.1 : 1.0;
         const airTime = this.calculateFlightTime(route.distance, plane.cruise_speed);
         const cycleTime = airTime + 0.5; 
         const maxTrips = Math.floor(24 / cycleTime);

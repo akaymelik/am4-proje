@@ -155,17 +155,26 @@ const Configurator = {
     },
 
     /**
-     * Oyun moduna göre bilet ve kargo gelir çarpanlarını döndürür.
+     * Oyun moduna göre bilet ve kargo fiyatlarını döndürür.
+     * Easy/Realism formülleri AM4 formulae.md (cathaypacific8747) kaynaklı.
      */
     getTicketMultipliers: function(distance) {
-        const multiplier = (window.gameMode === 'easy') ? 1.1 : 1.0;
-        
+        if (window.gameMode === 'easy') {
+            return {
+                y: (0.4 * distance) + 170,
+                j: (0.8 * distance) + 560,
+                f: (1.2 * distance) + 1200,
+                l: (0.07 * distance) + 50,
+                h: (0.11 * distance) + 150
+            };
+        }
+        // Realism (varsayılan)
         return {
-            y: ((0.4 * distance) + 170) * multiplier,
-            j: ((0.8 * distance) + 560) * multiplier,
-            f: ((1.2 * distance) + 1200) * multiplier,
-            l: ((0.07 * distance) + 50) * multiplier,
-            h: ((0.11 * distance) + 150) * multiplier
+            y: (0.3 * distance) + 150,
+            j: (0.6 * distance) + 500,
+            f: (0.9 * distance) + 1000,
+            l: (0.07 * distance) + 50,
+            h: (0.11 * distance) + 150
         };
     }
 };

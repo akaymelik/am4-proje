@@ -1,6 +1,7 @@
 /**
  * ui.js: MENOA AI Arayüz, Sohbet ve Analiz Yönetimi.
  * Özellikler: Daktilo efekti, Premium UI Kartları, Konfigürasyon Aktarımı.
+ * GÜNCELLEME: Chat geçmişi sessionStorage'da tutulur (sekme kapanınca sıfırlanır).
  * Bağlantı: https://ai.airm4.workers.dev/
  */
 
@@ -101,6 +102,7 @@ const UI = {
 
     /**
      * Gemini AI'dan rota analizi talep eder.
+     * Rota analizi geçmişe eklenmez (tek seferlik teknik sorgu).
      */
     askGemini: async function(planeName, routeData) {
         const workerUrl = "https://ai.airm4.workers.dev/";
@@ -119,6 +121,7 @@ const UI = {
                     profit: Utils.formatCurrency(routeData.dailyProfit),
                     distance: routeData.distance,
                     efficiency: Utils.formatPercent(routeData.efficiency)
+                    // history yok: rota analizi bağımsız sorgu
                 })
             });
             const data = await response.json();
@@ -223,24 +226,75 @@ const UI = {
 
 /** --- AI SOHBET MODÜLÜ (CHAT) --- */
 const Chat = {
+    /** sessionStorage anahtarı */
+    STORAGE_KEY: "menoa_chat_history",
+
+    /**
+     * Sohbet geçmişini sessionStorage'dan yükler.
+     * Gemini API formatında [{role, parts:[{text}]}] dizisi döner.
+     */
+    loadHistory: function() {
+        try {
+            const raw = sessionStorage.getItem(this.STORAGE_KEY);
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            return [];
+        }
+    },
+
+    /**
+     * Güncellenmiş geçmişi sessionStorage'a kaydeder.
+     */
+    saveHistory: function(history) {
+        try {
+            sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(history));
+        } catch (e) {
+            // Storage dolu olabilir, sessizce geç
+        }
+    },
+
+    /**
+     * Sayfa yüklendiğinde önceki oturumun mesajlarını ekrana basar.
+     * (Aynı sekmede sayfa yenilenirse geçmiş görünür, sekme kapanırsa sıfırlanır.)
+     */
+    restoreMessages: function() {
+        const history = this.loadHistory();
+        if (history.length === 0) return;
+
+        history.forEach(turn => {
+            const sender = turn.role === "model" ? "ai" : "user";
+            const text = turn.parts?.[0]?.text || "";
+            this._appendMessage(text, sender, false); // typeEffect olmadan hızlı yükle
+        });
+    },
+
     toggle: function() {
         const win = document.getElementById('chat-window');
         if (win) {
             win.classList.toggle('chat-hidden');
             if (!win.classList.contains('chat-hidden')) {
                 document.getElementById('chatInput')?.focus();
+                // Scroll en alta
+                const chatBody = document.getElementById('chat-body');
+                if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
             }
         }
     },
 
-    addMessage: function(text, sender) {
+    /**
+     * Mesajı DOM'a ekler.
+     * @param {string} text - Mesaj metni
+     * @param {string} sender - 'ai' veya 'user'
+     * @param {boolean} animate - AI mesajı için daktilo efekti kullanılsın mı
+     */
+    _appendMessage: function(text, sender, animate = true) {
         const body = document.getElementById('chat-body');
         if (!body) return;
         const msgDiv = document.createElement('div');
         msgDiv.className = `chat-msg ${sender}-msg`;
         body.appendChild(msgDiv);
 
-        if (sender === 'ai') {
+        if (sender === 'ai' && animate) {
             UI.typeEffect(msgDiv, text, 12);
         } else {
             msgDiv.innerText = text;
@@ -248,24 +302,53 @@ const Chat = {
         }
     },
 
+    /** Dışarıdan çağrılabilen addMessage (splash mesajı için) */
+    addMessage: function(text, sender) {
+        this._appendMessage(text, sender, sender === 'ai');
+    },
+
     send: async function() {
         const input = document.getElementById('chatInput');
         const text = input?.value.trim();
         if (!text) return;
 
-        this.addMessage(text, 'user');
+        // Kullanıcı mesajını ekrana bas
+        this._appendMessage(text, 'user', false);
         input.value = '';
+
+        // Mevcut geçmişi al
+        const history = this.loadHistory();
 
         try {
             const response = await fetch("https://ai.airm4.workers.dev/", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chatMessage: text })
+                body: JSON.stringify({
+                    chatMessage: text,
+                    history: history   // önceki tüm turları gönder
+                })
             });
             const data = await response.json();
-            this.addMessage(data.text || "Yanıt alınamadı.", 'ai');
+            const aiText = data.text || "Yanıt alınamadı.";
+
+            // AI mesajını ekrana bas
+            this._appendMessage(aiText, 'ai', true);
+
+            // Güncellenmiş geçmişi kaydet
+            // Worker updatedHistory döndürüyorsa onu kullan, yoksa manuel ekle
+            if (data.updatedHistory && Array.isArray(data.updatedHistory)) {
+                this.saveHistory(data.updatedHistory);
+            } else {
+                const updated = [
+                    ...history,
+                    { role: "user",  parts: [{ text: text }] },
+                    { role: "model", parts: [{ text: aiText }] }
+                ];
+                this.saveHistory(updated);
+            }
+
         } catch (e) {
-            this.addMessage("⚠️ Hata: Motor yanıt vermiyor.", 'ai');
+            this._appendMessage("⚠️ Hata: Motor yanıt vermiyor.", 'ai', false);
         }
     }
 };

@@ -51,7 +51,7 @@ const UI = {
         
         const display = document.getElementById('modeDisplay');
         if (display) {
-            display.innerText = "Aktif Mod: " + (mode === 'easy' ? "Easy (1.1x)" : "Realism (1.0x)");
+            display.innerText = "Aktif Mod: " + (mode === 'easy' ? "Easy (4x hız)" : "Realism (Standart)");
             display.className = "status-box " + (mode === 'easy' ? "status-success" : "status-danger");
         }
     },
@@ -356,6 +356,8 @@ const Chat = {
 // MODÜLLERİ GLOBALE BAĞLA (ReferenceError Fix)
 window.UI = UI;
 window.Chat = Chat;
+
+window.gameMode = window.gameMode || 'realism';
 
 // Global tıklama dinleyicisi: Menü dışına tıklandığında dropdownları kapatır.
 document.addEventListener('click', e => {

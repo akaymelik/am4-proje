@@ -5,6 +5,7 @@
 
 const FUEL_PRICE = 950; // $/1000lbs, piyasa ortalaması
 const COST_INDEX = 200; // varsayılan CI
+const MAX_FLEET_SIZE = 30;
 
 const Logic = {
     calculateFlightTime: function(distance, speed) {
@@ -51,23 +52,22 @@ const Logic = {
         };
     },
 
-    analyzeTopRoutesForPlane: function(planeName, limit = 10) {
+    analyzeTopRoutesForPlane: function(planeName, limit = 10, manualTrips = null) {
         const plane = aircraftData[planeName];
         if (!plane) return [];
         let results = [];
 
         popularRoutes.forEach(route => {
-            // Kargo uçağı ama rotada kargo talebi yoksa atla
             if (plane.type === "cargo" && !route.demand.c) return;
-            
+
             if (route.distance <= plane.range) {
-                const calc = this.calculateProfit(plane, route);
+                const calc = this.calculateProfit(plane, route, null, manualTrips);
                 if (calc.profitPerFlight > 0 && calc.appliedTrips > 0) {
                     const dailyProfit = calc.profitPerFlight * calc.appliedTrips;
                     results.push({
                         ...route,
                         dailyProfit: dailyProfit,
-                        dailyTrips: calc.appliedTrips,   // ← eksik olan buydu, ui.js bunu kullanıyor
+                        dailyTrips: calc.appliedTrips,
                         duration: calc.duration,
                         efficiency: (dailyProfit / plane.price) * 100
                     });
@@ -77,24 +77,31 @@ const Logic = {
         return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
     },
 
-    getBestPlanesByType: function(budget, type) {
+    getBestPlanesByType: function(budget, type, manualTrips = null) {
         let candidates = [];
+        const budgetNum = Number(budget);
         for (let name in aircraftData) {
             const p = aircraftData[name];
-            if (p.price <= Number(budget) && p.type === type) {
-                const topRes = this.analyzeTopRoutesForPlane(name, 1);
+            if (p.price <= budgetNum && p.type === type) {
+                const topRes = this.analyzeTopRoutesForPlane(name, 1, manualTrips);
                 if (topRes.length > 0) {
+                    const fleetSize = Math.min(Math.floor(budgetNum / p.price), MAX_FLEET_SIZE);
+                    const fleetEfficiency = fleetSize <= 3 ? 1.0 : fleetSize <= 10 ? 0.8 : fleetSize <= 20 ? 0.6 : 0.4;
+                    const totalDailyProfit = fleetSize * topRes[0].dailyProfit * fleetEfficiency;
                     candidates.push({
                         name: name,
                         efficiency: topRes[0].efficiency,
                         dailyProfit: topRes[0].dailyProfit,
-                        bestRouteOrigin: topRes[0].origin, // Nereden
-                        bestRouteName: topRes[0].destination, // Nereye
+                        totalDailyProfit: totalDailyProfit,
+                        fleetSize: fleetSize,
+                        fleetEfficiency: fleetEfficiency,
+                        bestRouteOrigin: topRes[0].origin,
+                        bestRouteName: topRes[0].destination,
                         price: p.price
                     });
                 }
             }
         }
-        return candidates.sort((a, b) => b.efficiency - a.efficiency).slice(0, 10);
+        return candidates.sort((a, b) => b.totalDailyProfit - a.totalDailyProfit).slice(0, 10);
     }
 };

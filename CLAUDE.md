@@ -40,9 +40,24 @@ This order is load-order-dependent — later scripts rely on globals defined by 
 
 - **`logic.js`** — Core profit engine:
   - `calculateFlightTime(distance, speed)` — distance / speed
-  - `calculateProfit(plane, route, seats, gameMode)` — revenue minus fuel/staff/maintenance costs; trips/day = `24 / (flight_time + 0.5)`
-  - `analyzeTopRoutesForPlane(plane, gameMode)` — ranks all routes by daily profit for a given aircraft
-  - `getBestPlanesByType(budget, type, gameMode)` — filters planes by budget and type, returns top 10 by efficiency
+  - `calculateProfit(plane, route, config, manualTrips)` — revenue minus fuel/staff/maintenance costs; trips/day = `24 / (flight_time + 0.5)`; `manualTrips` overrides the automatic maximum
+  - `analyzeTopRoutesForPlane(plane, limit, manualTrips)` — ranks all routes by daily profit for a given aircraft
+  - `getBestPlanesByType(budget, type, manualTrips)` — filters planes by budget and type, returns top 10 sorted by `totalDailyProfit` (fleet-based ranking)
+
+### Uçak Öneri Sıralama Mantığı
+
+`getBestPlanesByType` community standardına göre filo bazlı sıralama yapar:
+
+```
+fleetSize        = Math.min(Math.floor(budget / price), MAX_FLEET_SIZE)  // MAX_FLEET_SIZE = 30
+fleetEfficiency  = fleetSize ≤ 3  → 1.0   (tam verim, talep dolmuyor)
+                   fleetSize ≤ 10 → 0.8   (4-10 uçak, talep biraz paylaşılıyor)
+                   fleetSize ≤ 20 → 0.6   (11-20 uçak, birden fazla rota gerekebilir)
+                   fleetSize ≤ 30 → 0.4   (21-30 uçak, talep tamamen doluyor)
+totalDailyProfit = fleetSize × singlePlaneDailyProfit × fleetEfficiency
+```
+
+Sıralama `totalDailyProfit`'e göre büyükten küçüğe yapılır. `efficiency` (tek uçak kâr/fiyat) UI'da gösterilmeye devam eder ama sıralamayı etkilemez. Kullanıcı `manualTrips` ile günlük sefer sayısını override edebilir; boş bırakılırsa `24 / cycleTime` maksimumu kullanılır.
 
 - **`configurator.js`** — Seat/cargo optimizer:
   - `calculateOptimalSeats(plane, route)` — allocates F/J/Y seats respecting demand hierarchy (F > J > Y) and aircraft capacity (F=3 seats, J=2, Y=1)
@@ -90,7 +105,7 @@ Formulas sourced from `cathaypacific8747/am4` (formulae.md). Easy and Realism us
 
 ## Sıradaki Yapılacaklar
 
-- [ ] **Talep paylaşımı modeli** — günlük toplam talebin sefer sayısına bölünmesi doğru mu? Talep her sefer bağımsız mı oluşuyor?
+- [~] **Talep paylaşımı modeli** — kısmen tamamlandı: filo büyüklüğüne göre verim katsayısı (0.4×–1.0×) eklendi. Açık soru: günlük toplam talebin sefer sayısına bölünmesi doğru mu? Talep her sefer bağımsız mı oluşuyor?
 - [ ] **Kullanıcı CI/fuel_price input'u** — COST_INDEX ve FUEL_PRICE şu an `logic.js`'de sabit; kullanıcıdan alınabilir hale getirilmeli.
 - [ ] **Kargo rota demand verisi** — `routes.js`'de kargo rotalarında `demand.c` alanı eksik; kargo analizi şu an çalışmıyor.
 

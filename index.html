@@ -59,6 +59,8 @@
         <h2>Yolcu: Bütçe Odaklı Öneriler</h2>
         <label>Yatırım Bütçeniz ($):</label>
         <input type="number" id="paxBudgetInput" placeholder="Örn: 50.000.000">
+        <label>Günlük sefer sayısı (boş bırakırsan maksimum kullanılır):</label>
+        <input type="number" id="paxTripsInput" placeholder="Örn: 2" min="1">
         <button onclick="UI.renderSuggestions('pax')">En Verimli Uçakları Bul</button>
         <div id="paxPlaneResult"></div>
     </div>
@@ -78,6 +80,8 @@
             </div>
             <div id="capacityInfo" class="status-box status-neutral">Lütfen uçak seçin.</div>
         </div>
+        <label>Günlük sefer sayısı (boş bırakırsan maksimum kullanılır):</label>
+        <input type="number" id="paxRouteTripsInput" placeholder="Örn: 2" min="1">
         <button onclick="UI.renderRouteAnalysis('pax')">Rotaları Analiz Et</button>
         <div id="paxRouteResult"></div>
     </div>
@@ -87,6 +91,8 @@
         <h2>Kargo: Bütçe Odaklı Öneriler</h2>
         <label>Yatırım Bütçeniz ($):</label>
         <input type="number" id="cargoBudgetInput" placeholder="Örn: 100.000.000">
+        <label>Günlük sefer sayısı (boş bırakırsan maksimum kullanılır):</label>
+        <input type="number" id="cargoTripsInput" placeholder="Örn: 2" min="1">
         <button onclick="UI.renderSuggestions('cargo')">En Verimli Uçakları Bul</button>
         <div id="cargoPlaneResult"></div>
     </div>
@@ -105,6 +111,8 @@
             </div>
             <div id="cargoCapacityInfo" class="status-box status-neutral">Lütfen uçak seçin.</div>
         </div>
+        <label>Günlük sefer sayısı (boş bırakırsan maksimum kullanılır):</label>
+        <input type="number" id="cargoRouteTripsInput" placeholder="Örn: 2" min="1">
         <button onclick="UI.renderRouteAnalysis('cargo')">Rotaları Analiz Et</button>
         <div id="cargoRouteResult"></div>
     </div>

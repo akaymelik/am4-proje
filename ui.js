@@ -145,34 +145,63 @@ const UI = {
      */
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
+        const tripsInput = document.getElementById(cat + 'TripsInput');
         const budget = Number(budgetInput?.value);
+        const manualTrips = tripsInput?.value ? Number(tripsInput.value) : null;
         const resultDiv = document.getElementById(cat + 'PlaneResult');
         if (!budget || budget <= 0) {
             if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Lütfen geçerli bir bütçe giriniz.</div>';
             return;
         }
 
-        const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo');
-        
+        const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo', manualTrips);
+
         if (bestPlanes.length === 0) {
             resultDiv.innerHTML = '<div class="status-box status-neutral">Bu bütçeye uygun uçak bulunamadı.</div>';
             return;
         }
 
-        resultDiv.innerHTML = bestPlanes.map(p => `
+        const top = bestPlanes[0];
+        const efficiencyLabels = {
+            1.0: 'Tam verim — 1-3 uçak, talep dolmuyor',
+            0.8: '0.8x — 4-10 uçak, talep biraz paylaşılıyor',
+            0.6: '0.6x — 11-20 uçak, birden fazla rota gerekebilir',
+            0.4: '0.4x — 21-30 uçak, talep tamamen doluyor'
+        };
+
+        const summaryCard = `
+            <div class="plane-item" style="border-left:3px solid var(--primary); margin-bottom:12px;">
+                <div style="color:var(--primary); font-weight:800; margin-bottom:8px;">💡 AI ÖNERİSİ</div>
+                <div style="font-size:0.95rem;">${top.fleetSize} adet <strong>${top.name}</strong> al →
+                    <strong>${top.bestRouteOrigin} ➔ ${top.bestRouteName}</strong> rotasında uçur.</div>
+                <div style="margin-top:6px; color:var(--text-muted); font-size:0.85rem;">
+                    Günlük <strong style="color:var(--success);">${Utils.formatCurrency(Math.round(top.totalDailyProfit))}</strong> kazanırsın.
+                    Bu uçak hem fiyatına göre verimli hem de bu rota filo büyüklüğünde optimal.
+                </div>
+            </div>`;
+
+        const planeCards = bestPlanes.map(p => `
             <div class="plane-item">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <strong>${p.name}</strong>
                     <span style="color:var(--primary); font-weight:800;">${Utils.formatPercent(p.efficiency)} Verim</span>
                 </div>
                 <div style="font-size:0.8rem; margin-top:5px; color:var(--text-muted);">
-                    Fiyat: ${Utils.formatCurrency(p.price)} | Günlük Kâr: ${Utils.formatCurrency(p.dailyProfit)}
+                    Fiyat: ${Utils.formatCurrency(p.price)} | Tek uçak günlük kâr: ${Utils.formatCurrency(Math.round(p.dailyProfit))}
+                </div>
+                <div style="font-size:0.88rem; margin-top:6px; color:var(--success); font-weight:700;">
+                    Önerilen: ${p.fleetSize} tane satın al → Toplam günlük kâr: ${Utils.formatCurrency(Math.round(p.totalDailyProfit))}
+                </div>
+                <div style="font-size:0.78rem; margin-top:4px; color:var(--text-muted);">
+                    Filo verimi: ${efficiencyLabels[p.fleetEfficiency]}
                 </div>
                 <small style="color:var(--success); font-weight:600; display:block; margin-top:5px;">
                     En Karlı Rota: ${p.bestRouteOrigin} ➔ ${p.bestRouteName}
                 </small>
             </div>
         `).join('');
+
+        resultDiv.innerHTML = summaryCard + planeCards;
     },
 
     /**
@@ -181,13 +210,16 @@ const UI = {
     renderRouteAnalysis: function(cat) {
         const selectId = cat === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
         const resultId = cat === 'pax' ? 'paxRouteResult' : 'cargoRouteResult';
+        const tripsInputId = cat === 'pax' ? 'paxRouteTripsInput' : 'cargoRouteTripsInput';
         const planeName = document.getElementById(selectId)?.value;
         const resultDiv = document.getElementById(resultId);
-        
+        const tripsInput = document.getElementById(tripsInputId);
+        const manualTrips = tripsInput?.value ? Number(tripsInput.value) : null;
+
         if (!planeName) return;
 
         resultDiv.innerHTML = `<div id="aiResultArea"></div><h3 style="margin: 20px 0 15px 0;">Kârlı Rota Seçenekleri</h3>`;
-        const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10);
+        const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, manualTrips);
         
         topRoutes.forEach((r, i) => {
             const card = document.createElement('div');

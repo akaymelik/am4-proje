@@ -141,19 +141,9 @@
 <script>
     window.addEventListener('load', () => {
         setTimeout(() => document.getElementById('splash-screen').classList.add('hidden'), 1200);
- 
         setTimeout(() => {
-            if (!window.Chat) return;
- 
-            // Önceki oturumun mesajlarını yükle (aynı sekme, sayfa yenilenmiş)
-            Chat.restoreMessages();
- 
-            // Geçmiş yoksa karşılama mesajı göster
-            const history = Chat.loadHistory();
-            if (history.length === 0) {
-                Chat.addMessage("Selam! Bugün filonu nasıl yönetelim?", "ai");
-            }
-        }, 1400);
+            if (window.Chat) window.Chat.addMessage("Selam! Bugün filonu nasıl yönetelim?", "ai");
+        }, 2000);
     });
 </script>
 

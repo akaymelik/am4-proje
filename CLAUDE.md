@@ -77,6 +77,18 @@ These game-specific constants are critical to all profit calculations:
 
 Game mode multiplier: **Easy = 1.1×**, **Realism = 1.0×** applied to all revenue.
 
+## Yasaklı Kaynaklar
+
+Aşağıdaki kaynaklara araştırma veya referans amacıyla **kesinlikle erişme**:
+
+- **am4tools.com** — virüs/zararlı yazılım riski nedeniyle yasaklı.
+
+Araştırma için kullanılacak onaylı kaynaklar:
+- tycoon.airlines4.app
+- Reddit r/airlinemanager
+- AM4 resmi Discord wiki
+- airlinemanager.com (resmi site)
+
 ## Key Conventions
 
 - No classes — all modules export plain objects with methods or functions into the global scope.

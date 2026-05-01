@@ -3,6 +3,9 @@
  * GÜNCELLEME: Uçak önerilerinde 'bestRouteOrigin' desteği eklendi.
  */
 
+const FUEL_PRICE = 950; // $/1000lbs, piyasa ortalaması
+const COST_INDEX = 200; // varsayılan CI
+
 const Logic = {
     calculateFlightTime: function(distance, speed) {
         if (!speed || speed <= 0) return 0;
@@ -10,7 +13,7 @@ const Logic = {
     },
 
     calculateMaintenanceCost: function(plane, airTime) {
-        return airTime * (plane.price * 0.00004);
+        return airTime * (plane.price * 0.00006) + (plane.price * 0.00001);
     },
 
     calculateProfit: function(plane, route, config = null, manualTrips = null) {
@@ -35,8 +38,11 @@ const Logic = {
             grossRevenue = (opt.y * prices.y) + (opt.j * prices.j) + (opt.f * prices.f);
         }
 
-        const fuelCost = route.distance * plane.fuel_consumption * 1.1;
-        const staffCost = plane.type === "cargo" ? plane.capacity * 0.01 : plane.capacity * 2.5;
+        const ceilDist = Math.ceil(route.distance / 2) * 2;
+        const fuelCost = ceilDist * FUEL_PRICE * (COST_INDEX / 500 + 0.6) * plane.fuel_consumption / 1000;
+        const staffCost = plane.type === "cargo"
+            ? (plane.capacity * 0.012 + 250) / trips
+            : (plane.capacity * 8 + 250) / trips;
         const maintenanceCost = this.calculateMaintenanceCost(plane, airTime);
         
         return {

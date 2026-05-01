@@ -65,17 +65,34 @@ This order is load-order-dependent — later scripts rely on globals defined by 
 
 ## AM4 Pricing Formulas
 
-These game-specific constants are critical to all profit calculations:
+Formulas sourced from `cathaypacific8747/am4` (formulae.md). Easy and Realism use **different formulas** — there is no shared multiplier.
 
-| Class | Price formula |
-|-------|--------------|
-| Economy (Y) | `0.4 × distance + 170` |
-| Business (J) | `0.8 × distance + 560` |
-| First (F) | `1.2 × distance + 1200` |
+### Passenger ticket prices (per mode)
+
+| Class | Easy mode | Realism mode |
+|-------|-----------|--------------|
+| Economy (Y) | `0.4 × distance + 170` | `0.3 × distance + 150` |
+| Business (J) | `0.8 × distance + 560` | `0.6 × distance + 500` |
+| First (F) | `1.2 × distance + 1200` | `0.9 × distance + 1000` |
+
+### Cargo prices (same for both modes — under investigation)
+
+| Class | Formula |
+|-------|---------|
 | Cargo Light (L) | `0.07 × distance + 50` |
 | Cargo Heavy (H) | `0.11 × distance + 150` |
 
-Game mode multiplier: **Easy = 1.1×**, **Realism = 1.0×** applied to all revenue.
+### Easy mode mechanics (implemented)
+
+- **4× aircraft speed** — `calculateFlightTime` applies `speed × 4` in Easy mode, resulting in ~2.7× more daily flights (turnaround time is fixed at 0.5h).
+- **Higher ticket prices** — distance coefficients and base values both differ (see table above).
+- The old `1.1× revenue multiplier` approach has been removed.
+
+## Sıradaki Yapılacaklar
+
+- [ ] **Talep paylaşımı modeli** — günlük toplam talebin sefer sayısına bölünmesi doğru mu? Talep her sefer bağımsız mı oluşuyor?
+- [ ] **Kullanıcı CI/fuel_price input'u** — COST_INDEX ve FUEL_PRICE şu an `logic.js`'de sabit; kullanıcıdan alınabilir hale getirilmeli.
+- [ ] **Kargo rota demand verisi** — `routes.js`'de kargo rotalarında `demand.c` alanı eksik; kargo analizi şu an çalışmıyor.
 
 ## Yasaklı Kaynaklar
 

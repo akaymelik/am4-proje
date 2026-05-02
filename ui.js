@@ -21,6 +21,132 @@ function levenshtein(a, b) {
     return matrix[b.length][a.length];
 }
 
+// Türkçe + diakritik normalize: "İstanbul" / "Istanbul" / "istanbul" hepsini "istanbul"e çevirir
+function normalizeText(s) {
+    return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/ı/g, 'i');
+}
+
+// Module load: routes.js'ten IATA whitelist ve şehir→IATA haritası kur
+// Her şehir için tam ad + iki-kelime + ilk kelime index'lenir → "London Heathrow intl" hem
+// "london", "london heathrow", "london heathrow intl" ile eşleşir. Match sırasında uzun-önce.
+const KNOWN_IATA = new Set();
+const cityToIata = new Map();
+(function initRouteIndex() {
+    if (typeof popularRoutes === 'undefined') return;
+    const re = /^(.+?)\s*\(([A-Z]{3})\)/;
+    popularRoutes.forEach(r => {
+        [r.origin, r.destination].forEach(loc => {
+            const m = loc.match(re);
+            if (!m) return;
+            const fullCity = normalizeText(m[1].trim());
+            const words = fullCity.split(/\s+/);
+            const iata = m[2];
+            KNOWN_IATA.add(iata);
+            // Tam ad
+            if (fullCity.length >= 3 && !cityToIata.has(fullCity)) cityToIata.set(fullCity, iata);
+            // İlk iki kelime (varsa) — örn. "london heathrow"
+            if (words.length >= 2) {
+                const twoWord = words.slice(0, 2).join(' ');
+                if (twoWord.length >= 6 && !cityToIata.has(twoWord)) cityToIata.set(twoWord, iata);
+            }
+            // Tek kelime (en genel) — örn. "london"
+            if (words[0] && words[0].length >= 4 && !cityToIata.has(words[0])) cityToIata.set(words[0], iata);
+        });
+    });
+})();
+
+// Mesajdan bağlam çıkar: bütçe, havalimanı, uçak tipi, sefer sayısı
+function extractContextFromMessage(text) {
+    const result = { budget: null, airports: [], planeType: null, manualTrips: null };
+    const lowerTr = text.toLocaleLowerCase('tr');
+
+    // BÜTÇE — suffix'li (kelime/letter sınırı + plane variant koruma)
+    // (?<![\w-]) negative lookbehind: "B737-100M" gibi uçak adı parçalarını engeller
+    const suffixRe = /(?<![\w-])(\d+(?:[.,]\d+)?)\s*(milyar|billion|milyon|m|k|bin)\b/i;
+    const suffixMatch = lowerTr.match(suffixRe);
+    if (suffixMatch) {
+        const num = parseFloat(suffixMatch[1].replace(',', '.'));
+        const unit = suffixMatch[2].toLowerCase();
+        const mult = (unit === 'milyar' || unit === 'billion') ? 1e9
+                   : (unit === 'milyon' || unit === 'm') ? 1e6
+                   : (unit === 'k' || unit === 'bin') ? 1e3 : 1;
+        result.budget = Math.round(num * mult);
+    } else {
+        // Grup ayraçlı sayı (en az 2 grup): 50.000.000 yakalar, 50.000 yakalamaz
+        const groupedMatch = text.match(/(?<![\w-])\d{1,3}(?:[.,]\d{3}){2,}\b/);
+        if (groupedMatch) result.budget = parseInt(groupedMatch[0].replace(/[.,]/g, ''), 10);
+    }
+
+    // HAVALIMANI — sadece ALL-CAPS 3-letter token (DEN/TAN/ILE gibi Türkçe kelimeler false positive üretmesin)
+    // Lowercase yazımlar şehir adı whitelist'i ile yakalanır
+    const seen = new Set();
+    const tokenRe = /\b[A-Z]{3}\b/g;
+    let tm;
+    while ((tm = tokenRe.exec(text)) !== null) {
+        const upper = tm[0];
+        if (KNOWN_IATA.has(upper) && !seen.has(upper)) {
+            seen.add(upper);
+            result.airports.push(upper);
+        }
+    }
+    // Şehir adı taraması — uzun key'den kısa'ya, en spesifik match önce
+    const lowerNorm = normalizeText(text);
+    const sortedCities = [...cityToIata.entries()].sort((a, b) => b[0].length - a[0].length);
+    for (const [city, iata] of sortedCities) {
+        if (lowerNorm.includes(city) && !seen.has(iata)) {
+            seen.add(iata);
+            result.airports.push(iata);
+        }
+    }
+
+    // TİP
+    if (/\b(kargo|cargo|freight)\b/i.test(text)) result.planeType = 'cargo';
+    else if (/\b(yolcu|passenger|pax)\b/i.test(text)) result.planeType = 'passenger';
+
+    // SEFER SAYISI
+    let tripsM = text.match(/g[üu]nde\s+(\d+)\s+sefer/i);
+    if (!tripsM) tripsM = text.match(/(\d+)\s*sefer\s*\/\s*g[üu]n/i);
+    if (!tripsM) tripsM = text.match(/(\d+)\s+sefer/i);
+    if (tripsM) result.manualTrips = parseInt(tripsM[1], 10);
+
+    return result;
+}
+
+// Bütçe ve tipe göre filtreli uçak listesi (kompakt pipe formatı)
+function getCandidatePlanes(budget, type) {
+    if (typeof aircraftData === 'undefined' || !budget) return '';
+    const filtered = [];
+    for (const name in aircraftData) {
+        const p = aircraftData[name];
+        if (p.price > budget) continue;
+        if (type && p.type !== type) continue;
+        filtered.push({ name, ...p });
+    }
+    filtered.sort((a, b) => a.price - b.price);
+    return filtered.slice(0, 30)
+        .map(p => `${p.name}|${p.type}|${p.capacity}|${p.cruise_speed}|${p.fuel_consumption}|${p.range}|${p.price}`)
+        .join('\n');
+}
+
+// Havalimanı listesine göre filtreli rota listesi (kompakt pipe formatı)
+function getRelevantRoutes(airports) {
+    if (typeof popularRoutes === 'undefined' || !airports || airports.length === 0) return '';
+    const set = new Set(airports);
+    const filtered = popularRoutes.filter(r => {
+        const oM = r.origin.match(/\(([A-Z]{3})\)/);
+        const dM = r.destination.match(/\(([A-Z]{3})\)/);
+        return (oM && set.has(oM[1])) || (dM && set.has(dM[1]));
+    });
+    filtered.sort((a, b) => {
+        const ad = (a.demand?.y || 0) + (a.demand?.j || 0) + (a.demand?.f || 0);
+        const bd = (b.demand?.y || 0) + (b.demand?.j || 0) + (b.demand?.f || 0);
+        return bd - ad;
+    });
+    return filtered.slice(0, 20)
+        .map(r => `${r.origin}|${r.destination}|${r.distance}|${r.demand?.y ?? ''}|${r.demand?.j ?? ''}|${r.demand?.f ?? ''}|${r.demand?.c ?? ''}`)
+        .join('\n');
+}
+
 const UI = {
     /**
      * Sayfa değiştirme ve navigasyon yönetimi.
@@ -436,6 +562,15 @@ const Chat = {
             }
         }
 
+        // Akıllı bağlam filtreleme: bütçe/havalimanı/tip/sefer tespiti + ilgili veri ekleme
+        const extracted = extractContextFromMessage(text);
+        const candidatePlanes = extracted.budget
+            ? getCandidatePlanes(extracted.budget, extracted.planeType)
+            : '';
+        const relevantRoutes = extracted.airports.length > 0
+            ? getRelevantRoutes(extracted.airports)
+            : '';
+
         // Kullanıcı mesajını ekrana bas
         this._appendMessage(text, 'user', false);
         input.value = '';
@@ -454,7 +589,10 @@ const Chat = {
                         gameMode: window.gameMode || 'realism',
                         fuelPrice: 950,
                         costIndex: 200,
-                        planes: mentionedPlanes
+                        planes: mentionedPlanes,
+                        candidatePlanes: candidatePlanes,
+                        relevantRoutes: relevantRoutes,
+                        extracted: extracted
                     }
                 })
             });

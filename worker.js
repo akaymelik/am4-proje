@@ -127,6 +127,12 @@ BÜTÇE SORULARI:
 - Kullanıcı bütçe verirse şunu söyle: "Bütçe odaklı detaylı liste için 'Yolcu Uçak Önerileri' bölümünü kullan, bütçeni gir, motor filo bazlı sıralanmış top 10'u gösterir. Sonra istediğin uçak için bana yorum sorabilirsin."
 - Genel community prensiplerini (ucuz+çok uçak, hız önceliği vb.) paylaşabilirsin.
 
+VERİ FORMATI (kompakt pipe formatı, tasarrufu için):
+- "ADAY UÇAKLAR" listesi geldiğinde: her satır pipe ile ayrılmış → name|type|capacity|cruise_speed|fuel_consumption|range|price
+- "İLGİLİ ROTALAR" listesi geldiğinde: her satır pipe ile ayrılmış → origin|destination|distance|y|j|f|c (c boş olabilir, kargo talep verisi yoksa)
+- Bu listeler kullanıcının senaryosuna göre filtreli gelir (bütçe altındaki uçaklar, mesajda geçen havalimanlarına ait rotalar). Hesap yaparken bu satırları kullan, başka uçak/rota uydurma.
+- Liste yoksa kullanıcı genel soru soruyor demektir, sen de community prensiplerinden cevap ver.
+
 VERİ KULLANIM KURALI (ÇOK ÖNEMLİ):
 - "BAHSEDİLEN UÇAKLARIN VERİSİ" bölümü varsa MUTLAKA o değerleri kullan, asla tahmin etme.
 - Hiçbir zaman "varsayılan olarak X alalım" veya "yaklaşık X" deme — veri verilmişse o veriyi kullan.
@@ -164,6 +170,14 @@ TAVIR:
         userContext.planes.forEach(p => {
           contextBlock += `\n- ${p.name}: tip=${p.type}, kapasite=${p.capacity}, hız=${p.cruise_speed} km/h, yakıt_tüketimi=${p.fuel_consumption} (mesafe başına tüketim katsayısı, saatlik DEĞİL), menzil=${p.range} km, fiyat=$${p.price.toLocaleString()}`;
         });
+      }
+
+      if (userContext.candidatePlanes && userContext.candidatePlanes.trim().length > 0) {
+        contextBlock += `\n\nADAY UÇAKLAR (kullanıcının bütçesine ve tipine göre filtreli, en ucuz 30, format: name|type|capacity|cruise_speed|fuel_consumption|range|price):\n${userContext.candidatePlanes}`;
+      }
+
+      if (userContext.relevantRoutes && userContext.relevantRoutes.trim().length > 0) {
+        contextBlock += `\n\nİLGİLİ ROTALAR (mesajda geçen havalimanlarına ait, talebe göre top 20, format: origin|destination|distance|y|j|f|c):\n${userContext.relevantRoutes}`;
       }
 
       const finalSystemInstruction = systemInstruction + contextBlock;

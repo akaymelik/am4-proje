@@ -546,7 +546,11 @@ const UI = {
         const resultArea = document.getElementById('aiResultArea');
         if (!resultArea) return;
 
-        resultArea.innerHTML = '<div id="aiLoader">🤖 MENOA Stratejileri Analiz Ediyor...</div>';
+        resultArea.innerHTML = `
+            <div id="aiLoader">
+                <span>🤖 MENOA Stratejileri Analiz Ediyor</span>
+                <div class="loader-dots"><span></span><span></span><span></span></div>
+            </div>`;
 
         // HEMEN scroll: loader gösterildiği anda tetikle, kullanıcı çalıştığını görsün.
         // Sticky navbar için 90px tampon. requestAnimationFrame: loader DOM'a yazıldıktan sonra

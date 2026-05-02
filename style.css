@@ -369,6 +369,35 @@ button:active {
     box-shadow: var(--shadow-sm);
 }
 
+/* --- AI LOADER + animated typing dots --- */
+@keyframes pulseDot {
+    0%, 60%, 100% { transform: scale(1); opacity: 0.5; }
+    30%          { transform: scale(1.4); opacity: 1; }
+}
+#aiLoader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px;
+    background: #eff6ff;
+    border-radius: 12px;
+    border-left: 4px solid var(--primary);
+    font-weight: 600;
+    color: var(--primary);
+    animation: fadeIn 0.3s ease-out;
+}
+.loader-dots { display: inline-flex; gap: 4px; margin-left: 8px; }
+.loader-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    animation: pulseDot 1.4s infinite;
+}
+.loader-dots span:nth-child(1) { animation-delay: 0s;   background: var(--primary); }
+.loader-dots span:nth-child(2) { animation-delay: 0.2s; background: var(--danger);  }
+.loader-dots span:nth-child(3) { animation-delay: 0.4s; background: var(--primary); }
+
 /* --- CHAT WIDGET --- */
 #ai-chat-widget {
     position: fixed;

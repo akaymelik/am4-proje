@@ -262,6 +262,31 @@ function getRelevantRoutes(airports) {
 
 const UI = {
     /**
+     * AI yanıtını sohbet history'sine kaydeder. Bütçe/rota AI butonlarından sonra çağrılır.
+     * - sessionStorage'a [user, model] turn ekler → sohbet açıldığında AI bağlamı görür
+     * - Sohbet AÇIKSA DOM'a da ekler (anlık görünür)
+     * - Sohbet KAPALIYSA sadece storage'a yazar (kullanıcı sonra açtığında okur)
+     */
+    _persistAiToChatHistory: function(userMessage, aiText) {
+        if (!userMessage || !aiText) return;
+        try {
+            const key = (window.Chat && Chat.STORAGE_KEY) || 'menoa_chat_history';
+            const history = JSON.parse(sessionStorage.getItem(key) || '[]');
+            history.push({ role: 'user', parts: [{ text: userMessage }] });
+            history.push({ role: 'model', parts: [{ text: aiText }] });
+            sessionStorage.setItem(key, JSON.stringify(history));
+
+            const chatWindow = document.getElementById('chat-window');
+            if (chatWindow && !chatWindow.classList.contains('chat-hidden') && window.Chat && Chat.addMessage) {
+                Chat.addMessage(userMessage, 'user');
+                Chat.addMessage(aiText, 'ai');
+            }
+        } catch (e) {
+            console.warn('[UI] Chat history kaydı başarısız:', e);
+        }
+    },
+
+    /**
      * Yakıt fiyatı + Cost Index input'larını okur, window globaline yazar, localStorage'a kaydeder.
      * logic.js getFuelPrice/getCostIndex'i bu globalleri okur — input değişince hesaplar anlık güncellenir.
      */
@@ -590,13 +615,15 @@ const UI = {
                 })
             });
             const data = await response.json();
-            
+            const userMessage = `${planeName} uçağı ile ${routeData.origin} → ${routeData.destination} rotası analizi`;
+            this._persistAiToChatHistory(userMessage, data.text);
+
             resultArea.innerHTML = `
                 <div class="ai-report-card">
                     <h4 style="color:var(--primary); margin-bottom:10px;">🤖 MENOA AI ANALİZİ</h4>
                     <div id="typingArea" style="font-size:0.9rem; line-height:1.6;"></div>
                 </div>`;
-            
+
             this.typeEffect(document.getElementById('typingArea'), data.text);
             // Scroll YOK — yukarıda loader render anında zaten doğru pozisyona scroll edildi
 
@@ -765,6 +792,8 @@ const UI = {
                 })
             });
             const data = await response.json();
+            this._persistAiToChatHistory(userMessage, data.text);
+
             resultArea.innerHTML = `
                 <div class="ai-report-card">
                     <h4 style="color:var(--primary); margin-bottom:10px;">🤖 MENOA AI STRATEJİK ANALİZ</h4>

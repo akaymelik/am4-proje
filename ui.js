@@ -162,6 +162,7 @@ function extractContextFromMessage(text) {
 }
 
 // Bütçe ve tipe göre filtreli uçak listesi (kompakt pipe formatı)
+// Sıralama: en kârlı rotadaki günlük kâr DESC — slot kısıtlıyken AI'a "slot başına max kâr" mantığı sunmak için
 function getCandidatePlanes(budget, type) {
     if (typeof aircraftData === 'undefined' || !budget) return '';
     const filtered = [];
@@ -169,11 +170,21 @@ function getCandidatePlanes(budget, type) {
         const p = aircraftData[name];
         if (p.price > budget) continue;
         if (type && p.type !== type) continue;
-        filtered.push({ name, ...p });
+
+        // Tek uçak için en kârlı rotadaki günlük kâr
+        let bestProfit = 0;
+        if (typeof Logic !== 'undefined') {
+            const topRoute = Logic.analyzeTopRoutesForPlane(name, 1);
+            if (topRoute.length > 0) bestProfit = topRoute[0].dailyProfit;
+        }
+
+        filtered.push({ name, ...p, dailyProfit: bestProfit });
     }
-    filtered.sort((a, b) => a.price - b.price);
+
+    filtered.sort((a, b) => b.dailyProfit - a.dailyProfit);
+
     return filtered.slice(0, 30)
-        .map(p => `${p.name}|${p.type}|${p.capacity}|${p.cruise_speed}|${p.fuel_consumption}|${p.range}|${p.price}`)
+        .map(p => `${p.name}|${p.type}|${p.capacity}|${p.cruise_speed}|${p.fuel_consumption}|${p.range}|${p.price}|${Math.round(p.dailyProfit)}`)
         .join('\n');
 }
 

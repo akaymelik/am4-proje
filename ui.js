@@ -63,8 +63,9 @@ function extractContextFromMessage(text) {
         'DEN', 'DAN', 'TEN', 'TAN',           // ablative (-den/-dan/-ten/-tan)
         'NIN', 'NUN', 'NÜN', 'NIN',           // genitive (-nin/-nun)
         'CAK', 'CEK',                          // future (-cak/-cek)
-        'YOR', 'BIZ', 'SIZ',                   // common Turkish 3-letter tokens
-        'ROP'                                  // reported false positive
+        'YOR', 'BIZ', 'SIZ'                    // common Turkish 3-letter tokens
+        // ROP kaldırıldı: kök neden cityToIata.get('rota') idi, whole-word match ile çözüldü.
+        // Kullanıcı kasten "ROP" yazarsa Rota Island'a erişsin.
     ]);
     const seen = new Set();
     // Apostrof'u boşluğa çevir, sonra uppercase'le, sonra 3-harf ALL-CAPS yakala
@@ -84,10 +85,19 @@ function extractContextFromMessage(text) {
         }
     }
     // Şehir adı taraması (1): uzun-önce, cityToIata (tek-IATA'lı tüm key'ler)
+    // WHOLE-WORD match (substring değil): "rota nedir?" → 'rota' (Rota Island, ROP) eşleşmesin.
+    // Türkçe eklere izin ver: "Roma'dan", "Roma'ya", "Roma." vb. tetiklensin.
     const lowerNorm = normalizeText(text);
+    const wordBoundaryMatch = (key) => {
+        // Escape regex metakarakterleri
+        const esc = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Sınır: başta string-başı veya boşluk, sonda string-sonu veya boşluk/noktalama/apostrof/Türkçe ek başlangıcı
+        const re = new RegExp(`(?:^|[\\s])${esc}(?:$|[\\s.,!?;:'‘’“”])`, 'i');
+        return re.test(lowerNorm);
+    };
     const sortedCities = [...cityToIata.entries()].sort((a, b) => b[0].length - a[0].length);
     for (const [city, iata] of sortedCities) {
-        if (lowerNorm.includes(city) && !seen.has(iata)) {
+        if (wordBoundaryMatch(city) && !seen.has(iata)) {
             seen.add(iata);
             result.airports.push(iata);
         }
@@ -96,7 +106,7 @@ function extractContextFromMessage(text) {
     // Şehir adı taraması (2): ambiguous tek-kelime → IATA'lardan biri zaten seen'daysa atla
     // (örn. "London Heathrow" zaten LHR'yi ekledi → "london" tek-kelime LGW'yi tetiklemesin)
     for (const [word, iatas] of ambiguousCities) {
-        if (!lowerNorm.includes(word)) continue;
+        if (!wordBoundaryMatch(word)) continue;
         if (iatas.some(i => seen.has(i))) continue;
         seen.add(iatas[0]);
         result.airports.push(iatas[0]);
@@ -332,6 +342,14 @@ const UI = {
         cityToIata.clear();
         ambiguousCities.clear();
 
+        // Türkçe yaygın 3-5 harfli kelimeler — havalimanı ismiyle çakışmasın
+        // (örn. Rota Island airport → "rota" key, "rota nedir?" mesajında FP)
+        const TURKISH_STOPWORDS = new Set([
+            'rota', 'ucak', 'kar', 'yer', 'fiyat', 'gun', 'yol', 'iste',
+            'gibi', 'olur', 'belki', 'ucuz', 'pahali', 'yeni', 'eski',
+            'iyi', 'kotu', 'tum', 'her', 'bazi', 'bircok', 'cesitli'
+        ]);
+
         const wordToIatas = new Map();
         const entries = [];
         for (const ap of window.dataLoader.airports) {
@@ -347,6 +365,7 @@ const UI = {
         }
 
         for (const { fullCity, words, iata } of entries) {
+            if (TURKISH_STOPWORDS.has(fullCity)) continue;
             if (fullCity.length >= 3 && !cityToIata.has(fullCity)) cityToIata.set(fullCity, iata);
             if (words.length >= 2) {
                 const twoWord = words.slice(0, 2).join(' ');
@@ -355,6 +374,7 @@ const UI = {
         }
 
         for (const [word, iataSet] of wordToIatas) {
+            if (TURKISH_STOPWORDS.has(word)) continue;  // 'rota' → ROP eklenmesin
             const iatas = [...iataSet];
             if (iatas.length === 1) {
                 if (!cityToIata.has(word)) cityToIata.set(word, iatas[0]);

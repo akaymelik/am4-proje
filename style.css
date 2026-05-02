@@ -338,6 +338,25 @@ button:active {
 .status-success { background: #ecfdf5; color: var(--success); border: 1px solid #d1fae5; }
 .status-danger { background: #fef2f2; color: var(--danger); border: 1px solid #fee2e2; }
 .status-neutral { background: var(--neutral-bg); color: var(--secondary); border: 1px solid var(--border); }
+.status-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+
+/* --- DATA STATUS BADGE (header) --- */
+.data-status {
+    display: flex; align-items: center; gap: 8px;
+    background: #eff6ff; color: #1e40af;
+    padding: 6px 12px; border-radius: 6px;
+    font-size: 0.8rem; font-weight: 600;
+    transition: opacity 0.5s, background 0.3s, color 0.3s;
+    max-width: 260px; margin-right: 8px;
+}
+.data-status.ready { background: #ecfdf5; color: var(--success); }
+.data-status.hidden { opacity: 0; pointer-events: none; }
+.data-status-icon { flex: 0 0 auto; }
+.data-status-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.data-status-progress {
+    flex: 0 0 60px; height: 4px; background: rgba(0,0,0,0.1); border-radius: 2px; overflow: hidden;
+}
+.data-status-bar { height: 100%; background: currentColor; width: 0%; transition: width 0.3s; }
 
 /* --- AI REPORT CARD --- */
 .ai-report-card {

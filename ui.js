@@ -461,13 +461,35 @@ const UI = {
      * Bütçeye göre en iyi uçakları ve tam rotalarını listeler.
      */
     renderSuggestions: function(cat) {
+        const resultDiv = document.getElementById(cat + 'PlaneResult');
+        // dataLoader hazır değilse: bekleme mesajı + auto-retry (2 dk timeout)
+        if (!window.dataLoader || !window.dataLoader.isReady()) {
+            if (resultDiv) {
+                resultDiv.innerHTML = `<div class="status-box status-info">
+                    <strong>📊 Rota verisi yükleniyor...</strong><br>
+                    İlk ziyaretinizde 47 MB veri indiriliyor (yavaş bağlantıda 1 dakika sürebilir).<br>
+                    Veri hazır olunca öneriler otomatik gösterilecek.
+                </div>`;
+            }
+            const startTime = Date.now();
+            const ci = setInterval(() => {
+                if (window.dataLoader && window.dataLoader.isReady()) {
+                    clearInterval(ci);
+                    this.renderSuggestions(cat);
+                } else if (Date.now() - startTime > 120000) {
+                    clearInterval(ci);
+                    if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Veri yüklenemedi (2 dakika geçti). Sayfayı yenileyin veya bağlantınızı kontrol edin.</div>';
+                }
+            }, 500);
+            return;
+        }
+
         const budgetInput = document.getElementById(cat + 'BudgetInput');
         const tripsInput = document.getElementById(cat + 'TripsInput');
         const slotsInput = document.getElementById(cat + 'SlotsInput');
         const budget = Number(budgetInput?.value);
         const manualTrips = tripsInput?.value ? Number(tripsInput.value) : null;
         const availableSlots = slotsInput?.value ? Number(slotsInput.value) : 3;
-        const resultDiv = document.getElementById(cat + 'PlaneResult');
         if (!budget || budget <= 0) {
             if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Lütfen geçerli bir bütçe giriniz.</div>';
             return;
@@ -532,6 +554,28 @@ const UI = {
         const hubInfoId = cat === 'pax' ? 'paxHubInfo' : 'cargoHubInfo';
         const planeName = document.getElementById(selectId)?.value;
         const resultDiv = document.getElementById(resultId);
+
+        // dataLoader hazır değilse: bekleme mesajı + auto-retry (2 dk timeout)
+        if (planeName && (!window.dataLoader || !window.dataLoader.isReady())) {
+            if (resultDiv) {
+                resultDiv.innerHTML = `<div class="status-box status-info">
+                    <strong>📊 Rota verisi yükleniyor...</strong><br>
+                    İlk ziyaretinizde 47 MB veri indiriliyor (yavaş bağlantıda 1 dakika sürebilir).<br>
+                    Veri hazır olunca analiz otomatik gösterilecek.
+                </div>`;
+            }
+            const startTime = Date.now();
+            const ci = setInterval(() => {
+                if (window.dataLoader && window.dataLoader.isReady()) {
+                    clearInterval(ci);
+                    this.renderRouteAnalysis(cat);
+                } else if (Date.now() - startTime > 120000) {
+                    clearInterval(ci);
+                    if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Veri yüklenemedi (2 dakika geçti). Sayfayı yenileyin.</div>';
+                }
+            }, 500);
+            return;
+        }
         const tripsInput = document.getElementById(tripsInputId);
         const manualTrips = tripsInput?.value ? Number(tripsInput.value) : null;
         const hubText = document.getElementById(hubInputId)?.value;

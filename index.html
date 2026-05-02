@@ -41,6 +41,11 @@
     </div>
     
     <div class="mode-selector">
+        <div id="dataStatus" class="data-status">
+            <span class="data-status-icon">📊</span>
+            <span class="data-status-text">Rota verisi yükleniyor...</span>
+            <div class="data-status-progress"><div class="data-status-bar"></div></div>
+        </div>
         <button id="btn-easy" class="mode-btn" onclick="UI.setGameMode('easy')">Easy</button>
         <button id="id-real" class="mode-btn active" onclick="UI.setGameMode('realism')">Realism</button>
     </div>
@@ -165,6 +170,20 @@
         setTimeout(() => {
             if (window.Chat) window.Chat.addMessage("Selam! Bugün filonu nasıl yönetelim?", "ai");
         }, 2000);
+
+        // dataLoader progress göstergesi (header)
+        if (window.dataLoader) {
+            const statusEl = document.getElementById('dataStatus');
+            window.dataLoader.onProgress = ({ pct, downloadedSize, totalSize }) => {
+                if (!statusEl) return;
+                const textEl = statusEl.querySelector('.data-status-text');
+                const barEl = statusEl.querySelector('.data-status-bar');
+                const mb = (downloadedSize / 1_000_000).toFixed(1);
+                const totalMB = (totalSize / 1_000_000).toFixed(0);
+                if (textEl) textEl.textContent = `Rota verisi: ${mb} / ${totalMB} MB`;
+                if (barEl) barEl.style.width = pct + '%';
+            };
+        }
     });
 </script>
 

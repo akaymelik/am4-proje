@@ -74,6 +74,22 @@
             this.ready = false;
             this.loading = null;        // Promise (yarıda çağırılırsa aynı promise)
             this.error = null;
+            this.onProgress = null;     // (info: {downloadedSize, totalSize, pct, currentFile}) => void
+        }
+
+        _reportProgress(downloadedSize, totalSize, currentFile) {
+            if (typeof this.onProgress === 'function') {
+                try {
+                    this.onProgress({
+                        downloadedSize,
+                        totalSize,
+                        pct: totalSize ? (downloadedSize / totalSize) * 100 : 0,
+                        currentFile
+                    });
+                } catch (e) {
+                    /* progress callback hatası loadInternal'i bozmasın */
+                }
+            }
         }
 
         // ---------- Bit-pack helpers ----------
@@ -214,41 +230,39 @@
                     this._parseAll(cached);
                     this.ready = true;
                     console.log(`[dataLoader] cache'ten yüklendi (${(performance.now() - t0).toFixed(0)} ms): ${this.airports.length} havalimanı`);
+                    this._reportProgress(1, 1, 'cache');
                     return;
                 }
             } catch (e) {
                 console.warn('[dataLoader] IndexedDB cache okunamadı, fetch yapılacak:', e);
             }
 
-            // 2. Network'ten paralel fetch
+            // 2. Network'ten sequential fetch (her dosya tamamlanınca progress raporu)
             console.log('[dataLoader] /data/ indiriliyor (~47 MB ilk yükleme)…');
-            const baseUrl = '/data/';
-            const fetchBuf = (path) => fetch(baseUrl + path).then(r => {
-                if (!r.ok) throw new Error(`${path} fetch ${r.status}`);
-                return r.arrayBuffer();
-            });
-            const [airportsJson, distBuf, d0, d1, d2, d3, d4, d5, overBuf] = await Promise.all([
-                fetch(baseUrl + 'airports.json').then(r => {
-                    if (!r.ok) throw new Error(`airports.json fetch ${r.status}`);
-                    return r.json();
-                }),
-                fetchBuf('distances.bin'),
-                fetchBuf('demands_0.bin'),
-                fetchBuf('demands_1.bin'),
-                fetchBuf('demands_2.bin'),
-                fetchBuf('demands_3.bin'),
-                fetchBuf('demands_4.bin'),
-                fetchBuf('demands_5.bin'),
-                fetchBuf('demands_overflow.bin')
-            ]);
+            const files = [
+                { key: 'airports',    name: 'airports.json',         size: 1_000_000,  isJson: true },
+                { key: 'distances',   name: 'distances.bin',         size: 15_300_000 },
+                { key: 'demands_0',   name: 'demands_0.bin',         size: 5_100_000 },
+                { key: 'demands_1',   name: 'demands_1.bin',         size: 5_100_000 },
+                { key: 'demands_2',   name: 'demands_2.bin',         size: 5_100_000 },
+                { key: 'demands_3',   name: 'demands_3.bin',         size: 5_100_000 },
+                { key: 'demands_4',   name: 'demands_4.bin',         size: 5_100_000 },
+                { key: 'demands_5',   name: 'demands_5.bin',         size: 5_100_000 },
+                { key: 'overflow',    name: 'demands_overflow.bin',  size: 1_000 }
+            ];
+            const totalSize = files.reduce((s, f) => s + f.size, 0);
+            let downloadedSize = 0;
+            this._reportProgress(0, totalSize, 'başlıyor');
 
-            const payload = {
-                airports: airportsJson,
-                distances: distBuf,
-                demands_0: d0, demands_1: d1, demands_2: d2,
-                demands_3: d3, demands_4: d4, demands_5: d5,
-                overflow: overBuf
-            };
+            const payload = {};
+            for (const f of files) {
+                const r = await fetch('/data/' + f.name);
+                if (!r.ok) throw new Error(`${f.name} fetch ${r.status}`);
+                payload[f.key] = f.isJson ? await r.json() : await r.arrayBuffer();
+                downloadedSize += f.size;
+                this._reportProgress(downloadedSize, totalSize, f.name);
+            }
+
             this._parseAll(payload);
             this.ready = true;
             console.log(`[dataLoader] fetch tamamlandı (${(performance.now() - t0).toFixed(0)} ms): ${this.airports.length} havalimanı`);
@@ -332,6 +346,18 @@
             if (window.UI && window.UI.populateAirportList) {
                 window.UI.populateAirportList();
                 console.log('[dataLoader] Hub index + autocomplete dolduruldu (3907 havalimanı)');
+            }
+            // Header status badge: ready transition + 3sn sonra fade-out
+            const statusEl = document.getElementById('dataStatus');
+            if (statusEl) {
+                statusEl.classList.add('ready');
+                const textEl = statusEl.querySelector('.data-status-text');
+                const iconEl = statusEl.querySelector('.data-status-icon');
+                const barEl = statusEl.querySelector('.data-status-bar');
+                if (iconEl) iconEl.textContent = '✓';
+                if (textEl) textEl.textContent = '3907 havalimanı hazır';
+                if (barEl) barEl.style.width = '100%';
+                setTimeout(() => statusEl.classList.add('hidden'), 3000);
             }
         });
     });

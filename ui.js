@@ -259,6 +259,52 @@ const UI = {
     },
 
     /**
+     * Hub autocomplete datalist'ini routes.js'teki tüm havalimanlarıyla doldurur (tek datalist iki input için).
+     */
+    populateAirportList: function() {
+        const datalist = document.getElementById('airportList');
+        if (!datalist || typeof popularRoutes === 'undefined') return;
+        const airports = new Set();
+        popularRoutes.forEach(r => {
+            airports.add(r.origin);
+            airports.add(r.destination);
+        });
+        const sorted = [...airports].sort();
+        datalist.innerHTML = sorted.map(a => `<option value="${a}">`).join('');
+    },
+
+    /**
+     * Hub input'unu IATA koduna çözer. Sırası: datalist tam string → IATA upper → şehir adı → uzun-içeren → ambiguous.
+     */
+    resolveHub: function(input) {
+        if (!input || !input.trim()) return null;
+        const trimmed = input.trim();
+
+        // 0. Datalist tam string match: "London Heathrow intl (LHR), United Kingdom" → LHR
+        const datalistMatch = trimmed.match(/\(([A-Z]{3})\)/);
+        if (datalistMatch && KNOWN_IATA.has(datalistMatch[1])) return datalistMatch[1];
+
+        // 1. ALL-CAPS 3-letter direkt IATA
+        const upper = trimmed.toUpperCase();
+        if (/^[A-Z]{3}$/.test(upper) && KNOWN_IATA.has(upper)) return upper;
+
+        // 2. Şehir adı (normalize)
+        const norm = normalizeText(trimmed);
+        if (cityToIata.has(norm)) return cityToIata.get(norm);
+
+        // 3. İçinde geçen (uzun-önce, en spesifik kazansın)
+        const sorted = [...cityToIata.entries()].sort((a, b) => b[0].length - a[0].length);
+        for (const [city, iata] of sorted) {
+            if (norm.includes(city)) return iata;
+        }
+
+        // 4. Ambiguous şehir (örn. "london" → [LGW, LHR], ilkini al)
+        if (ambiguousCities.has(norm)) return ambiguousCities.get(norm)[0];
+
+        return null;
+    },
+
+    /**
      * Uçak seçim kutularını verilerle doldurur.
      */
     fillSelects: function() {
@@ -429,16 +475,39 @@ const UI = {
         const selectId = cat === 'pax' ? 'paxRouteSelect' : 'cargoRouteSelect';
         const resultId = cat === 'pax' ? 'paxRouteResult' : 'cargoRouteResult';
         const tripsInputId = cat === 'pax' ? 'paxRouteTripsInput' : 'cargoRouteTripsInput';
+        const hubInputId = cat === 'pax' ? 'paxHubInput' : 'cargoHubInput';
+        const hubInfoId = cat === 'pax' ? 'paxHubInfo' : 'cargoHubInfo';
         const planeName = document.getElementById(selectId)?.value;
         const resultDiv = document.getElementById(resultId);
         const tripsInput = document.getElementById(tripsInputId);
         const manualTrips = tripsInput?.value ? Number(tripsInput.value) : null;
+        const hubText = document.getElementById(hubInputId)?.value;
+        const hubIata = this.resolveHub(hubText);
+        const hubInfoDiv = document.getElementById(hubInfoId);
 
         if (!planeName) return;
 
+        if (hubText && hubText.trim()) {
+            if (hubIata) {
+                if (hubInfoDiv) hubInfoDiv.innerHTML = `✅ Hub: <strong>${hubIata}</strong> — sadece bu havalimanından kalkan rotalar gösteriliyor`;
+            } else {
+                if (hubInfoDiv) hubInfoDiv.innerHTML = `⚠️ "${hubText}" veritabanında yok — tüm rotalar gösteriliyor`;
+            }
+        } else {
+            if (hubInfoDiv) hubInfoDiv.innerHTML = '';
+        }
+
         resultDiv.innerHTML = `<div id="aiResultArea"></div><h3 style="margin: 20px 0 15px 0;">Kârlı Rota Seçenekleri</h3>`;
-        const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, manualTrips);
-        
+        const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, manualTrips, hubIata);
+
+        if (topRoutes.length === 0) {
+            const msg = hubIata
+                ? `${hubIata} hub'ından bu uçakla uçulabilecek rota bulunamadı (mesafe veya talep uyumsuz olabilir).`
+                : `Bu uçak için kârlı rota bulunamadı.`;
+            resultDiv.innerHTML += `<div class="status-box status-neutral">${msg}</div>`;
+            return;
+        }
+
         topRoutes.forEach((r, i) => {
             const card = document.createElement('div');
             card.className = 'route-card';

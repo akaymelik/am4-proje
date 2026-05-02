@@ -53,12 +53,16 @@ const Logic = {
         };
     },
 
-    analyzeTopRoutesForPlane: function(planeName, limit = 10, manualTrips = null) {
+    analyzeTopRoutesForPlane: function(planeName, limit = 10, manualTrips = null, hubIata = null) {
         const plane = aircraftData[planeName];
         if (!plane) return [];
         let results = [];
 
         popularRoutes.forEach(route => {
+            if (hubIata) {
+                const originMatch = route.origin.match(/\(([A-Z]{3})\)/);
+                if (!originMatch || originMatch[1] !== hubIata) return;
+            }
             if (plane.type === "cargo" && !route.demand.c) return;
 
             if (route.distance <= plane.range) {

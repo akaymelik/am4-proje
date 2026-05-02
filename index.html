@@ -70,6 +70,9 @@
     <!-- Yolcu Rota Analizi -->
     <div id="pax-route" class="page">
         <h2>Yolcu: Rota & Koltuk Analizi</h2>
+        <label>Hub (Kalkış Havalimanı) — opsiyonel:</label>
+        <input type="text" id="paxHubInput" list="airportList" placeholder="Yazmaya başlayın... (örn: London, Paris, LHR)" autocomplete="off">
+        <div id="paxHubInfo" style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;"></div>
         <label>Uçak Seçiniz:</label>
         <select id="paxRouteSelect" onchange="Configurator.updateCapacityCheck()"></select>
         
@@ -104,6 +107,9 @@
     <!-- Kargo Rota Analizi -->
     <div id="cargo-route" class="page">
         <h2>Kargo: Rota & Yük Analizi</h2>
+        <label>Hub (Kalkış Havalimanı) — opsiyonel:</label>
+        <input type="text" id="cargoHubInput" list="airportList" placeholder="Yazmaya başlayın... (örn: London, Paris, LHR)" autocomplete="off">
+        <div id="cargoHubInfo" style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;"></div>
         <label>Uçak Seçiniz:</label>
         <select id="cargoRouteSelect" onchange="Configurator.updateCapacityCheck()"></select>
         
@@ -150,8 +156,11 @@
 <script src="logic.js"></script>
 <script src="ui.js"></script>
 
+<datalist id="airportList"></datalist>
+
 <script>
     window.addEventListener('load', () => {
+        if (window.UI && UI.populateAirportList) UI.populateAirportList();
         setTimeout(() => document.getElementById('splash-screen').classList.add('hidden'), 1200);
         setTimeout(() => {
             if (window.Chat) window.Chat.addMessage("Selam! Bugün filonu nasıl yönetelim?", "ai");

@@ -116,13 +116,24 @@ Formulas sourced from `cathaypacific8747/am4` (formulae.md). Easy and Realism us
 - [x] **A-Check vs uçak satma mantığı** — system prompt'ta: A-check %0.5-2 vs satış kaybı %20-40 karşılaştırması
 - [x] **AI gereksiz veri sorma yasağı** — context'teki bilgileri tekrar sormama, yazım düzeltmesi bildirimi
 
+### Tamamlanan (v0.6-ai-context-aware)
+
+- [x] **Akıllı bağlam filtreleme** — `extractContextFromMessage` ile bütçe/havalimanı/tip/sefer/slot tespiti; `getCandidatePlanes` ve `getRelevantRoutes` filtreli pipe formatında context'e ekleniyor.
+- [x] **Slot kısıtı doğru uygulanıyor** — `MIN(slot, bütçe/fiyat, 30)` formülü; AI 3 slot için 3 uçak öneriyor, slot tam dolmuyorsa A/B (verim odaklı vs doluluk odaklı) seçenek sunuluyor; ucuz-çok prensibi sadece bol slot (>10) durumunda geçerli.
+- [x] **candidatePlanes günlük kâra göre sıralı** — eski `price ASC` yerine `daily_profit DESC`; her uçak için `Logic.analyzeTopRoutesForPlane(name, 1)` çağrılıyor, listenin başında slot başına en kârlı uçaklar.
+- [x] **Konu değişimi tespiti (conversation-aware)** — AI history'i okuyor, "sade sayı = önceki sorunun cevabı", "tamamen farklı soru = yeni konu, eski context'i ignore et", sınır vakası → kullanıcıya tek cümle sor.
+- [x] **History fallback** — `findInHistory(history, type)` son user mesajlarını sondan başa tarayıp eksik bütçe/slot/airports/planeType bilgilerini bulur, context'e effective değer olarak gider.
+- [x] **AI slot bilgisi yoksa varsayım yapmaz** — `availableSlots: null` ise AKTIF KULLANICI BAĞLAMI'nda "BİLİNMİYOR — kullanıcıya sor" yazılır, AI tek cümle slot soru sorar.
+- [x] **Realism varsayımları** — `DAILY_AVAILABLE_HOURS = 18` (kullanıcı uyku/iş için), default 3 boş slot, AI prompt aynı kuralı paylaşıyor.
+- [x] **Türkçe şehir alias'ları** — Londra/Pekin/Şangay/Atina/Viyana/Kahire/Amsterdam (yalnızca routes.js'te IATA varsa), ambiguous şehir çakışması çözüldü (Heathrow zaten LHR ekledi → "london" tek-kelime LGW'yi tetiklemez).
+- [x] **AI cevap kalitesi** — pipe ham veri yapıştırma yasağı, 60-180 kelime sınırları, gereksiz tekrar yasağı, format şablonları.
+
 ### Açık Görevler
 
-- [ ] **Akıllı bağlam filtreleme** — kullanıcı "bütçe" yazınca uçak listesi, "şehir/IATA" yazınca rota listesi context'e eklensin (`planes.js` ve `routes.js` client tarafında, AI bunlara erişemiyor).
 - [ ] **AI internet bağlantısı** — kullanıcı bilmediği konu sorduğunda "araştırabilirim ama doğruluğundan emin olamam" desin, onay verirse Google Search tool aktif olsun.
 - [ ] **Kullanıcı CI/fuel_price input'u** — `COST_INDEX` ve `FUEL_PRICE` şu an `logic.js`'de sabit; anasayfaya 2 input eklenmeli.
 - [ ] **Kargo rota demand verisi** — `routes.js`'de kargo rotalarında `demand.c` alanı eksik; kargo analizi şu an çalışmıyor.
-- [ ] **Chat'e "Geçmişi Temizle" butonu** — sessionStorage'taki `am4ChatHistory` anahtarını sıfırlasın.
+- [ ] **Chat'e "Geçmişi Temizle" butonu** — sessionStorage'taki `menoa_chat_history` anahtarını sıfırlasın.
 - [~] **Talep paylaşımı modeli** — kısmen tamamlandı: filo büyüklüğüne göre verim katsayısı (0.4×–1.0×) eklendi. Açık soru: günlük toplam talebin sefer sayısına bölünmesi doğru mu? Talep her sefer bağımsız mı oluşuyor?
 
 ## Yasaklı Kaynaklar

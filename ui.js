@@ -285,7 +285,7 @@ const UI = {
             'londra': 'LHR', 'paris': 'CDG', 'roma': 'FCO', 'pekin': 'PEK',
             'sangay': 'PVG', 'tokyo': 'NRT', 'moskova': 'SVO', 'atina': 'ATH',
             'amsterdam': 'AMS', 'berlin': 'BER', 'viyana': 'VIE', 'kahire': 'CAI',
-            'istanbul': 'IST', 'ankara': 'ESB', 'izmir': 'ADB', 'antalya': 'AYT'
+            'istanbul': 'ISL', 'ankara': 'ESB', 'izmir': 'ADB', 'antalya': 'AYT'  // ISL = İstanbul Atatürk (parquet 2018 baz, IST yok)
         };
         for (const alias in TURKISH_ALIASES) {
             const iata = TURKISH_ALIASES[alias];
@@ -314,11 +314,18 @@ const UI = {
             if (dl && dl.iataToId.has(iata)) return iata;
         }
 
-        // 1. ALL-CAPS 3-letter direkt IATA (KNOWN + dataLoader)
+        // 1. ALL-CAPS 3-letter direkt IATA (KNOWN + dataLoader + alias resolver)
         const upper = trimmed.toUpperCase();
         if (/^[A-Z]{3}$/.test(upper)) {
             if (KNOWN_IATA.has(upper)) return upper;
-            if (dl && dl.iataToId.has(upper)) return upper;
+            if (dl) {
+                if (dl.iataToId.has(upper)) return upper;
+                // Eski/yeni IATA alias (IST→ISL, TXL→BER, SXF→BER)
+                if (dl.resolveIata) {
+                    const aliased = dl.resolveIata(upper);
+                    if (aliased) return aliased;
+                }
+            }
         }
 
         // 2. routes.js cityToIata — popüler 156 şehir alias'ı (Londra/Pekin/...)

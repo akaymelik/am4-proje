@@ -20,6 +20,14 @@
     const CHUNK_SIZE = 1_271_728;
     const NUM_CHUNKS = 6;
 
+    // Eski/yeni IATA mapping — abc8747/am4 parquet'i 2018 baz alındığı için yeni havalimanları yok
+    // resolveIata(input) → input direkt varsa input, yoksa alias'a düşer
+    const IATA_ALIASES = {
+        'IST': 'ISL',  // İstanbul Havalimanı 2019'da açıldı, parquet'te eski Atatürk (ISL) var
+        'TXL': 'BER',  // Berlin Tegel 2020'de kapandı, BER (Brandenburg) açıldı
+        'SXF': 'BER',  // Berlin Schönefeld 2020'de BER altında konsolide
+    };
+
     const DB_NAME = 'menoa_data_cache';
     const DB_VERSION = 1;
     const STORE = 'files';
@@ -84,25 +92,42 @@
         }
 
         // ---------- Public API ----------
+        // IATA çözümleyici: doğrudan varsa input, yoksa IATA_ALIASES'tan eşdeğer (örn IST→ISL).
+        // Bilinmeyen IATA için null döner. Bu sayede getAirport/getDistance/getDemand
+        // veride olmayan yeni IATA'larda (IST, TXL...) eski koda fallback yapar.
+        resolveIata(iata) {
+            if (!iata) return null;
+            const upper = String(iata).toUpperCase();
+            if (this.iataToId.has(upper)) return upper;
+            const aliased = IATA_ALIASES[upper];
+            if (aliased && this.iataToId.has(aliased)) return aliased;
+            return null;
+        }
+
         getAirport(iata) {
             if (!this.ready) return null;
-            const id = this.iataToId.get(iata);
-            return id === undefined ? null : this.airports[id];
+            const resolved = this.resolveIata(iata);
+            if (!resolved) return null;
+            return this.airports[this.iataToId.get(resolved)];
         }
 
         getDistance(iata1, iata2) {
             if (!this.ready) return null;
-            const i = this.iataToId.get(iata1);
-            const j = this.iataToId.get(iata2);
-            if (i === undefined || j === undefined || i === j) return null;
+            const r1 = this.resolveIata(iata1);
+            const r2 = this.resolveIata(iata2);
+            if (!r1 || !r2 || r1 === r2) return null;
+            const i = this.iataToId.get(r1);
+            const j = this.iataToId.get(r2);
             return this.distances[this.triIndex(i, j)];
         }
 
         getDemand(iata1, iata2) {
             if (!this.ready) return null;
-            const i = this.iataToId.get(iata1);
-            const j = this.iataToId.get(iata2);
-            if (i === undefined || j === undefined || i === j) return null;
+            const r1 = this.resolveIata(iata1);
+            const r2 = this.resolveIata(iata2);
+            if (!r1 || !r2 || r1 === r2) return null;
+            const i = this.iataToId.get(r1);
+            const j = this.iataToId.get(r2);
             const idx = this.triIndex(i, j);
             const chunkId = Math.floor(idx / this.CHUNK_SIZE);
             const localIdx = idx - chunkId * this.CHUNK_SIZE;
@@ -132,7 +157,7 @@
             if (!this.ready) return [];
             if (!this._topHubsCached) {
                 const POPULAR_IATA = [
-                    'LHR','JFK','CDG','FRA','AMS','IST','DXB','HND','SIN','HKG',
+                    'LHR','JFK','CDG','FRA','AMS','ISL','DXB','HND','SIN','HKG',
                     'SYD','LAX','ORD','PEK','PVG','ICN','BKK','NRT','DEL','BOM',
                     'GRU','EZE','YYZ','ATL','MIA','MAD','BCN','MUC','ZRH','VIE',
                     'CGK','KUL','MNL','DOH','AUH','RUH','JNB','CAI','TLV','HEL',

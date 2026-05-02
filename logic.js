@@ -95,7 +95,8 @@ const Logic = {
             // F=3, J=2, Y=1 kapasite birimi (Configurator capacity kontrolü ile aynı)
             totalLoad = opt.y + (opt.j * 2) + (opt.f * 3);
         }
-        if (totalLoad / plane.capacity < 0.3) return;
+        const fillRatio = totalLoad / plane.capacity;
+        if (fillRatio < 0.3) return;
 
         const calc = this.calculateProfit(plane, route, null, manualTrips);
         if (calc.profitPerFlight <= 0 || !calc.appliedTrips) return;

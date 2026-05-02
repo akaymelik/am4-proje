@@ -93,6 +93,7 @@ const Logic = {
                         name: name,
                         efficiency: topRes[0].efficiency,
                         dailyProfit: topRes[0].dailyProfit,
+                        dailyTrips: topRes[0].dailyTrips,
                         totalDailyProfit: totalDailyProfit,
                         fleetSize: fleetSize,
                         fleetEfficiency: fleetEfficiency,

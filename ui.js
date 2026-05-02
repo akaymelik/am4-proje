@@ -400,7 +400,7 @@ const UI = {
                     <span style="color:var(--primary); font-weight:800;">${Utils.formatPercent(p.efficiency)} Verim</span>
                 </div>
                 <div style="font-size:0.8rem; margin-top:5px; color:var(--text-muted);">
-                    Fiyat: ${Utils.formatCurrency(p.price)} | Tek uçak günlük kâr: ${Utils.formatCurrency(Math.round(p.dailyProfit))}
+                    Fiyat: ${Utils.formatCurrency(p.price)} | Günde ${p.dailyTrips} sefer | Tek uçak günlük kâr: ${Utils.formatCurrency(Math.round(p.dailyProfit))}
                 </div>
                 <div style="font-size:0.88rem; margin-top:6px; color:var(--success); font-weight:700;">
                     Önerilen: ${p.fleetSize} tane satın al → Toplam günlük kâr: ${Utils.formatCurrency(Math.round(p.totalDailyProfit))}

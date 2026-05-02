@@ -26,69 +26,14 @@ function normalizeText(s) {
     return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/ı/g, 'i');
 }
 
-// Module load: routes.js'ten IATA whitelist ve iki seviyeli şehir haritası
+// IATA whitelist ve iki seviyeli şehir haritası.
+// Eskiden routes.js IIFE ile dolduruluyordu (156 popüler), şimdi dataLoader.airports (3907)'den
+// UI.rebuildIndex() metoduyla doldurulur. dataLoader hazır olana kadar boş kalır.
 // - cityToIata: tam ad + iki-kelime + tek-IATA'lı tek-kelime + Türkçe alias (single-IATA)
-// - ambiguousCities: tek-kelime → çoklu IATA (örn. "london" → [LHR, LGW])
-// Match: uzun-önce cityToIata, sonra ambiguous (zaten owner'ı seen'daysa atla)
+// - ambiguousCities: tek-kelime → çoklu IATA (örn. "london" → [LHR, LGW, LCY])
 const KNOWN_IATA = new Set();
 const cityToIata = new Map();
 const ambiguousCities = new Map();
-(function initRouteIndex() {
-    if (typeof popularRoutes === 'undefined') return;
-    const re = /^(.+?)\s*\(([A-Z]{3})\)/;
-    const entries = [];
-    const wordToIatas = new Map();
-
-    popularRoutes.forEach(r => {
-        [r.origin, r.destination].forEach(loc => {
-            const m = loc.match(re);
-            if (!m) return;
-            const fullCity = normalizeText(m[1].trim());
-            const words = fullCity.split(/\s+/);
-            const iata = m[2];
-            KNOWN_IATA.add(iata);
-            entries.push({ fullCity, words, iata });
-            const w0 = words[0];
-            if (w0 && w0.length >= 4) {
-                if (!wordToIatas.has(w0)) wordToIatas.set(w0, new Set());
-                wordToIatas.get(w0).add(iata);
-            }
-        });
-    });
-
-    // Tam ad ve iki-kelime — daima cityToIata (spesifik, çakışma riski düşük)
-    entries.forEach(({ fullCity, words, iata }) => {
-        if (fullCity.length >= 3 && !cityToIata.has(fullCity)) cityToIata.set(fullCity, iata);
-        if (words.length >= 2) {
-            const twoWord = words.slice(0, 2).join(' ');
-            if (twoWord.length >= 6 && !cityToIata.has(twoWord)) cityToIata.set(twoWord, iata);
-        }
-    });
-
-    // Tek kelime — tek IATA'sı varsa cityToIata, çoklu IATA'sı varsa ambiguousCities
-    wordToIatas.forEach((iataSet, word) => {
-        const iatas = [...iataSet];
-        if (iatas.length === 1) {
-            if (!cityToIata.has(word)) cityToIata.set(word, iatas[0]);
-        } else {
-            ambiguousCities.set(word, iatas);
-        }
-    });
-
-    // Türkçe şehir alias'ları (sadece IATA whitelist'te varsa eklenir, ambiguous'u override eder)
-    const TURKISH_ALIASES = {
-        'londra': 'LHR', 'paris': 'CDG', 'roma': 'FCO', 'pekin': 'PEK',
-        'sangay': 'PVG', 'tokyo': 'NRT', 'moskova': 'SVO', 'atina': 'ATH',
-        'amsterdam': 'AMS', 'berlin': 'TXL', 'viyana': 'VIE', 'kahire': 'CAI'
-    };
-    for (const alias in TURKISH_ALIASES) {
-        const iata = TURKISH_ALIASES[alias];
-        if (KNOWN_IATA.has(iata)) {
-            cityToIata.set(alias, iata);
-            ambiguousCities.delete(alias);
-        }
-    }
-})();
 
 // Mesajdan bağlam çıkar: bütçe, havalimanı, uçak tipi, sefer sayısı
 function extractContextFromMessage(text) {
@@ -188,22 +133,37 @@ function getCandidatePlanes(budget, type) {
         .join('\n');
 }
 
-// Havalimanı listesine göre filtreli rota listesi (kompakt pipe formatı)
+// Havalimanı listesine göre filtreli rota listesi (kompakt pipe formatı, AI context için)
+// Her airport için: o havalimanından çıkan top 20 rota (talep+demand bazlı)
 function getRelevantRoutes(airports) {
-    if (typeof popularRoutes === 'undefined' || !airports || airports.length === 0) return '';
+    if (!airports || airports.length === 0) return '';
+    const dl = window.dataLoader;
+    if (!dl || !dl.isReady()) return '';
+
     const set = new Set(airports);
-    const filtered = popularRoutes.filter(r => {
-        const oM = r.origin.match(/\(([A-Z]{3})\)/);
-        const dM = r.destination.match(/\(([A-Z]{3})\)/);
-        return (oM && set.has(oM[1])) || (dM && set.has(dM[1]));
-    });
-    filtered.sort((a, b) => {
-        const ad = (a.demand?.y || 0) + (a.demand?.j || 0) + (a.demand?.f || 0);
-        const bd = (b.demand?.y || 0) + (b.demand?.j || 0) + (b.demand?.f || 0);
-        return bd - ad;
-    });
-    return filtered.slice(0, 20)
-        .map(r => `${r.origin}|${r.destination}|${r.distance}|${r.demand?.y ?? ''}|${r.demand?.j ?? ''}|${r.demand?.f ?? ''}|${r.demand?.c ?? ''}`)
+    const candidates = [];
+    for (const iata of set) {
+        const hub = dl.getAirport(iata);
+        if (!hub) continue;
+        for (const dest of dl.airports) {
+            if (dest.iata === iata) continue;
+            const dist = dl.getDistance(iata, dest.iata);
+            if (dist == null || dist === 0) continue;
+            const demand = dl.getDemand(iata, dest.iata);
+            if (!demand) continue;
+            const total = demand.y + demand.j + demand.f;
+            candidates.push({
+                origin: `${hub.name} (${hub.iata}), ${hub.country}`,
+                destination: `${dest.name} (${dest.iata}), ${dest.country}`,
+                distance: dist,
+                demand,
+                total
+            });
+        }
+    }
+    candidates.sort((a, b) => b.total - a.total);
+    return candidates.slice(0, 20)
+        .map(r => `${r.origin}|${r.destination}|${r.distance}|${r.demand.y}|${r.demand.j}|${r.demand.f}|${r.demand.l}`)
         .join('\n');
 }
 
@@ -259,34 +219,81 @@ const UI = {
     },
 
     /**
-     * Hub autocomplete datalist'i. Öncelik: dataLoader (3907 havalimanı). Fallback: routes.js (157).
-     * dataLoader hazır olmadan çağrılırsa fallback'e düşer; load() resolve olduktan sonra tekrar çağrılınca tüm 3907'ye yükselir.
+     * Hub autocomplete datalist'i — dataLoader.airports (3907 havalimanı) ile dolar.
+     * dataLoader hazır olmadan çağrılırsa boş kalır; load().then() tekrar çağırır.
      */
     populateAirportList: function() {
         const datalist = document.getElementById('airportList');
         if (!datalist) return;
-
-        // Öncelikli kaynak: dataLoader (3907 havalimanı, IST/SAW/ESB/AYT dahil)
-        if (window.dataLoader && window.dataLoader.isReady()) {
-            const fragment = document.createDocumentFragment();
-            for (const a of window.dataLoader.airports) {
-                const opt = document.createElement('option');
-                opt.value = `${a.name} (${a.iata}), ${a.country}`;
-                fragment.appendChild(opt);
-            }
+        if (!window.dataLoader || !window.dataLoader.isReady()) {
             datalist.innerHTML = '';
-            datalist.appendChild(fragment);
             return;
         }
+        const fragment = document.createDocumentFragment();
+        for (const a of window.dataLoader.airports) {
+            const opt = document.createElement('option');
+            opt.value = `${a.name} (${a.iata}), ${a.country}`;
+            fragment.appendChild(opt);
+        }
+        datalist.innerHTML = '';
+        datalist.appendChild(fragment);
+    },
 
-        // Fallback: routes.js'in popularRoutes'u (dataLoader yüklenene kadar 157 havalimanı)
-        if (typeof popularRoutes === 'undefined') return;
-        const airports = new Set();
-        popularRoutes.forEach(r => {
-            airports.add(r.origin);
-            airports.add(r.destination);
-        });
-        datalist.innerHTML = [...airports].sort().map(a => `<option value="${a}">`).join('');
+    /**
+     * KNOWN_IATA + cityToIata + ambiguousCities haritalarını dataLoader.airports'tan inşa eder.
+     * dataLoader.load().then() içinde çağrılır. resolveHub bu haritaları kullanır.
+     */
+    rebuildIndex: function() {
+        if (!window.dataLoader || !window.dataLoader.isReady()) return;
+        KNOWN_IATA.clear();
+        cityToIata.clear();
+        ambiguousCities.clear();
+
+        const wordToIatas = new Map();
+        const entries = [];
+        for (const ap of window.dataLoader.airports) {
+            KNOWN_IATA.add(ap.iata);
+            const fullCity = normalizeText(ap.name);
+            const words = fullCity.split(/\s+/);
+            entries.push({ fullCity, words, iata: ap.iata });
+            const w0 = words[0];
+            if (w0 && w0.length >= 4) {
+                if (!wordToIatas.has(w0)) wordToIatas.set(w0, new Set());
+                wordToIatas.get(w0).add(ap.iata);
+            }
+        }
+
+        for (const { fullCity, words, iata } of entries) {
+            if (fullCity.length >= 3 && !cityToIata.has(fullCity)) cityToIata.set(fullCity, iata);
+            if (words.length >= 2) {
+                const twoWord = words.slice(0, 2).join(' ');
+                if (twoWord.length >= 6 && !cityToIata.has(twoWord)) cityToIata.set(twoWord, iata);
+            }
+        }
+
+        for (const [word, iataSet] of wordToIatas) {
+            const iatas = [...iataSet];
+            if (iatas.length === 1) {
+                if (!cityToIata.has(word)) cityToIata.set(word, iatas[0]);
+            } else {
+                ambiguousCities.set(word, iatas);
+            }
+        }
+
+        // Türkçe alias'lar (sadece IATA whitelist'te varsa, ambiguous'u override eder)
+        const TURKISH_ALIASES = {
+            'londra': 'LHR', 'paris': 'CDG', 'roma': 'FCO', 'pekin': 'PEK',
+            'sangay': 'PVG', 'tokyo': 'NRT', 'moskova': 'SVO', 'atina': 'ATH',
+            'amsterdam': 'AMS', 'berlin': 'BER', 'viyana': 'VIE', 'kahire': 'CAI',
+            'istanbul': 'IST', 'ankara': 'ESB', 'izmir': 'ADB', 'antalya': 'AYT'
+        };
+        for (const alias in TURKISH_ALIASES) {
+            const iata = TURKISH_ALIASES[alias];
+            if (KNOWN_IATA.has(iata)) {
+                cityToIata.set(alias, iata);
+                ambiguousCities.delete(alias);
+            }
+        }
     },
 
     /**
@@ -537,10 +544,8 @@ const UI = {
         }
 
         resultDiv.innerHTML = `<div id="aiResultArea"></div><h3 style="margin: 20px 0 15px 0;">Kârlı Rota Seçenekleri</h3>`;
-        // Hub seçilmişse tam dataset (3906 hedef) üstünden tara, yoksa routes.js'in 156 rotası
-        const topRoutes = hubIata
-            ? Logic.analyzeTopRoutesForPlaneFromHub(planeName, hubIata, 10, manualTrips)
-            : Logic.analyzeTopRoutesForPlane(planeName, 10, manualTrips);
+        // analyzeTopRoutesForPlane unified: hubIata varsa o hub'tan, yoksa global (top 30 hub) tarama
+        const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, manualTrips, hubIata);
 
         if (topRoutes.length === 0) {
             const msg = hubIata

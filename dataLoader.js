@@ -126,6 +126,18 @@
             return result;
         }
 
+        // Top hub'ları airport.market değerine göre döner (cached, lazy).
+        // Global rota analizinde "popüler havalimanlarından tara" mantığı için.
+        getTopHubs(limit = 30) {
+            if (!this.ready) return [];
+            if (!this._topHubsSorted) {
+                this._topHubsSorted = this.airports
+                    .map((a, i) => ({ pos: i, market: a.market, iata: a.iata }))
+                    .sort((a, b) => b.market - a.market);
+            }
+            return this._topHubsSorted.slice(0, limit);
+        }
+
         searchAirports(query, limit = 10) {
             if (!this.ready || !query) return [];
             const q = query.toLowerCase();
@@ -278,10 +290,12 @@
             console.log('[dataLoader] LHR→JFK distance:', dl.getDistance('LHR', 'JFK'), 'km');
             console.log('[dataLoader] LHR→JFK demand:', dl.getDemand('LHR', 'JFK'));
             console.log('[dataLoader] BZE→PTP demand (referans, beklenen y=2414/j=274/f=153):', dl.getDemand('BZE', 'PTP'));
-            // Hub autocomplete'ı 3907 havalimanına yükselt (ilk render fallback ile 157'de kalmıştı)
+            // routes.js deprecated — KNOWN_IATA/cityToIata/ambiguousCities şimdi dataLoader'dan inşa edilir
+            if (window.UI && window.UI.rebuildIndex) window.UI.rebuildIndex();
+            // Hub autocomplete'ı 3907 havalimanına doldur
             if (window.UI && window.UI.populateAirportList) {
                 window.UI.populateAirportList();
-                console.log('[dataLoader] Hub autocomplete 3907 havalimanına genişletildi');
+                console.log('[dataLoader] Hub index + autocomplete dolduruldu (3907 havalimanı)');
             }
         });
     });

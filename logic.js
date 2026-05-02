@@ -56,79 +56,68 @@ const Logic = {
     },
 
     /**
-     * Hub bazlı tüm 3906 destinasyonu tarayan analiz (dataLoader üzerinden).
-     * dataLoader hazır değilse legacy analyzeTopRoutesForPlane'e (routes.js + hub filter) düşer.
+     * Tek bir (hub, dest) çiftini calculateProfit'e geçirip results'a kârlıysa ekler.
+     * analyzeTopRoutesForPlane'in iç döngüsü için yardımcı — code dup azaltır.
      */
-    analyzeTopRoutesForPlaneFromHub: function(planeName, hubIata, limit = 10, manualTrips = null) {
-        const plane = aircraftData[planeName];
-        if (!plane) return [];
+    _evalRoute: function(plane, hub, dest, manualTrips, results) {
+        const dl = window.dataLoader;
+        const dist = dl.getDistance(hub.iata, dest.iata);
+        if (dist == null || dist === 0 || dist > plane.range) return;
+        const demand = dl.getDemand(hub.iata, dest.iata);
+        if (!demand) return;
+        if (plane.type === 'cargo' && !demand.l && !demand.h) return;
 
-        const dl = (typeof window !== 'undefined') ? window.dataLoader : null;
-        if (!dl || !dl.isReady()) {
-            // Fallback: routes.js'in 156 rotasından hub filter
-            return this.analyzeTopRoutesForPlane(planeName, limit, manualTrips, hubIata);
-        }
+        const route = {
+            origin: `${hub.name} (${hub.iata}), ${hub.country}`,
+            destination: `${dest.name} (${dest.iata}), ${dest.country}`,
+            distance: dist,
+            demand: { y: demand.y, j: demand.j, f: demand.f, l: demand.l, h: demand.h }
+        };
 
-        const hubAirport = dl.getAirport(hubIata);
-        if (!hubAirport) return [];
-
-        const results = [];
-        for (const dest of dl.airports) {
-            if (dest.iata === hubIata) continue;
-            const dist = dl.getDistance(hubIata, dest.iata);
-            if (dist == null || dist === 0 || dist > plane.range) continue;
-            const demand = dl.getDemand(hubIata, dest.iata);
-            if (!demand) continue;
-            if (plane.type === 'cargo' && !demand.l && !demand.h) continue;
-
-            const route = {
-                origin: `${hubAirport.name} (${hubAirport.iata}), ${hubAirport.country}`,
-                destination: `${dest.name} (${dest.iata}), ${dest.country}`,
-                distance: dist,
-                demand: { y: demand.y, j: demand.j, f: demand.f, l: demand.l, h: demand.h }
-            };
-
-            const calc = this.calculateProfit(plane, route, null, manualTrips);
-            if (calc.profitPerFlight <= 0 || !calc.appliedTrips) continue;
-            const dailyProfit = calc.profitPerFlight * calc.appliedTrips;
-            results.push({
-                ...route,
-                dailyProfit,
-                dailyTrips: calc.appliedTrips,
-                duration: calc.duration,
-                efficiency: (dailyProfit / plane.price) * 100
-            });
-        }
-
-        return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
+        const calc = this.calculateProfit(plane, route, null, manualTrips);
+        if (calc.profitPerFlight <= 0 || !calc.appliedTrips) return;
+        const dailyProfit = calc.profitPerFlight * calc.appliedTrips;
+        results.push({
+            ...route,
+            dailyProfit,
+            dailyTrips: calc.appliedTrips,
+            duration: calc.duration,
+            efficiency: (dailyProfit / plane.price) * 100
+        });
     },
 
+    /**
+     * Unified rota analizi — tek kaynak: dataLoader.
+     *  - hubIata varsa: o hub'tan tüm 3906 destinasyona scan
+     *  - hubIata yoksa: top 30 hub (market değerine göre) × tüm destinasyonlar
+     * dataLoader hazır değilse boş döner (eski popularRoutes fallback'i kaldırıldı).
+     */
     analyzeTopRoutesForPlane: function(planeName, limit = 10, manualTrips = null, hubIata = null) {
         const plane = aircraftData[planeName];
         if (!plane) return [];
-        let results = [];
+        const dl = window.dataLoader;
+        if (!dl || !dl.isReady()) return [];
 
-        popularRoutes.forEach(route => {
-            if (hubIata) {
-                const originMatch = route.origin.match(/\(([A-Z]{3})\)/);
-                if (!originMatch || originMatch[1] !== hubIata) return;
+        const results = [];
+
+        if (hubIata) {
+            const hub = dl.getAirport(hubIata);
+            if (!hub) return [];
+            for (const dest of dl.airports) {
+                if (dest.iata === hubIata) continue;
+                this._evalRoute(plane, hub, dest, manualTrips, results);
             }
-            if (plane.type === "cargo" && !route.demand.c && !route.demand.l && !route.demand.h) return;
-
-            if (route.distance <= plane.range) {
-                const calc = this.calculateProfit(plane, route, null, manualTrips);
-                if (calc.profitPerFlight > 0 && calc.appliedTrips > 0) {
-                    const dailyProfit = calc.profitPerFlight * calc.appliedTrips;
-                    results.push({
-                        ...route,
-                        dailyProfit: dailyProfit,
-                        dailyTrips: calc.appliedTrips,
-                        duration: calc.duration,
-                        efficiency: (dailyProfit / plane.price) * 100
-                    });
+        } else {
+            const topHubs = dl.getTopHubs(30);
+            for (const hubInfo of topHubs) {
+                const hub = dl.airports[hubInfo.pos];
+                for (const dest of dl.airports) {
+                    if (dest.iata === hub.iata) continue;
+                    this._evalRoute(plane, hub, dest, manualTrips, results);
                 }
             }
-        });
+        }
+
         return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
     },
 

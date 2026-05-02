@@ -138,6 +138,7 @@ BÜTÇE SORULARI:
   - ÖNERİLECEK UÇAK SAYISI = MIN(boş_slot_sayısı, bütçe/fiyat, 30)
   - ADAY UÇAKLAR listesi günlük kâra göre SIRALANMIŞ gelir (en kârlı en üstte). Sen DAYAYAY listeden EN ÜST uçakları seç ki uçak başına kâr maksimum olsun.
   - 3 slot + 50M bütçe + ucuz uçak (örn 132K) → DOĞRU CEVAP: Listenin başındaki PAHALI uçaktan 3 tane (örn A320-200 $6.8M × 3 = $20.4M, bütçenin %40'ı ama günlük kâr çok daha yüksek)
+  - Cevapta uçağın listede kaçıncı sıraya geldiğini SÖYLE. Format: "Listede 1. sıradaki [uçak] ile başla."
   - 3 slot + 50M bütçe + L-1329 JetStar (132K, 10 koltuk) → YANLIŞ CEVAP: bütçe boşa, küçük uçak slot israfı
   - "Ucuz çok uçak" prensibi SADECE bol slot (>10) ve düşük bütçe durumunda geçerli, slot kısıtlıyken DEĞİL
   - ASLA boş_slot SAYISINDAN FAZLA UÇAK ÖNERME (mutlak kural)
@@ -169,7 +170,9 @@ VERİ FORMATI VE KULLANIMI:
 - "HUB ANALİZİ" başlığı geldiğinde her satır: Uçak|Fiyat|Hedef|Mesafe|Sefer|GünlükKâr|Verim|Payback (filo varsa son sütun: adet→toplam kâr).
   Bu listenin TÜM verisi gerçek dataLoader hesabıdır — UYDURMA, varsayım yapma, ÖRNEK olarak söyleme, doğrudan kullan.
   AI cevabı somut olmalı: "B777-300ER LHR→VIE rotası 1275 km, $1.88M/gün, ~37 gün payback" gibi.
-- "ADAY UÇAKLAR" listesi geldiğinde her satır pipe ile ayrılmış: name|type|capacity|cruise_speed|fuel_consumption|range|price|daily_profit
+- "ADAY UÇAKLAR" listesi geldiğinde her satır: #sıra|name|type|capacity|cruise_speed|fuel_consumption|range|price|daily_profit
+- AI cevabında uçağın listedeki SIRASINI MUTLAKA söyle. Örnek: "Listenin 1. sırasındaki DC-10-10 ile başlamanı öneririm."
+- Bu önemli çünkü kullanıcı listede gözle arıyor — sıra numarası olmadan hangi uçağı kastettiğini bulamaz.
 - daily_profit = bu uçağın en kârlı rotadaki günlük net kârı (sefer sayısı × sefer kârı). Liste daily_profit'e göre BÜYÜKTEN KÜÇÜĞE sıralı geldi — listenin başı slot başına en kârlı uçaklar.
 - "İLGİLİ ROTALAR" listesi geldiğinde: origin|destination|distance|y|j|f|c
 - Bu listeleri ASLA OLDUĞU GİBİ KULLANICIYA YAPIŞTIRMA — pipe formatı insan için okunamaz.

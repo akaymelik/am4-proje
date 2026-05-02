@@ -688,14 +688,16 @@ const UI = {
             </div>
         `).join('');
 
+        // AI butonu LİSTENİN ÜSTÜNDE — kullanıcı 1200px scroll etmek zorunda kalmasın
         const aiSection = `
-            <div class="budget-ai-section">
+            <div class="budget-ai-section budget-ai-section-top">
                 <button class="ai-budget-btn" onclick="UI.askGeminiForBudget('${cat}')">
                     🤖 AI ile Stratejik Yorum Al
                 </button>
                 <div id="${cat}AiResult"></div>
-            </div>`;
-        resultDiv.innerHTML = slotBanner + planeCards + aiSection;
+            </div>
+            <h3 style="margin: 24px 0 16px 0; font-size: 1.1rem;">${bestPlanes.length} uçak bulundu (verim sırasına göre):</h3>`;
+        resultDiv.innerHTML = slotBanner + aiSection + planeCards;
     },
 
     /**
@@ -736,10 +738,10 @@ const UI = {
             window.scrollTo({ top: targetY, behavior: 'smooth' });
         });
 
-        // Top 10 listeyi worker.js'in beklediği pipe formata çevir
-        const candidatesText = bestPlanes.map(p => {
+        // Top 10 listeyi worker.js'in beklediği pipe formata çevir — sıra numarası AI'a "1. sıradaki" demesine olanak verir
+        const candidatesText = bestPlanes.map((p, i) => {
             const plane = aircraftData[p.name];
-            return `${p.name}|${plane.type}|${plane.capacity}|${plane.cruise_speed}|${plane.fuel_consumption}|${plane.range}|${plane.price}|${Math.round(p.dailyProfit)}`;
+            return `#${i+1}|${p.name}|${plane.type}|${plane.capacity}|${plane.cruise_speed}|${plane.fuel_consumption}|${plane.range}|${plane.price}|${Math.round(p.dailyProfit)}`;
         }).join('\n');
 
         const userMessage = `Bütçem $${budget.toLocaleString('en-US')}, ${slots} boş slot, ${planeType === 'passenger' ? 'yolcu' : 'kargo'} uçağı arıyorum. Sayfa hesabı bana ADAY UÇAKLAR listesini verdi (top 10, daily_profit'e göre sıralı). Hangi uçaklardan kaç adet alayım, neden? Stratejik analiz yap.`;

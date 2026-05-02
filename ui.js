@@ -397,7 +397,12 @@ const UI = {
             <div class="plane-item">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <strong>${p.name}</strong>
-                    <span style="color:var(--primary); font-weight:800;">${Utils.formatPercent(p.efficiency)} Verim</span>
+                    <span style="color:var(--primary); font-weight:800;">
+                        ${Utils.formatPercent(p.efficiency)} Verim
+                        <span style="font-weight:400; font-size:0.78rem; color:var(--text-muted);">
+                            (~${Math.ceil(100 / p.efficiency)} gün payback)
+                        </span>
+                    </span>
                 </div>
                 <div style="font-size:0.8rem; margin-top:5px; color:var(--text-muted);">
                     Fiyat: ${Utils.formatCurrency(p.price)} | Günde ${p.dailyTrips} sefer | Tek uçak günlük kâr: ${Utils.formatCurrency(Math.round(p.dailyProfit))}
@@ -451,7 +456,7 @@ const UI = {
                     </div>
                     <div class="route-stats">
                         <div class="profit-val">${Utils.formatCurrency(r.dailyProfit)}/G</div>
-                        <div class="efficiency-tag">Yatırım Verimi: ${Utils.formatPercent(r.efficiency)}</div>
+                        <div class="efficiency-tag">Yatırım Verimi: ${Utils.formatPercent(r.efficiency)} (~${Math.ceil(100 / r.efficiency)} gün payback)</div>
                     </div>
                 </div>
                 <div class="suggestion-bar">

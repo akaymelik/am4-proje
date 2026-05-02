@@ -122,6 +122,12 @@ STRATEJİK İPUÇLARI:
 - Wear %30'da alliance contribution düşer, %50'de tamamen sıfırlanır
 - Cost Index düşürmek yakıt maliyetini azaltır ama uçuş süresi uzar ve sefer sayısı düşer
 - 8 saatlik rotalar günde 3 sefer, 12 saatlik rotalar günde 2 sefer için idealdir (gap bırakmaz)
+- Verim metriği: efficiency = (günlük_kâr / uçak_fiyatı) × 100
+  - %12 verim → günlük kâr fiyatın %12'si → ~8 gün payback (uçak parasını çıkarma süresi)
+  - <10 gün payback: mükemmel yatırım
+  - 10-20 gün: iyi yatırım
+  - 20+ gün: uzun vadeli, dikkatli değerlendir
+- Topluluk genelde "payback period" diliyle konuşur (gün cinsinden), site "% verim" gösterir — ikisi aynı bilgi.
 
 BÜTÇE SORULARI:
 - ADAY UÇAKLAR listesi context'te varsa: kullanıcının bütçesi için filtreli uçak listesi gelmiş demektir, KULLAN.

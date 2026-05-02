@@ -76,6 +76,27 @@ const Logic = {
             demand: { y: demand.y, j: demand.j, f: demand.f, l: demand.l, h: demand.h }
         };
 
+        // DOLULUK FİLTRESİ: %30 altında kapasite kullanımı = boş uçuş, anlamsız.
+        // Kısa rotalarda (FRA→WIE 17km) çok sefer yapılır ama her sefer az talep paylaşır → uçak %10 dolu uçar.
+        // Configurator çağrıları aşağıdaki calculateProfit ile duplicate ama doluluk eşiği erken eleme yapar
+        // (boş rotalarda calculateProfit hiç koşmaz) → genel performans nötr/pozitif.
+        const airTime = this.calculateFlightTime(dist, plane.cruise_speed);
+        const cycleTime = airTime + 0.5;
+        const maxTrips = Math.floor(DAILY_AVAILABLE_HOURS / cycleTime);
+        const trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
+        if (trips <= 0) return;
+
+        let totalLoad;
+        if (plane.type === 'cargo') {
+            const opt = Configurator.calculateOptimalCargo(plane, route, trips);
+            totalLoad = opt.l + opt.h;
+        } else {
+            const opt = Configurator.calculateOptimalSeats(plane, route, trips);
+            // F=3, J=2, Y=1 kapasite birimi (Configurator capacity kontrolü ile aynı)
+            totalLoad = opt.y + (opt.j * 2) + (opt.f * 3);
+        }
+        if (totalLoad / plane.capacity < 0.3) return;
+
         const calc = this.calculateProfit(plane, route, null, manualTrips);
         if (calc.profitPerFlight <= 0 || !calc.appliedTrips) return;
         const dailyProfit = calc.profitPerFlight * calc.appliedTrips;

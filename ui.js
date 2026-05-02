@@ -360,12 +360,16 @@ const Chat = {
         const text = input?.value.trim();
         if (!text) return;
 
-        // Mesajda geçen uçakları tespit et
+        // Mesajda geçen uçakları tespit et (yazım toleranslı)
         const mentionedPlanes = [];
+        const textNormalized = text.toLowerCase().replace(/[\s\-_]/g, '');
+
         if (typeof aircraftData !== 'undefined') {
             for (let name in aircraftData) {
-                const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                if (new RegExp(`\\b${escaped}\\b`, 'i').test(text)) {
+                const nameNormalized = name.toLowerCase().replace(/[\s\-_]/g, '');
+
+                // Tam eşleşme
+                if (textNormalized.includes(nameNormalized)) {
                     const p = aircraftData[name];
                     mentionedPlanes.push({
                         name: name,
@@ -376,6 +380,36 @@ const Chat = {
                         range: p.range,
                         price: p.price
                     });
+                    continue;
+                }
+
+                // 1 karakter fark toleransı (örn: B373 vs B737) — sadece kısa isimler için
+                if (nameNormalized.length <= 8) {
+                    for (let i = 0; i <= textNormalized.length - nameNormalized.length; i++) {
+                        const candidate = textNormalized.substr(i, nameNormalized.length);
+                        let diff = 0;
+                        for (let j = 0; j < nameNormalized.length; j++) {
+                            if (candidate[j] !== nameNormalized[j]) diff++;
+                            if (diff > 1) break;
+                        }
+                        if (diff === 1) {
+                            const p = aircraftData[name];
+                            if (!mentionedPlanes.find(mp => mp.name === name || mp.name === name + ' (yazım düzeltildi)')) {
+                                mentionedPlanes.push({
+                                    name: name + ' (yazım düzeltildi)',
+                                    type: p.type,
+                                    capacity: p.capacity,
+                                    cruise_speed: p.cruise_speed,
+                                    fuel_consumption: p.fuel_consumption,
+                                    range: p.range,
+                                    price: p.price,
+                                    typoCorrection: true,
+                                    originalQuery: candidate
+                                });
+                            }
+                            break;
+                        }
+                    }
                 }
             }
         }

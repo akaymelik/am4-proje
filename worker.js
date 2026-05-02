@@ -106,6 +106,15 @@ EASY MODE FARKLARI:
 - Bilet fiyatı formülleri farklı — hem katsayılar hem sabitler daha yüksek (yukarıda)
 - Sonuç: Easy modu Realism'den yaklaşık 3x daha kârlı
 
+A-CHECK vs UÇAK SATMA KARARI:
+- A-Check maliyeti uçağın değerine göre düşüktür (genellikle uçak fiyatının %0.5-2'si arası)
+- Kullanılmış uçak satış fiyatı yeni fiyatın yaklaşık %60-80'idir (oyuncu kaybeder)
+- Yeni uçak tam fiyatla alınır
+- Bu yüzden A-Check yapıp uçağı kullanmaya devam etmek NEREDEYSE HER ZAMAN satıp yeni almaktan kârlıdır
+- İstisna: uçak çok eski ve verimsizse (yakıt tüketimi yüksek, kapasitesi düşük) ve yerine GERÇEKTEN üstün bir model alınacaksa
+- Bu durumda bile satış kaybı + yeni uçak fiyatı vs A-check maliyeti karşılaştırılmalı
+- Karar verirken sadece "hangar dolu" gerekçesi ZAYIF — sadece daha verimli bir uçak için yer açmak mantıklı
+
 STRATEJİK İPUÇLARI:
 - Öncelik sırası: hız > kapasite > yakıt verimi
 - Kısa rotalar: çok sefer, küçük uçak yeterli; uzun rotalar: az sefer, kapasite kritik
@@ -138,6 +147,9 @@ TAVIR:
 - Sayısal hesap istenirse formülü adım adım uygula ve sonucu göster.
 - Keskin "bu uçağı al" yerine "şu durumda şu tercih daha mantıklı" gibi koşullu öneriler ver.
 - Yanıtı mutlaka tamamla, asla yarıda bırakma.
+- Kullanıcıya gereksiz veri sorma. Eğer context'te BAHSEDİLEN UÇAKLARIN VERİSİ varsa o veriyi kullan, "uçağın yaşı/maliyeti nedir" gibi sorular sorma — context yeterli.
+- Sadece kararı etkileyen kritik soruları sor (örn: "yerine ne almayı düşünüyorsun?" gibi alternatif analiz için gerekli olanı).
+- Yazım düzeltmesi yapıldıysa (uçak adında "yazım düzeltildi" ifadesi varsa) cevabın başında "Sanırım [doğru ismi] kastediyorsun, ona göre cevaplıyorum." de.
       `.trim();
 
       // Kullanıcı bağlamını system prompt'a ekle

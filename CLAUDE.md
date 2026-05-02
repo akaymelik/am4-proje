@@ -105,9 +105,20 @@ Formulas sourced from `cathaypacific8747/am4` (formulae.md). Easy and Realism us
 
 ## Sıradaki Yapılacaklar
 
-- [~] **Talep paylaşımı modeli** — kısmen tamamlandı: filo büyüklüğüne göre verim katsayısı (0.4×–1.0×) eklendi. Açık soru: günlük toplam talebin sefer sayısına bölünmesi doğru mu? Talep her sefer bağımsız mı oluşuyor?
-- [ ] **Kullanıcı CI/fuel_price input'u** — COST_INDEX ve FUEL_PRICE şu an `logic.js`'de sabit; kullanıcıdan alınabilir hale getirilmeli.
+### Tamamlanan (v0.5-ai-mature)
+
+- [x] **Yazım toleransı** — Levenshtein distance, transposition algılama, eşik 2 (token + bigram kandidatları, letter/digit pattern kontrolü)
+- [x] **A-Check vs uçak satma mantığı** — system prompt'ta: A-check %0.5-2 vs satış kaybı %20-40 karşılaştırması
+- [x] **AI gereksiz veri sorma yasağı** — context'teki bilgileri tekrar sormama, yazım düzeltmesi bildirimi
+
+### Açık Görevler
+
+- [ ] **Akıllı bağlam filtreleme** — kullanıcı "bütçe" yazınca uçak listesi, "şehir/IATA" yazınca rota listesi context'e eklensin (`planes.js` ve `routes.js` client tarafında, AI bunlara erişemiyor).
+- [ ] **AI internet bağlantısı** — kullanıcı bilmediği konu sorduğunda "araştırabilirim ama doğruluğundan emin olamam" desin, onay verirse Google Search tool aktif olsun.
+- [ ] **Kullanıcı CI/fuel_price input'u** — `COST_INDEX` ve `FUEL_PRICE` şu an `logic.js`'de sabit; anasayfaya 2 input eklenmeli.
 - [ ] **Kargo rota demand verisi** — `routes.js`'de kargo rotalarında `demand.c` alanı eksik; kargo analizi şu an çalışmıyor.
+- [ ] **Chat'e "Geçmişi Temizle" butonu** — sessionStorage'taki `am4ChatHistory` anahtarını sıfırlasın.
+- [~] **Talep paylaşımı modeli** — kısmen tamamlandı: filo büyüklüğüne göre verim katsayısı (0.4×–1.0×) eklendi. Açık soru: günlük toplam talebin sefer sayısına bölünmesi doğru mu? Talep her sefer bağımsız mı oluşuyor?
 
 ## Yasaklı Kaynaklar
 

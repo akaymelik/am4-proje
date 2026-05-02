@@ -27,9 +27,11 @@ export default {
       }
 
       const modelsToTry = [
-        "gemini-2.5-flash",       // Ana model: günlük 250 istek, hızlı
-        "gemini-2.5-flash-lite",  // Yedek: günlük 1000 istek, daha hafif
-        "gemini-2.5-pro",         // Son çare: günlük 100 istek, en zeki
+        "gemini-3-flash-preview",        // Ana model: Aralık 2025, 3x hızlı, PhD-level reasoning, ücretsiz tier
+        "gemini-3.1-flash-lite-preview", // Yedek: Mart 2026, çok hızlı + ucuz, ücretsiz tier
+        "gemini-2.5-flash",              // Stable fallback: günlük 250 istek
+        "gemini-2.5-flash-lite",         // Stable yedek: günlük 1000 istek, daha hafif
+        "gemini-2.5-pro",                // Son çare: günlük 100 istek, en zeki
       ];
 
       const systemInstruction = `

@@ -26,14 +26,19 @@ function normalizeText(s) {
     return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/ı/g, 'i');
 }
 
-// Module load: routes.js'ten IATA whitelist ve şehir→IATA haritası kur
-// Her şehir için tam ad + iki-kelime + ilk kelime index'lenir → "London Heathrow intl" hem
-// "london", "london heathrow", "london heathrow intl" ile eşleşir. Match sırasında uzun-önce.
+// Module load: routes.js'ten IATA whitelist ve iki seviyeli şehir haritası
+// - cityToIata: tam ad + iki-kelime + tek-IATA'lı tek-kelime + Türkçe alias (single-IATA)
+// - ambiguousCities: tek-kelime → çoklu IATA (örn. "london" → [LHR, LGW])
+// Match: uzun-önce cityToIata, sonra ambiguous (zaten owner'ı seen'daysa atla)
 const KNOWN_IATA = new Set();
 const cityToIata = new Map();
+const ambiguousCities = new Map();
 (function initRouteIndex() {
     if (typeof popularRoutes === 'undefined') return;
     const re = /^(.+?)\s*\(([A-Z]{3})\)/;
+    const entries = [];
+    const wordToIatas = new Map();
+
     popularRoutes.forEach(r => {
         [r.origin, r.destination].forEach(loc => {
             const m = loc.match(re);
@@ -42,17 +47,47 @@ const cityToIata = new Map();
             const words = fullCity.split(/\s+/);
             const iata = m[2];
             KNOWN_IATA.add(iata);
-            // Tam ad
-            if (fullCity.length >= 3 && !cityToIata.has(fullCity)) cityToIata.set(fullCity, iata);
-            // İlk iki kelime (varsa) — örn. "london heathrow"
-            if (words.length >= 2) {
-                const twoWord = words.slice(0, 2).join(' ');
-                if (twoWord.length >= 6 && !cityToIata.has(twoWord)) cityToIata.set(twoWord, iata);
+            entries.push({ fullCity, words, iata });
+            const w0 = words[0];
+            if (w0 && w0.length >= 4) {
+                if (!wordToIatas.has(w0)) wordToIatas.set(w0, new Set());
+                wordToIatas.get(w0).add(iata);
             }
-            // Tek kelime (en genel) — örn. "london"
-            if (words[0] && words[0].length >= 4 && !cityToIata.has(words[0])) cityToIata.set(words[0], iata);
         });
     });
+
+    // Tam ad ve iki-kelime — daima cityToIata (spesifik, çakışma riski düşük)
+    entries.forEach(({ fullCity, words, iata }) => {
+        if (fullCity.length >= 3 && !cityToIata.has(fullCity)) cityToIata.set(fullCity, iata);
+        if (words.length >= 2) {
+            const twoWord = words.slice(0, 2).join(' ');
+            if (twoWord.length >= 6 && !cityToIata.has(twoWord)) cityToIata.set(twoWord, iata);
+        }
+    });
+
+    // Tek kelime — tek IATA'sı varsa cityToIata, çoklu IATA'sı varsa ambiguousCities
+    wordToIatas.forEach((iataSet, word) => {
+        const iatas = [...iataSet];
+        if (iatas.length === 1) {
+            if (!cityToIata.has(word)) cityToIata.set(word, iatas[0]);
+        } else {
+            ambiguousCities.set(word, iatas);
+        }
+    });
+
+    // Türkçe şehir alias'ları (sadece IATA whitelist'te varsa eklenir, ambiguous'u override eder)
+    const TURKISH_ALIASES = {
+        'londra': 'LHR', 'paris': 'CDG', 'roma': 'FCO', 'pekin': 'PEK',
+        'sangay': 'PVG', 'tokyo': 'NRT', 'moskova': 'SVO', 'atina': 'ATH',
+        'amsterdam': 'AMS', 'berlin': 'TXL', 'viyana': 'VIE', 'kahire': 'CAI'
+    };
+    for (const alias in TURKISH_ALIASES) {
+        const iata = TURKISH_ALIASES[alias];
+        if (KNOWN_IATA.has(iata)) {
+            cityToIata.set(alias, iata);
+            ambiguousCities.delete(alias);
+        }
+    }
 })();
 
 // Mesajdan bağlam çıkar: bütçe, havalimanı, uçak tipi, sefer sayısı
@@ -89,7 +124,7 @@ function extractContextFromMessage(text) {
             result.airports.push(upper);
         }
     }
-    // Şehir adı taraması — uzun key'den kısa'ya, en spesifik match önce
+    // Şehir adı taraması (1): uzun-önce, cityToIata (tek-IATA'lı tüm key'ler)
     const lowerNorm = normalizeText(text);
     const sortedCities = [...cityToIata.entries()].sort((a, b) => b[0].length - a[0].length);
     for (const [city, iata] of sortedCities) {
@@ -97,6 +132,15 @@ function extractContextFromMessage(text) {
             seen.add(iata);
             result.airports.push(iata);
         }
+    }
+
+    // Şehir adı taraması (2): ambiguous tek-kelime → IATA'lardan biri zaten seen'daysa atla
+    // (örn. "London Heathrow" zaten LHR'yi ekledi → "london" tek-kelime LGW'yi tetiklemesin)
+    for (const [word, iatas] of ambiguousCities) {
+        if (!lowerNorm.includes(word)) continue;
+        if (iatas.some(i => seen.has(i))) continue;
+        seen.add(iatas[0]);
+        result.airports.push(iatas[0]);
     }
 
     // TİP

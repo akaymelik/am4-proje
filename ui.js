@@ -357,7 +357,12 @@ const Chat = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chatMessage: text,
-                    history: history   // önceki tüm turları gönder
+                    history: history,
+                    context: {
+                        gameMode: window.gameMode || 'realism',
+                        fuelPrice: 950,
+                        costIndex: 200
+                    }
                 })
             });
             const data = await response.json();

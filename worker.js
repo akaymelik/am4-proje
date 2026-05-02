@@ -112,6 +112,14 @@ TAVIR:
 - Yanıtı mutlaka tamamla, asla yarıda bırakma.
       `.trim();
 
+      // Kullanıcı bağlamını system prompt'a ekle
+      const userContext = body.context || {};
+      const contextBlock = `\n\nAKTIF KULLANICI BAĞLAMI:
+- Mevcut oyun modu: ${userContext.gameMode || 'realism'}
+- Yakıt fiyatı varsayımı: $${userContext.fuelPrice || 950}/1000lbs
+- Cost Index varsayımı: ${userContext.costIndex || 200}`;
+      const finalSystemInstruction = systemInstruction + contextBlock;
+
       // Sohbet geçmişini al, yoksa boş başlat
       let contents = [];
       if (Array.isArray(body.history) && body.history.length > 0) {
@@ -151,11 +159,11 @@ Bu rotanin guclu/zayif yonlerini belirt ve optimizasyon onerileri sun. Markdown 
             body: JSON.stringify({
               contents: contents,
               systemInstruction: {
-                parts: [{ text: systemInstruction }]
+                parts: [{ text: finalSystemInstruction }]
               },
               generationConfig: {
                 temperature: 0.7,
-                maxOutputTokens: 2048,
+                maxOutputTokens: 4096,
               }
             })
           });

@@ -498,7 +498,10 @@ const UI = {
         }
 
         resultDiv.innerHTML = `<div id="aiResultArea"></div><h3 style="margin: 20px 0 15px 0;">Kârlı Rota Seçenekleri</h3>`;
-        const topRoutes = Logic.analyzeTopRoutesForPlane(planeName, 10, manualTrips, hubIata);
+        // Hub seçilmişse tam dataset (3906 hedef) üstünden tara, yoksa routes.js'in 156 rotası
+        const topRoutes = hubIata
+            ? Logic.analyzeTopRoutesForPlaneFromHub(planeName, hubIata, 10, manualTrips)
+            : Logic.analyzeTopRoutesForPlane(planeName, 10, manualTrips);
 
         if (topRoutes.length === 0) {
             const msg = hubIata

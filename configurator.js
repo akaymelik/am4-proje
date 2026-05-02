@@ -30,29 +30,40 @@ const Configurator = {
 
     /**
      * Kargo yükünü optimize eder (Ağır yük öncelikli).
-     * Sadece 'c' verisi olan rotalarda çalışır.
+     * İki format desteklenir:
+     *  - Legacy: route.demand.c (toplam) → %30 H / %70 L split
+     *  - Yeni:   route.demand.l ve route.demand.h (am4-cc demand.cpp formülü) → doğrudan kullanılır
      */
     calculateOptimalCargo: function(plane, route, manualTrips = null) {
-        if (!route.demand || !route.demand.c) return { l: 0, h: 0 };
+        if (!route.demand) return { l: 0, h: 0 };
+        const hasLegacy = !!route.demand.c;
+        const hasNew = !!(route.demand.l || route.demand.h);
+        if (!hasLegacy && !hasNew) return { l: 0, h: 0 };
 
         const airTime = Logic.calculateFlightTime(route.distance, plane.cruise_speed);
-        const cycleTime = airTime + 0.5; 
+        const cycleTime = airTime + 0.5;
         const maxTrips = Math.floor(DAILY_AVAILABLE_HOURS / cycleTime);
         const trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
 
         if (trips <= 0) return { l: 0, h: 0 };
 
-        const perFlightDemand = Math.floor(route.demand.c / trips);
-
-        // AM4 Pazar Standardı: Talebin ~%30'u Ağır (H), %70'i Hafif (L) yükten oluşur.
-        let demandH = Math.floor(perFlightDemand * 0.3);
-        let demandL = perFlightDemand - demandH;
+        let demandH, demandL;
+        if (hasNew) {
+            // dataLoader formülünden geliyor: l ve h ayrı saklı
+            demandL = Math.floor((route.demand.l || 0) / trips);
+            demandH = Math.floor((route.demand.h || 0) / trips);
+        } else {
+            // Legacy: total c, AM4 pazar oranı %30 H / %70 L
+            const perFlightDemand = Math.floor(route.demand.c / trips);
+            demandH = Math.floor(perFlightDemand * 0.3);
+            demandL = perFlightDemand - demandH;
+        }
 
         let remCap = plane.capacity;
-        let sH = Math.min(demandH, remCap); 
+        let sH = Math.min(demandH, remCap);
         remCap -= sH;
-        let sL = Math.min(demandL, remCap); 
-        
+        let sL = Math.min(demandL, remCap);
+
         return { l: sL, h: sH };
     },
 

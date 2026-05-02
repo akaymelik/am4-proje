@@ -31,7 +31,9 @@ const Logic = {
         let grossRevenue = 0;
 
         if (plane.type === "cargo") {
-            if (!route.demand.c) return { profitPerFlight: 0 };
+            // Cargo demand var mı? Legacy (c) veya yeni (l/h) format
+            const hasCargo = route.demand && (route.demand.c || route.demand.l || route.demand.h);
+            if (!hasCargo) return { profitPerFlight: 0 };
             const opt = Configurator.calculateOptimalCargo(plane, route, trips);
             grossRevenue = (opt.l * prices.l) + (opt.h * prices.h);
         } else {
@@ -53,6 +55,54 @@ const Logic = {
         };
     },
 
+    /**
+     * Hub bazlı tüm 3906 destinasyonu tarayan analiz (dataLoader üzerinden).
+     * dataLoader hazır değilse legacy analyzeTopRoutesForPlane'e (routes.js + hub filter) düşer.
+     */
+    analyzeTopRoutesForPlaneFromHub: function(planeName, hubIata, limit = 10, manualTrips = null) {
+        const plane = aircraftData[planeName];
+        if (!plane) return [];
+
+        const dl = (typeof window !== 'undefined') ? window.dataLoader : null;
+        if (!dl || !dl.isReady()) {
+            // Fallback: routes.js'in 156 rotasından hub filter
+            return this.analyzeTopRoutesForPlane(planeName, limit, manualTrips, hubIata);
+        }
+
+        const hubAirport = dl.getAirport(hubIata);
+        if (!hubAirport) return [];
+
+        const results = [];
+        for (const dest of dl.airports) {
+            if (dest.iata === hubIata) continue;
+            const dist = dl.getDistance(hubIata, dest.iata);
+            if (dist == null || dist === 0 || dist > plane.range) continue;
+            const demand = dl.getDemand(hubIata, dest.iata);
+            if (!demand) continue;
+            if (plane.type === 'cargo' && !demand.l && !demand.h) continue;
+
+            const route = {
+                origin: `${hubAirport.name} (${hubAirport.iata}), ${hubAirport.country}`,
+                destination: `${dest.name} (${dest.iata}), ${dest.country}`,
+                distance: dist,
+                demand: { y: demand.y, j: demand.j, f: demand.f, l: demand.l, h: demand.h }
+            };
+
+            const calc = this.calculateProfit(plane, route, null, manualTrips);
+            if (calc.profitPerFlight <= 0 || !calc.appliedTrips) continue;
+            const dailyProfit = calc.profitPerFlight * calc.appliedTrips;
+            results.push({
+                ...route,
+                dailyProfit,
+                dailyTrips: calc.appliedTrips,
+                duration: calc.duration,
+                efficiency: (dailyProfit / plane.price) * 100
+            });
+        }
+
+        return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
+    },
+
     analyzeTopRoutesForPlane: function(planeName, limit = 10, manualTrips = null, hubIata = null) {
         const plane = aircraftData[planeName];
         if (!plane) return [];
@@ -63,7 +113,7 @@ const Logic = {
                 const originMatch = route.origin.match(/\(([A-Z]{3})\)/);
                 if (!originMatch || originMatch[1] !== hubIata) return;
             }
-            if (plane.type === "cargo" && !route.demand.c) return;
+            if (plane.type === "cargo" && !route.demand.c && !route.demand.l && !route.demand.h) return;
 
             if (route.distance <= plane.range) {
                 const calc = this.calculateProfit(plane, route, null, manualTrips);

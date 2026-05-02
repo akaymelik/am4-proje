@@ -107,17 +107,22 @@
             const chunkId = Math.floor(idx / this.CHUNK_SIZE);
             const localIdx = idx - chunkId * this.CHUNK_SIZE;
 
+            let result;
             // Kuyruk satırı (chunk'lara sığmayan 3 tane) — yalnızca overflow'da
             if (chunkId >= NUM_CHUNKS) {
-                return this.overflow.has(idx)
-                    ? { y: this.overflow.get(idx), j: 0, f: 0 }  // tail için j/f saklı değil
-                    : null;
+                if (!this.overflow.has(idx)) return null;
+                result = { y: this.overflow.get(idx), j: 0, f: 0 };
+            } else {
+                const packed = this.demands[chunkId][localIdx];
+                result = this.unpack(packed);
+                if (this.overflow.has(idx)) result.y = this.overflow.get(idx);
             }
 
-            const packed = this.demands[chunkId][localIdx];
-            const result = this.unpack(packed);
-            // Overflow override (yd > 4095 olan rotalar için)
-            if (this.overflow.has(idx)) result.y = this.overflow.get(idx);
+            // Kargo demand (am4-cc demand.cpp formülü: PaxDemand → CargoDemand)
+            //   l (light)  = round(y / 2) × 1000  lbs
+            //   h (heavy)  = j × 1000             lbs
+            result.l = Math.round(result.y / 2) * 1000;
+            result.h = result.j * 1000;
             return result;
         }
 

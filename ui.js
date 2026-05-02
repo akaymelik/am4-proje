@@ -268,10 +268,13 @@ const UI = {
     applyEconomySettings: function() {
         const fuelInput = document.getElementById('fuelPriceInput');
         const ciInput = document.getElementById('costIndexInput');
-        const fuelRaw = Number(fuelInput?.value);
-        const ciRaw = Number(ciInput?.value);
-        const fuel = (fuelRaw > 0 && fuelRaw < 5000) ? fuelRaw : 950;
-        const ci = (ciRaw >= 0 && ciRaw <= 500) ? ciRaw : 200;
+        const fuelStr = fuelInput?.value?.trim();
+        const ciStr = ciInput?.value?.trim();
+        const fuelRaw = Number(fuelStr);
+        const ciRaw = Number(ciStr);
+        // Boş string ('') falsy → default'a düşer. Number('') === 0 olduğu için sadece range check yetmez.
+        const fuel = (fuelStr && fuelRaw > 0 && fuelRaw < 5000) ? fuelRaw : 950;
+        const ci = (ciStr && ciRaw >= 0 && ciRaw <= 500) ? ciRaw : 200;
         window.FUEL_PRICE = fuel;
         window.COST_INDEX = ci;
         try {

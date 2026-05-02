@@ -153,8 +153,9 @@ function extractContextFromMessage(text) {
     if (!tripsM) tripsM = text.match(/(\d+)\s+sefer/i);
     if (tripsM) result.manualTrips = parseInt(tripsM[1], 10);
 
-    // BOŞ HANGAR SLOT — "5 slot var", "3 boş slot", "4 hangar"
-    const slotsM = text.match(/(\d+)\s*(?:bo[şs]\s+)?(?:slot|hangar)/i);
+    // BOŞ HANGAR SLOT — "5 slot var", "3 boş slot", "4 hangar", "5 yer", "3 uçak yeri/kapasitesi/slotu"
+    let slotsM = text.match(/(\d+)\s*(?:bo[şs]\s+)?(?:slot|yer|hangar)/i);
+    if (!slotsM) slotsM = text.match(/(\d+)\s*u[çc]ak\s+(?:yeri|kapasitesi|slotu)/i);
     if (slotsM) result.availableSlots = parseInt(slotsM[1], 10);
 
     return result;

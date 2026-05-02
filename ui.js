@@ -363,53 +363,56 @@ const Chat = {
         // Mesajda geçen uçakları tespit et (yazım toleranslı)
         const mentionedPlanes = [];
         const textNormalized = text.toLowerCase().replace(/[\s\-_]/g, '');
+        // Sadece harf+rakam içeren token'ları al — Türkçe kelimeler ("ile", "bir") ve saf rakamlar ("200") elensin
+        const textTokens = text.toLowerCase()
+            .split(/[\s,\.!?;:()'\"]+/)
+            .map(t => t.replace(/[\-_]/g, ''))
+            .filter(t => t.length >= 3 && /[a-z]/.test(t) && /[0-9]/.test(t));
+
+        function levenshtein(a, b) {
+            const m = a.length, n = b.length;
+            const dp = [];
+            for (let i = 0; i <= m; i++) { dp[i] = new Array(n + 1); dp[i][0] = i; }
+            for (let j = 0; j <= n; j++) dp[0][j] = j;
+            for (let i = 1; i <= m; i++)
+                for (let j = 1; j <= n; j++)
+                    dp[i][j] = a[i-1] === b[j-1]
+                        ? dp[i-1][j-1]
+                        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+            return dp[m][n];
+        }
 
         if (typeof aircraftData !== 'undefined') {
+            // 1. Aşama: tam eşleşmeler
+            // Saf rakam isimli uçaklar (örn: "202", "172") substring yanlış pozitifi ürettiğinden atlanır
+            const exactMatchedTokens = new Set();
             for (let name in aircraftData) {
-                const nameNormalized = name.toLowerCase().replace(/[\s\-_]/g, '');
-
-                // Tam eşleşme
-                if (textNormalized.includes(nameNormalized)) {
-                    const p = aircraftData[name];
-                    mentionedPlanes.push({
-                        name: name,
-                        type: p.type,
-                        capacity: p.capacity,
-                        cruise_speed: p.cruise_speed,
-                        fuel_consumption: p.fuel_consumption,
-                        range: p.range,
-                        price: p.price
-                    });
-                    continue;
+                const nameNorm = name.toLowerCase().replace(/[\s\-_]/g, '');
+                if (!/[a-z]/.test(nameNorm)) continue; // harf içermeyen isimler atla
+                if (!textNormalized.includes(nameNorm)) continue;
+                const p = aircraftData[name];
+                mentionedPlanes.push({ name, type: p.type, capacity: p.capacity, cruise_speed: p.cruise_speed, fuel_consumption: p.fuel_consumption, range: p.range, price: p.price });
+                for (const token of textTokens) {
+                    if (token === nameNorm) exactMatchedTokens.add(token);
                 }
+            }
 
-                // 1 karakter fark toleransı (örn: B373 vs B737) — sadece kısa isimler için
-                if (nameNormalized.length <= 8) {
-                    for (let i = 0; i <= textNormalized.length - nameNormalized.length; i++) {
-                        const candidate = textNormalized.substr(i, nameNormalized.length);
-                        let diff = 0;
-                        for (let j = 0; j < nameNormalized.length; j++) {
-                            if (candidate[j] !== nameNormalized[j]) diff++;
-                            if (diff > 1) break;
-                        }
-                        if (diff === 1) {
-                            const p = aircraftData[name];
-                            if (!mentionedPlanes.find(mp => mp.name === name || mp.name === name + ' (yazım düzeltildi)')) {
-                                mentionedPlanes.push({
-                                    name: name + ' (yazım düzeltildi)',
-                                    type: p.type,
-                                    capacity: p.capacity,
-                                    cruise_speed: p.cruise_speed,
-                                    fuel_consumption: p.fuel_consumption,
-                                    range: p.range,
-                                    price: p.price,
-                                    typoCorrection: true,
-                                    originalQuery: candidate
-                                });
-                            }
-                            break;
-                        }
-                    }
+            // 2. Aşama: Levenshtein fuzzy eşleşme — her token için yalnızca EN İYİ eşleşme alınır
+            const fuzzyTokens = textTokens.filter(t => !exactMatchedTokens.has(t));
+            for (const token of fuzzyTokens) {
+                let bestName = null, bestDist = Infinity;
+                for (let name in aircraftData) {
+                    const nameNorm = name.toLowerCase().replace(/[\s\-_]/g, '');
+                    if (nameNorm.length > 8) continue;
+                    if (mentionedPlanes.find(mp => mp.name === name)) continue;
+                    if (token[0] !== nameNorm[0]) continue;
+                    if (Math.abs(token.length - nameNorm.length) > 2) continue;
+                    const dist = levenshtein(token, nameNorm);
+                    if (dist <= 2 && dist > 0 && dist < bestDist) { bestDist = dist; bestName = name; }
+                }
+                if (bestName) {
+                    const p = aircraftData[bestName];
+                    mentionedPlanes.push({ name: bestName + ' (yazım düzeltildi)', type: p.type, capacity: p.capacity, cruise_speed: p.cruise_speed, fuel_consumption: p.fuel_consumption, range: p.range, price: p.price, typoCorrection: true, originalQuery: token });
                 }
             }
         }

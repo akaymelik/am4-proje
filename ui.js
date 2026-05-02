@@ -548,6 +548,14 @@ const UI = {
 
         resultArea.innerHTML = '<div id="aiLoader">🤖 MENOA Stratejileri Analiz Ediyor...</div>';
 
+        // HEMEN scroll: loader gösterildiği anda tetikle, kullanıcı çalıştığını görsün.
+        // Sticky navbar için 90px tampon. requestAnimationFrame: loader DOM'a yazıldıktan sonra
+        // doğru pozisyon hesabı (innerHTML değişiminin frame'i tamamlanmış olur).
+        requestAnimationFrame(() => {
+            const targetY = resultArea.getBoundingClientRect().top + window.pageYOffset - 90;
+            window.scrollTo({ top: targetY, behavior: 'smooth' });
+        });
+
         const plane = aircraftData[planeName];
         const planeData = plane ? [{
             name: planeName,
@@ -586,12 +594,7 @@ const UI = {
                 </div>`;
             
             this.typeEffect(document.getElementById('typingArea'), data.text);
-            // Sticky navbar (~70px) için 90px tampon. requestAnimationFrame: DOM güncel
-            // pozisyonu render edildikten sonra hesaplansın (yoksa scrollIntoView üst kenarı navbar arkasında bırakıyordu)
-            requestAnimationFrame(() => {
-                const targetY = resultArea.getBoundingClientRect().top + window.pageYOffset - 90;
-                window.scrollTo({ top: targetY, behavior: 'smooth' });
-            });
+            // Scroll YOK — yukarıda loader render anında zaten doğru pozisyona scroll edildi
 
         } catch (error) {
             resultArea.innerHTML = `<div class="status-box status-danger">Hata: ${error.message}</div>`;

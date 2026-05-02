@@ -56,6 +56,22 @@
     <div id="home" class="page active">
         <h2>MENOA Strateji Merkezi</h2>
         <div id="modeDisplay" class="status-box status-danger">Aktif Mod: Realism</div>
+
+        <h4 style="margin: 20px 0 10px 0; font-size: 0.9rem; color: var(--text-muted);">⚙️ Ekonomi Ayarları (oyun değerleriyle eşleştir)</h4>
+        <div class="config-grid" style="grid-template-columns: 1fr 1fr;">
+            <div>
+                <label>Yakıt Fiyatı ($/1000lbs)</label>
+                <input type="number" id="fuelPriceInput" placeholder="950" min="100" max="3000" step="10" oninput="UI.applyEconomySettings()">
+            </div>
+            <div>
+                <label>Cost Index (CI)</label>
+                <input type="number" id="costIndexInput" placeholder="200" min="0" max="500" step="10" oninput="UI.applyEconomySettings()">
+            </div>
+        </div>
+        <div id="economyHint" class="status-box status-neutral" style="margin-top: 10px; font-size: 0.8rem;">
+            Boş bırakırsan varsayılan: Yakıt $950/1000lbs, CI 200. Oyundaki "Fuel" sayfasından anlık değerleri kopyala.
+        </div>
+
         <p style="margin: 20px 0; color: var(--text-muted);">AM4 pazar verilerini Gemini 2.5 Flash mimarisiyle analiz eden profesyonel filo yönetim aracı.</p>
     </div>
 
@@ -141,7 +157,10 @@
     <div id="chat-window" class="chat-hidden">
         <div class="chat-header">
             <span>🤖 MENOA AI</span>
-            <button onclick="Chat.toggle()">✕</button>
+            <div class="chat-header-actions">
+                <button onclick="Chat.clearHistory()" title="Geçmişi temizle" class="chat-clear-btn">🗑️</button>
+                <button onclick="Chat.toggle()">✕</button>
+            </div>
         </div>
         <div id="chat-body"></div>
         <div class="chat-footer">
@@ -166,6 +185,14 @@
 <script>
     window.addEventListener('load', () => {
         if (window.UI && UI.populateAirportList) UI.populateAirportList();
+        // Ekonomi ayarları persist (localStorage'dan yükle, yoksa default)
+        try {
+            const sf = localStorage.getItem('menoa_fuel_price');
+            const sc = localStorage.getItem('menoa_cost_index');
+            if (sf) document.getElementById('fuelPriceInput').value = sf;
+            if (sc) document.getElementById('costIndexInput').value = sc;
+        } catch(e) {}
+        if (window.UI && UI.applyEconomySettings) UI.applyEconomySettings();
         setTimeout(() => document.getElementById('splash-screen').classList.add('hidden'), 1200);
         setTimeout(() => {
             if (window.Chat) window.Chat.addMessage("Selam! Bugün filonu nasıl yönetelim?", "ai");

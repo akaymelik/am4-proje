@@ -3,9 +3,11 @@
  * GÜNCELLEME: Uçak önerilerinde 'bestRouteOrigin' desteği eklendi.
  */
 
-const FUEL_PRICE = 950; // $/1000lbs, piyasa ortalaması
-const COST_INDEX = 200; // varsayılan CI
+// FUEL_PRICE ve COST_INDEX runtime'da window globalinden okunur (UI.applyEconomySettings güncelliyor).
+// Default: $950/1000lbs ve CI 200. Kullanıcı anasayfadan değiştirir → localStorage'a yazılır → her hesapta etkili.
 const MAX_FLEET_SIZE = 30;
+function getFuelPrice() { return (typeof window !== 'undefined' && window.FUEL_PRICE) || 950; }
+function getCostIndex() { return (typeof window !== 'undefined' && window.COST_INDEX != null) ? window.COST_INDEX : 200; }
 const DAILY_AVAILABLE_HOURS = 18; // kullanıcı uyku/iş için günde max 18 saat aktif olabilir (manuel kaldırma şart)
 
 const Logic = {
@@ -42,7 +44,7 @@ const Logic = {
         }
 
         const ceilDist = Math.ceil(route.distance / 2) * 2;
-        const fuelCost = ceilDist * FUEL_PRICE * (COST_INDEX / 500 + 0.6) * plane.fuel_consumption / 1000;
+        const fuelCost = ceilDist * getFuelPrice() * (getCostIndex() / 500 + 0.6) * plane.fuel_consumption / 1000;
         const staffCost = plane.type === "cargo"
             ? (plane.capacity * 0.012 + 250) / trips
             : (plane.capacity * 8 + 250) / trips;

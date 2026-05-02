@@ -262,6 +262,36 @@ function getRelevantRoutes(airports) {
 
 const UI = {
     /**
+     * Yakıt fiyatı + Cost Index input'larını okur, window globaline yazar, localStorage'a kaydeder.
+     * logic.js getFuelPrice/getCostIndex'i bu globalleri okur — input değişince hesaplar anlık güncellenir.
+     */
+    applyEconomySettings: function() {
+        const fuelInput = document.getElementById('fuelPriceInput');
+        const ciInput = document.getElementById('costIndexInput');
+        const fuelRaw = Number(fuelInput?.value);
+        const ciRaw = Number(ciInput?.value);
+        const fuel = (fuelRaw > 0 && fuelRaw < 5000) ? fuelRaw : 950;
+        const ci = (ciRaw >= 0 && ciRaw <= 500) ? ciRaw : 200;
+        window.FUEL_PRICE = fuel;
+        window.COST_INDEX = ci;
+        try {
+            if (fuelInput?.value) localStorage.setItem('menoa_fuel_price', fuel);
+            else localStorage.removeItem('menoa_fuel_price');
+            if (ciInput?.value !== '') localStorage.setItem('menoa_cost_index', ci);
+            else localStorage.removeItem('menoa_cost_index');
+        } catch (e) { /* private mode */ }
+
+        const hint = document.getElementById('economyHint');
+        if (hint) {
+            const isDefault = (fuel === 950 && ci === 200);
+            hint.textContent = isDefault
+                ? 'Boş bırakırsan varsayılan: Yakıt $950/1000lbs, CI 200. Oyundaki "Fuel" sayfasından anlık değerleri kopyala.'
+                : `Aktif: Yakıt $${fuel}/1000lbs, CI ${ci}. Hesaplamalar bu değerlerle yapılır.`;
+            hint.className = isDefault ? 'status-box status-neutral' : 'status-box status-success';
+        }
+    },
+
+    /**
      * Sayfa değiştirme ve navigasyon yönetimi.
      */
     showPage: function(id) {
@@ -538,8 +568,8 @@ const UI = {
                     efficiency: Utils.formatPercent(routeData.efficiency),
                     context: {
                         gameMode: window.gameMode || 'realism',
-                        fuelPrice: 950,
-                        costIndex: 200,
+                        fuelPrice: window.FUEL_PRICE || 950,
+                        costIndex: (window.COST_INDEX != null) ? window.COST_INDEX : 200,
                         planes: planeData
                     }
                 })
@@ -766,6 +796,19 @@ const Chat = {
     STORAGE_KEY: "menoa_chat_history",
 
     /**
+     * Geçmişi temizler — sessionStorage + DOM + hoş geldin mesajı.
+     */
+    clearHistory: function() {
+        if (!confirm('Sohbet geçmişini temizlemek istiyor musun? Bu işlem geri alınamaz.')) return;
+        try { sessionStorage.removeItem(this.STORAGE_KEY); } catch (e) {}
+        const body = document.getElementById('chat-body');
+        if (body) body.innerHTML = '';
+        setTimeout(() => {
+            this.addMessage("Geçmiş temizlendi! Bugün filonu nasıl yönetelim?", "ai");
+        }, 200);
+    },
+
+    /**
      * Sohbet geçmişini sessionStorage'dan yükler.
      * Gemini API formatında [{role, parts:[{text}]}] dizisi döner.
      */
@@ -940,8 +983,8 @@ const Chat = {
                     history: history,
                     context: {
                         gameMode: window.gameMode || 'realism',
-                        fuelPrice: 950,
-                        costIndex: 200,
+                        fuelPrice: window.FUEL_PRICE || 950,
+                        costIndex: (window.COST_INDEX != null) ? window.COST_INDEX : 200,
                         availableSlots: effectiveSlots,
                         planeType: effectiveType,
                         budget: effectiveBudget,

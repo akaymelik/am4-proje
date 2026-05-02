@@ -435,6 +435,14 @@ button:active {
     padding: 0 8px;
     font-size: 1.2rem;
 }
+.chat-header-actions { display: flex; gap: 4px; align-items: center; }
+.chat-clear-btn {
+    font-size: 1rem !important;
+    color: white;
+    opacity: 0.75;
+    transition: opacity 0.2s, transform 0.2s;
+}
+.chat-clear-btn:hover { opacity: 1; transform: scale(1.1); }
 
 #chat-body {
     flex: 1;

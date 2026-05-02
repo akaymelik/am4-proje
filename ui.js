@@ -615,7 +615,7 @@ const UI = {
                 })
             });
             const data = await response.json();
-            const userMessage = `${planeName} uçağı ile ${routeData.origin} → ${routeData.destination} rotası analizi`;
+            const userMessage = `${planeName} uçağı ile ${routeData.origin} → ${routeData.destination} rotası (${routeData.distance} km) analizi`;
             this._persistAiToChatHistory(userMessage, data.text);
 
             resultArea.innerHTML = `

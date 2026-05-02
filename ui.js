@@ -133,6 +133,68 @@ function getCandidatePlanes(budget, type) {
         .join('\n');
 }
 
+// Belirli bir hub için bütçe/tip/slot uyumlu uçakların TOP rotalarını AI'a hazır pipe formatında verir.
+// Her uçak için Logic.analyzeTopRoutesForPlane(name, 1, null, hubIata) çağrılır → o hub'tan en kârlı rota.
+// Sonuç: 10 satır × ~80 karakter = ~1 KB ek context (AI'ya gerçek hub analizi).
+function getHubAnalysisContext(hubIata, planeType, budget, slotsAvailable) {
+    if (!hubIata || typeof aircraftData === 'undefined') return '';
+    if (typeof Logic === 'undefined') return '';
+    const dl = window.dataLoader;
+    if (!dl || !dl.isReady()) return '';
+    const hub = dl.getAirport(hubIata);
+    if (!hub) return '';
+
+    const candidates = [];
+    for (const name in aircraftData) {
+        const p = aircraftData[name];
+        if (planeType && p.type !== planeType) continue;
+        if (budget && p.price > budget) continue;
+        const routes = Logic.analyzeTopRoutesForPlane(name, 1, null, hubIata);
+        if (routes.length === 0) continue;
+        const r = routes[0];
+        const destIataMatch = r.destination.match(/\(([A-Z]{3})\)/);
+        candidates.push({
+            name,
+            price: p.price,
+            type: p.type,
+            destIata: destIataMatch ? destIataMatch[1] : '?',
+            distance: r.distance,
+            dailyTrips: r.dailyTrips,
+            dailyProfit: r.dailyProfit,
+            efficiency: r.efficiency,
+            paybackDays: r.dailyProfit > 0 ? Math.ceil(p.price / r.dailyProfit) : 9999
+        });
+    }
+
+    if (candidates.length === 0) return '';
+
+    let top;
+    const headerExtras = [];
+    if (slotsAvailable && budget) {
+        // Filo bazlı: slot × adet bütçeye uyanlardan en yüksek toplam kâr
+        const fleet = candidates.map(c => {
+            const fleetSize = Math.min(slotsAvailable, Math.floor(budget / c.price));
+            return { ...c, fleetSize, fleetProfit: c.dailyProfit * fleetSize };
+        }).filter(c => c.fleetSize > 0)
+          .sort((a, b) => b.fleetProfit - a.fleetProfit);
+        top = fleet.slice(0, 10);
+        headerExtras.push(`bütçe $${(budget/1e6).toFixed(0)}M`, `${slotsAvailable} slot`);
+    } else {
+        candidates.sort((a, b) => b.efficiency - a.efficiency);
+        top = candidates.slice(0, 10);
+        if (budget) headerExtras.push(`bütçe $${(budget/1e6).toFixed(0)}M`);
+    }
+
+    const lines = top.map(p => {
+        const fleetCol = ('fleetSize' in p) ? `|${p.fleetSize}adet→$${Math.round(p.fleetProfit/1e3)}K/g` : '';
+        return `${p.name}|$${(p.price/1e6).toFixed(2)}M|→${p.destIata}|${p.distance}km|${p.dailyTrips}sefer|$${Math.round(p.dailyProfit/1e3)}K/g|%${p.efficiency.toFixed(1)}|${p.paybackDays}gün${fleetCol}`;
+    });
+
+    const headerStr = `${hub.iata} ${hub.name}, ${planeType || 'tüm'} uçaklar` + (headerExtras.length ? `, ${headerExtras.join(', ')}` : '');
+    const colHeader = `Uçak|Fiyat|Hedef|Mesafe|Sefer|GünlükKâr|Verim|Payback${('fleetSize' in top[0]) ? '|FiloKâr' : ''}`;
+    return `\nHUB ANALİZİ (${headerStr}):\n${colHeader}\n${lines.join('\n')}`;
+}
+
 // Havalimanı listesine göre filtreli rota listesi (kompakt pipe formatı, AI context için)
 // Her airport için: o havalimanından çıkan top 20 rota (talep+demand bazlı)
 function getRelevantRoutes(airports) {
@@ -819,6 +881,10 @@ const Chat = {
 
         const candidatePlanes = effectiveBudget ? getCandidatePlanes(effectiveBudget, effectiveType) : '';
         const relevantRoutes = effectiveAirports.length > 0 ? getRelevantRoutes(effectiveAirports) : '';
+        // Hub analizi: kullanıcı bir hub belirttiyse o hub'tan TOP 10 uçak/rota gerçek dataLoader analizi
+        const hubAnalysis = effectiveAirports.length > 0
+            ? getHubAnalysisContext(effectiveAirports[0], effectiveType, effectiveBudget, effectiveSlots)
+            : '';
 
         // Kullanıcı mesajını ekrana bas
         this._appendMessage(text, 'user', false);
@@ -841,6 +907,7 @@ const Chat = {
                         planes: mentionedPlanes,
                         candidatePlanes: candidatePlanes,
                         relevantRoutes: relevantRoutes,
+                        hubAnalysis: hubAnalysis,
                         extracted: extracted
                     }
                 })

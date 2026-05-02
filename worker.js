@@ -163,6 +163,10 @@ BÜTÇE SORULARI:
 - Liste YOKSA (context'te ADAY UÇAKLAR yok): community prensiplerini paylaş, spesifik uçak adı önermek için "bütçeni belirt veya 'Yolcu Uçak Önerileri' sayfasını kullan" de.
 
 VERİ FORMATI VE KULLANIMI:
+- Tüm 3907 havalimanı ve 7.6M rotaya artık tam erişimin var (dataLoader). Spesifik hub için "HUB ANALİZİ" gerçek veri olarak gelir.
+- "HUB ANALİZİ" başlığı geldiğinde her satır: Uçak|Fiyat|Hedef|Mesafe|Sefer|GünlükKâr|Verim|Payback (filo varsa son sütun: adet→toplam kâr).
+  Bu listenin TÜM verisi gerçek dataLoader hesabıdır — UYDURMA, varsayım yapma, ÖRNEK olarak söyleme, doğrudan kullan.
+  AI cevabı somut olmalı: "B777-300ER LHR→VIE rotası 1275 km, $1.88M/gün, ~37 gün payback" gibi.
 - "ADAY UÇAKLAR" listesi geldiğinde her satır pipe ile ayrılmış: name|type|capacity|cruise_speed|fuel_consumption|range|price|daily_profit
 - daily_profit = bu uçağın en kârlı rotadaki günlük net kârı (sefer sayısı × sefer kârı). Liste daily_profit'e göre BÜYÜKTEN KÜÇÜĞE sıralı geldi — listenin başı slot başına en kârlı uçaklar.
 - "İLGİLİ ROTALAR" listesi geldiğinde: origin|destination|distance|y|j|f|c
@@ -238,6 +242,10 @@ TAVIR:
 
       if (userContext.relevantRoutes && userContext.relevantRoutes.trim().length > 0) {
         contextBlock += `\n\nİLGİLİ ROTALAR (mesajda geçen havalimanlarına ait, talebe göre top 20, format: origin|destination|distance|y|j|f|c):\n${userContext.relevantRoutes}`;
+      }
+
+      if (userContext.hubAnalysis && userContext.hubAnalysis.trim().length > 0) {
+        contextBlock += `\n\n=== GERÇEK HUB ANALİZ VERİSİ (dataLoader hesabı, varsayım/örnek değil — direkt kullan): ===${userContext.hubAnalysis}`;
       }
 
       const finalSystemInstruction = systemInstruction + contextBlock;

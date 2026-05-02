@@ -111,6 +111,17 @@ const UI = {
 
         resultArea.innerHTML = '<div id="aiLoader">🤖 MENOA Stratejileri Analiz Ediyor...</div>';
 
+        const plane = aircraftData[planeName];
+        const planeData = plane ? [{
+            name: planeName,
+            type: plane.type,
+            capacity: plane.capacity,
+            cruise_speed: plane.cruise_speed,
+            fuel_consumption: plane.fuel_consumption,
+            range: plane.range,
+            price: plane.price
+        }] : [];
+
         try {
             const response = await fetch(workerUrl, {
                 method: 'POST',
@@ -120,8 +131,13 @@ const UI = {
                     route: `${routeData.origin} ➔ ${routeData.destination}`,
                     profit: Utils.formatCurrency(routeData.dailyProfit),
                     distance: routeData.distance,
-                    efficiency: Utils.formatPercent(routeData.efficiency)
-                    // history yok: rota analizi bağımsız sorgu
+                    efficiency: Utils.formatPercent(routeData.efficiency),
+                    context: {
+                        gameMode: window.gameMode || 'realism',
+                        fuelPrice: 950,
+                        costIndex: 200,
+                        planes: planeData
+                    }
                 })
             });
             const data = await response.json();

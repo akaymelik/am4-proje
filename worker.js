@@ -127,6 +127,12 @@ VERİ KULLANIM KURALI (ÇOK ÖNEMLİ):
 - Kullanıcı öneri istediğinde context'teki gameMode'u kullan ve direkt cevaba gir.
 - "Hangi modda oynuyorsunuz?" sorusu KESİNLİKLE YASAK.
 
+ROTA ANALİZİ TARZI:
+- Rota analizi istendiğinde 80-100 kelimeyi GEÇME.
+- Hesaplamayı TEKRAR ETME — kullanıcı zaten ekrandaki kartı görüyor.
+- 2-3 cümlelik özet + 2 somut tavsiye yeterli.
+- "Genel olarak", "ucuz çok uçak" gibi GENEL prensipler verme — sadece BU rotaya özgü yorum yap.
+
 TAVIR:
 - Net, teknik, kısa cevaplar ver.
 - Sayısal hesap istenirse formülü adım adım uygula ve sonucu göster.
@@ -163,13 +169,18 @@ TAVIR:
       } else {
         // Rota analizi isteği (AI butonu)
         userText = `
-${body.plane} ucagi icin rota analizi yap:
-- Rota: ${body.route}
-- Mesafe: ${body.distance} km
-- Tahmini gunluk kar: ${body.profit}
-- Yatirim verimi: ${body.efficiency}
+${body.plane} uçağı ile ${body.route} rotası (${body.distance} km, tahmini günlük kâr ${body.profit}, yatırım verimi ${body.efficiency}) için KISA bir analiz yap.
 
-Bu rotanin guclu/zayif yonlerini belirt ve optimizasyon onerileri sun. Markdown kullanma, duz metin yaz.
+Format:
+- 2-3 cümlelik özet (bu rota bu uçak için iyi mi?)
+- 2 SOMUT tavsiye (madde halinde, kısa)
+
+Kurallar:
+- TOPLAM 80-100 kelimeyi geçme
+- Koltuk fiyatlarını TEKRAR HESAPLAMA (kullanıcı zaten görüyor)
+- Yakıt maliyeti hesabını TEKRAR YAPMA (zaten kart üstünde gösterimi var)
+- Genel teori VERME (kullanıcı sayısal ipucu istiyor)
+- Sadece bu rota+uçak kombinasyonuna ÖZGÜ yorumlar yap
         `.trim();
       }
 

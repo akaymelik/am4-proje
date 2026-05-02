@@ -126,16 +126,27 @@
             return result;
         }
 
-        // Top hub'ları airport.market değerine göre döner (cached, lazy).
-        // Global rota analizinde "popüler havalimanlarından tara" mantığı için.
+        // Top hub'ları döner (cached). market kolonu yanlış sıralıyor (CMU/UAK/YCE gibi küçük havalimanları
+        // çıkıyordu) — bunun yerine sabit AM4 mega-hub listesi (real-world traffic referanslı).
         getTopHubs(limit = 30) {
             if (!this.ready) return [];
-            if (!this._topHubsSorted) {
-                this._topHubsSorted = this.airports
-                    .map((a, i) => ({ pos: i, market: a.market, iata: a.iata }))
-                    .sort((a, b) => b.market - a.market);
+            if (!this._topHubsCached) {
+                const POPULAR_IATA = [
+                    'LHR','JFK','CDG','FRA','AMS','IST','DXB','HND','SIN','HKG',
+                    'SYD','LAX','ORD','PEK','PVG','ICN','BKK','NRT','DEL','BOM',
+                    'GRU','EZE','YYZ','ATL','MIA','MAD','BCN','MUC','ZRH','VIE',
+                    'CGK','KUL','MNL','DOH','AUH','RUH','JNB','CAI','TLV','HEL',
+                    'ARN','OSL','CPH','WAW','PRG','BUD','ATH','LIS','DUB','MAN',
+                    'BRU','GVA','SVO','LED','EWR','SFO','SEA','DEN','BOS','PHL'
+                ];
+                this._topHubsCached = [];
+                for (const iata of POPULAR_IATA) {
+                    const pos = this.iataToId.get(iata);
+                    if (pos === undefined) continue;
+                    this._topHubsCached.push({ iata, pos, market: this.airports[pos].market });
+                }
             }
-            return this._topHubsSorted.slice(0, limit);
+            return this._topHubsCached.slice(0, limit);
         }
 
         searchAirports(query, limit = 10) {

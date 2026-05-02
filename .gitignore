@@ -1,0 +1,19 @@
+# Parquet cache (~85 MB, abc8747/am4'ten indirilen, deploy'a gerek yok)
+_parquet_cache/
+
+# Eski export dizini (artık data/ kullanılıyor)
+data_export/
+
+# Python preprocessing/verification scriptleri (lokal kullanım, gerekirse git'e eklenebilir)
+_verify_parquet.py
+_verify_formula.py
+_verify_distribution.py
+_test_k_hypothesis.py
+_export_data.py
+
+# Claude Code config (kişisel, paylaşılmaz)
+.claude/
+
+# Geçici test çıktıları
+_verify/
+*.tmp

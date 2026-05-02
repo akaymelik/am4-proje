@@ -170,16 +170,18 @@ const Configurator = {
      * Easy/Realism formülleri AM4 formulae.md (cathaypacific8747) kaynaklı.
      */
     getTicketMultipliers: function(distance) {
-        // Kargo fiyatları AM4 formulae.md'de $/1000lbs cinsinden tanımlı (formül = ton başına ücret).
+        // Yolcu fiyatları kişi başına ($/pax). Easy ve Realism farkı pax katsayılarında.
+        // Kargo fiyatları AM4 formulae.md'de $/1000lbs cinsinden tanımlı.
         // demand.l/h ve plane.capacity lbs cinsinden olduğundan birim uyumu için 1000'e böl ($/lbs).
-        // Yolcu fiyatları kişi başına olduğu için aynı kalır.
+        // Cargo katsayıları: kanonik abc8747/am4 docs/formulae.md (R²=1, %100 confidence) — autoprice taban değerleri.
+        // Optimal multiplier (L×1.10, H×1.08) ayrı bir fix'te uygulanacak.
         if (window.gameMode === 'easy') {
             return {
                 y: (0.4 * distance) + 170,
                 j: (0.8 * distance) + 560,
                 f: (1.2 * distance) + 1200,
-                l: ((0.07 * distance) + 50) / 1000,
-                h: ((0.11 * distance) + 150) / 1000
+                l: ((0.0948283724581252 * distance) + 85.2045432642377) / 1000,
+                h: ((0.0689663577640275 * distance) + 28.2981124272893) / 1000
             };
         }
         // Realism (varsayılan)
@@ -187,8 +189,8 @@ const Configurator = {
             y: (0.3 * distance) + 150,
             j: (0.6 * distance) + 500,
             f: (0.9 * distance) + 1000,
-            l: ((0.07 * distance) + 50) / 1000,
-            h: ((0.11 * distance) + 150) / 1000
+            l: ((0.0776321822039374 * distance) + 85.0567600367807) / 1000,
+            h: ((0.0517742799409248 * distance) + 24.6369915396414) / 1000
         };
     }
 };

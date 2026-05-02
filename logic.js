@@ -65,6 +65,9 @@ const Logic = {
         const dl = window.dataLoader;
         const dist = dl.getDistance(hub.iata, dest.iata);
         if (dist == null || dist === 0 || dist > plane.range) return;
+        // AM4 community standardı: 100km altı feeder rotalar (Wiesbaden 17km, Rotterdam 45km gibi)
+        // hub-spoke içi transfer — küçük uçak + yüksek talep durumunda doluluk %30+ olsa bile saçma.
+        if (dist < 100) return;
         const demand = dl.getDemand(hub.iata, dest.iata);
         if (!demand) return;
         if (plane.type === 'cargo' && !demand.l && !demand.h) return;

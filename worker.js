@@ -74,8 +74,9 @@ KOLTUK MEKANİĞİ:
 SEFER SAYISI HESABI:
 - Uçuş süresi = mesafe / hız (saat)
 - Cycle süresi = uçuş süresi + 0.5 saat (turnaround sabit)
-- Günlük maks sefer = floor(24 / cycle)
-- Easy modda uçak hızı 4x artar, turnaround sabit kalır — bu nedenle sefer sayısı yaklaşık 3x artar
+- Günlük maks sefer = floor(18 / cycle)
+- ÖNEMLİ: Bölen 24 değil 18 — çünkü kullanıcı uyku/iş için günde max 18 saat oyuna girebilir, uçağı manuel kaldırması gerekir
+- Easy modda uçak hızı 4x artar, turnaround sabit kalır — sefer sayısı yaklaşık 3x artar ama yine 18 saat kısıtı içinde
 
 MALİYET FORMÜLLERİ:
 - Yakıt = ceil(mesafe, 2) x FUEL_PRICE x (CI/500 + 0.6) x yakıt_tüketimi / 1000
@@ -128,6 +129,9 @@ BÜTÇE SORULARI:
   - Bütçe / uçak fiyatı = kaç uçak alınabilir (max 30 uçak limit)
   - 1-3 uçak: tam verim, 4-10: 0.8x, 11-20: 0.6x, 21-30: 0.4x
   - Uçağın günlük kârı × adet × verim = toplam kâr potansiyeli
+- HANGAR SLOT KISITI: Default 3 boş slot varsayımı (kullanıcı belirtmediyse).
+- Cevabın başında "3 boş slot olduğunu varsayarak öneriyorum, farklıysa belirtin" notu ekle.
+- 18 saat günlük yönetim limiti gerçek dünyaya yakın — 24 saat varsayımı yanlış olur.
 - Listede 30 uçak var, ama sen TOP 2-3 uçağı seç ve önerini somutla.
 - Seçim kriterleri: kapasite/fiyat oranı, hız (community: hız > kapasite > yakıt), menzil.
 - Cevap formatı:
@@ -176,7 +180,9 @@ TAVIR:
       let contextBlock = `\n\nAKTIF KULLANICI BAĞLAMI:
 - Mevcut oyun modu: ${userContext.gameMode || 'realism'}
 - Yakıt fiyatı varsayımı: $${userContext.fuelPrice || 950}/1000lbs
-- Cost Index varsayımı: ${userContext.costIndex || 200}`;
+- Cost Index varsayımı: ${userContext.costIndex || 200}
+- Boş hangar slot (varsayım): ${userContext.availableSlots || 3}
+- Günlük aktif yönetim limiti: 18 saat (uçak başına maks sefer = floor(18/cycle))`;
 
       if (userContext.planes && userContext.planes.length > 0) {
         contextBlock += "\n\nBAHSEDİLEN UÇAKLARIN VERİSİ (kesin değerler, varsayım yapma):";

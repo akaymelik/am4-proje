@@ -6,6 +6,7 @@
 const FUEL_PRICE = 950; // $/1000lbs, piyasa ortalaması
 const COST_INDEX = 200; // varsayılan CI
 const MAX_FLEET_SIZE = 30;
+const DAILY_AVAILABLE_HOURS = 18; // kullanıcı uyku/iş için günde max 18 saat aktif olabilir (manuel kaldırma şart)
 
 const Logic = {
     calculateFlightTime: function(distance, speed) {
@@ -20,8 +21,8 @@ const Logic = {
 
     calculateProfit: function(plane, route, config = null, manualTrips = null) {
         const airTime = this.calculateFlightTime(route.distance, plane.cruise_speed);
-        const cycleTime = airTime + 0.5; 
-        const maxTrips = Math.floor(24 / cycleTime);
+        const cycleTime = airTime + 0.5;
+        const maxTrips = Math.floor(DAILY_AVAILABLE_HOURS / cycleTime);
         let trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
         
         if (trips <= 0) return { profitPerFlight: 0, appliedTrips: 0 };

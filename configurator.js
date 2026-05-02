@@ -37,7 +37,7 @@ const Configurator = {
 
         const airTime = Logic.calculateFlightTime(route.distance, plane.cruise_speed);
         const cycleTime = airTime + 0.5; 
-        const maxTrips = Math.floor(24 / cycleTime);
+        const maxTrips = Math.floor(DAILY_AVAILABLE_HOURS / cycleTime);
         const trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
 
         if (trips <= 0) return { l: 0, h: 0 };
@@ -62,7 +62,7 @@ const Configurator = {
     calculateOptimalSeats: function(plane, route, manualTrips = null) {
         const airTime = Logic.calculateFlightTime(route.distance, plane.cruise_speed);
         const cycleTime = airTime + 0.5;
-        const maxTrips = Math.floor(24 / cycleTime);
+        const maxTrips = Math.floor(DAILY_AVAILABLE_HOURS / cycleTime);
         const trips = (manualTrips && manualTrips > 0) ? Math.min(manualTrips, maxTrips) : maxTrips;
 
         if (trips <= 0) return { y: 0, j: 0, f: 0 };

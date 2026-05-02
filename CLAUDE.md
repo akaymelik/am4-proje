@@ -103,6 +103,11 @@ Formulas sourced from `cathaypacific8747/am4` (formulae.md). Easy and Realism us
 - **Higher ticket prices** — distance coefficients and base values both differ (see table above).
 - The old `1.1× revenue multiplier` approach has been removed.
 
+### Realism varsayımları (implemented)
+
+- **Günlük aktif yönetim limiti: 18 saat.** Kullanıcı uyku/iş için günde max 18 saat oyuna girebilir, uçağı manuel kaldırması şart. Bu yüzden günlük max sefer = `floor(18 / cycleTime)`, 24 değil. `logic.js`'te `DAILY_AVAILABLE_HOURS = 18` sabiti, `configurator.js` aynı sabiti kullanır, AI prompt'u (`worker.js`) da aynı kuralı bilir.
+- **Default boş hangar slot: 3.** Kullanıcı belirtmediyse AI ve UI 3 boş slot varsayar. AI cevabın başında bu varsayımı bildirir. `extractContextFromMessage` "5 slot var" / "3 boş slot" / "4 hangar" ifadelerini yakalar; aksi halde fallback değer 3.
+
 ## Sıradaki Yapılacaklar
 
 ### Tamamlanan (v0.5-ai-mature)

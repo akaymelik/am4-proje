@@ -92,7 +92,7 @@ const ambiguousCities = new Map();
 
 // Mesajdan bağlam çıkar: bütçe, havalimanı, uçak tipi, sefer sayısı
 function extractContextFromMessage(text) {
-    const result = { budget: null, airports: [], planeType: null, manualTrips: null };
+    const result = { budget: null, airports: [], planeType: null, manualTrips: null, availableSlots: null };
     const lowerTr = text.toLocaleLowerCase('tr');
 
     // BÜTÇE — suffix'li (kelime/letter sınırı + plane variant koruma)
@@ -152,6 +152,10 @@ function extractContextFromMessage(text) {
     if (!tripsM) tripsM = text.match(/(\d+)\s*sefer\s*\/\s*g[üu]n/i);
     if (!tripsM) tripsM = text.match(/(\d+)\s+sefer/i);
     if (tripsM) result.manualTrips = parseInt(tripsM[1], 10);
+
+    // BOŞ HANGAR SLOT — "5 slot var", "3 boş slot", "4 hangar"
+    const slotsM = text.match(/(\d+)\s*(?:bo[şs]\s+)?(?:slot|hangar)/i);
+    if (slotsM) result.availableSlots = parseInt(slotsM[1], 10);
 
     return result;
 }
@@ -633,6 +637,7 @@ const Chat = {
                         gameMode: window.gameMode || 'realism',
                         fuelPrice: 950,
                         costIndex: 200,
+                        availableSlots: extracted.availableSlots || 3,
                         planes: mentionedPlanes,
                         candidatePlanes: candidatePlanes,
                         relevantRoutes: relevantRoutes,

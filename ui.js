@@ -586,7 +586,12 @@ const UI = {
                 </div>`;
             
             this.typeEffect(document.getElementById('typingArea'), data.text);
-            resultArea.scrollIntoView({ behavior: 'smooth' });
+            // Sticky navbar (~70px) için 90px tampon. requestAnimationFrame: DOM güncel
+            // pozisyonu render edildikten sonra hesaplansın (yoksa scrollIntoView üst kenarı navbar arkasında bırakıyordu)
+            requestAnimationFrame(() => {
+                const targetY = resultArea.getBoundingClientRect().top + window.pageYOffset - 90;
+                window.scrollTo({ top: targetY, behavior: 'smooth' });
+            });
 
         } catch (error) {
             resultArea.innerHTML = `<div class="status-box status-danger">Hata: ${error.message}</div>`;

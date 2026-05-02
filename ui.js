@@ -5,6 +5,22 @@
  * Bağlantı: https://ai.airm4.workers.dev/
  */
 
+function levenshtein(a, b) {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            matrix[i][j] = b.charAt(i - 1) === a.charAt(j - 1)
+                ? matrix[i - 1][j - 1]
+                : Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
 const UI = {
     /**
      * Sayfa değiştirme ve navigasyon yönetimi.
@@ -363,56 +379,59 @@ const Chat = {
         // Mesajda geçen uçakları tespit et (yazım toleranslı)
         const mentionedPlanes = [];
         const textNormalized = text.toLowerCase().replace(/[\s\-_]/g, '');
-        // Sadece harf+rakam içeren token'ları al — Türkçe kelimeler ("ile", "bir") ve saf rakamlar ("200") elensin
-        const textTokens = text.toLowerCase()
-            .split(/[\s,\.!?;:()'\"]+/)
-            .map(t => t.replace(/[\-_]/g, ''))
-            .filter(t => t.length >= 3 && /[a-z]/.test(t) && /[0-9]/.test(t));
 
-        function levenshtein(a, b) {
-            const m = a.length, n = b.length;
-            const dp = [];
-            for (let i = 0; i <= m; i++) { dp[i] = new Array(n + 1); dp[i][0] = i; }
-            for (let j = 0; j <= n; j++) dp[0][j] = j;
-            for (let i = 1; i <= m; i++)
-                for (let j = 1; j <= n; j++)
-                    dp[i][j] = a[i-1] === b[j-1]
-                        ? dp[i-1][j-1]
-                        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
-            return dp[m][n];
+        // Kandidatları çıkar: boşluktan böl, bireysel tokenlar + bitişik ikili birleşimler (bigram)
+        // Bigram sayesinde "B373 100" → "b373100" kandidatı oluşur, boşluklu yazım da yakalanır
+        const rawParts = text.toLowerCase().split(/\s+/).map(t => t.replace(/[\-_]/g, ''));
+        const candidateSet = new Set();
+        for (let i = 0; i < rawParts.length; i++) {
+            const t = rawParts[i];
+            if (t.length >= 3 && /[a-z]/.test(t) && /[0-9]/.test(t)) candidateSet.add(t);
+            if (i + 1 < rawParts.length) {
+                const bigram = t + rawParts[i + 1];
+                if (bigram.length >= 4 && bigram.length <= 10 && /[a-z]/.test(bigram) && /[0-9]/.test(bigram)) candidateSet.add(bigram);
+            }
+        }
+        const candidates = Array.from(candidateSet);
+
+        // Harf/rakam pozisyon kalıbı eşleşme kontrolü: "a320" vs "an10" yanlış eşleşmesini önler
+        function sameLetterDigitPattern(a, b) {
+            const len = Math.min(a.length, b.length);
+            for (let i = 0; i < len; i++) {
+                if ((/[a-z]/.test(a[i])) !== (/[a-z]/.test(b[i]))) return false;
+            }
+            return true;
         }
 
         if (typeof aircraftData !== 'undefined') {
-            // 1. Aşama: tam eşleşmeler
-            // Saf rakam isimli uçaklar (örn: "202", "172") substring yanlış pozitifi ürettiğinden atlanır
-            const exactMatchedTokens = new Set();
+            // 1. Aşama: tam eşleşmeler (saf rakam isimler atlanır)
+            const exactMatchedCandidates = new Set();
             for (let name in aircraftData) {
                 const nameNorm = name.toLowerCase().replace(/[\s\-_]/g, '');
-                if (!/[a-z]/.test(nameNorm)) continue; // harf içermeyen isimler atla
+                if (!/[a-z]/.test(nameNorm)) continue;
                 if (!textNormalized.includes(nameNorm)) continue;
                 const p = aircraftData[name];
                 mentionedPlanes.push({ name, type: p.type, capacity: p.capacity, cruise_speed: p.cruise_speed, fuel_consumption: p.fuel_consumption, range: p.range, price: p.price });
-                for (const token of textTokens) {
-                    if (token === nameNorm) exactMatchedTokens.add(token);
-                }
+                for (const c of candidates) { if (c === nameNorm) exactMatchedCandidates.add(c); }
             }
 
-            // 2. Aşama: Levenshtein fuzzy eşleşme — her token için yalnızca EN İYİ eşleşme alınır
-            const fuzzyTokens = textTokens.filter(t => !exactMatchedTokens.has(t));
-            for (const token of fuzzyTokens) {
+            // 2. Aşama: Levenshtein fuzzy — exact match üretmeyen kandidatlar için en iyi eşleşme
+            const fuzzyCandidates = candidates.filter(c => !exactMatchedCandidates.has(c));
+            for (const cand of fuzzyCandidates) {
                 let bestName = null, bestDist = Infinity;
                 for (let name in aircraftData) {
                     const nameNorm = name.toLowerCase().replace(/[\s\-_]/g, '');
-                    if (nameNorm.length > 8) continue;
+                    if (nameNorm.length < 4 || nameNorm.length > 10) continue;
                     if (mentionedPlanes.find(mp => mp.name === name)) continue;
-                    if (token[0] !== nameNorm[0]) continue;
-                    if (Math.abs(token.length - nameNorm.length) > 2) continue;
-                    const dist = levenshtein(token, nameNorm);
+                    if (cand[0] !== nameNorm[0]) continue;
+                    if (Math.abs(cand.length - nameNorm.length) > 2) continue;
+                    if (!sameLetterDigitPattern(cand, nameNorm)) continue;
+                    const dist = levenshtein(cand, nameNorm);
                     if (dist <= 2 && dist > 0 && dist < bestDist) { bestDist = dist; bestName = name; }
                 }
                 if (bestName) {
                     const p = aircraftData[bestName];
-                    mentionedPlanes.push({ name: bestName + ' (yazım düzeltildi)', type: p.type, capacity: p.capacity, cruise_speed: p.cruise_speed, fuel_consumption: p.fuel_consumption, range: p.range, price: p.price, typoCorrection: true, originalQuery: token });
+                    mentionedPlanes.push({ name: bestName + ' (yazım düzeltildi)', type: p.type, capacity: p.capacity, cruise_speed: p.cruise_speed, fuel_consumption: p.fuel_consumption, range: p.range, price: p.price, typoCorrection: true, originalQuery: cand });
                 }
             }
         }

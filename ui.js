@@ -596,6 +596,18 @@ const UI = {
             price: plane.price
         }] : [];
 
+        // Tam bağlam — AI "yaklaşık bin gün" gibi belirsiz konuşmasın diye kesin sayılar
+        const optConfig = plane && (plane.type === 'cargo'
+            ? Configurator.calculateOptimalCargo(plane, routeData, routeData.dailyTrips)
+            : Configurator.calculateOptimalSeats(plane, routeData, routeData.dailyTrips));
+        const totalLoad = !optConfig ? 0
+            : (plane.type === 'cargo' ? (optConfig.l + optConfig.h) : (optConfig.y + optConfig.j * 2 + optConfig.f * 3));
+        const fillRatio = (plane && plane.capacity) ? ((totalLoad / plane.capacity) * 100).toFixed(1) : '0';
+        const profitPerFlight = routeData.dailyTrips ? routeData.dailyProfit / routeData.dailyTrips : 0;
+        const paybackDays = (plane && routeData.dailyProfit > 0) ? Math.ceil(plane.price / routeData.dailyProfit) : 9999;
+        const optimalConfigStr = !optConfig ? ''
+            : (plane.type === 'cargo' ? `L:${optConfig.l} H:${optConfig.h}` : `Y:${optConfig.y} J:${optConfig.j} F:${optConfig.f}`);
+
         try {
             const response = await fetch(workerUrl, {
                 method: 'POST',
@@ -606,6 +618,13 @@ const UI = {
                     profit: Utils.formatCurrency(routeData.dailyProfit),
                     distance: routeData.distance,
                     efficiency: Utils.formatPercent(routeData.efficiency),
+                    // Tam bağlam — AI'a kesin sayılar
+                    dailyTrips: routeData.dailyTrips,
+                    profitPerFlight: Utils.formatCurrency(profitPerFlight),
+                    fillRatio: fillRatio + '%',
+                    paybackDays: paybackDays,
+                    optimalConfig: optimalConfigStr,
+                    planePrice: plane ? Utils.formatCurrency(plane.price) : '',
                     context: {
                         gameMode: window.gameMode || 'realism',
                         fuelPrice: window.FUEL_PRICE || 950,

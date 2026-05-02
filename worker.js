@@ -266,20 +266,33 @@ TAVIR:
       if (body.chatMessage) {
         userText = body.chatMessage;
       } else {
-        // Rota analizi isteği (AI butonu)
+        // Rota analizi isteği (AI butonu) — tam bağlam, kesin sayılarla
         userText = `
-${body.plane} uçağı ile ${body.route} rotası (${body.distance} km, tahmini günlük kâr ${body.profit}, yatırım verimi ${body.efficiency}) için KISA bir analiz yap.
+ROTA ANALİZ VERİSİ (sayfa hesabı, KESİN değerler):
+- Uçak: ${body.plane} (fiyat: ${body.planePrice || '?'})
+- Rota: ${body.route}
+- Mesafe: ${body.distance} km
+- Günlük sefer: ${body.dailyTrips || '?'}
+- Sefer başı kâr: ${body.profitPerFlight || '?'}
+- Günlük kâr: ${body.profit}
+- Yatırım verimi: ${body.efficiency}
+- Payback süresi: ${body.paybackDays || '?'} gün
+- Doluluk: ${body.fillRatio || '?'}
+- İdeal yapılandırma: ${body.optimalConfig || '?'}
+
+GÖREV: Bu KESİN sayıları kullanarak 80-100 kelimelik analiz yap.
 
 Format:
-- 2-3 cümlelik özet (bu rota bu uçak için iyi mi?)
-- 2 SOMUT tavsiye (madde halinde, kısa)
+- 2-3 cümlelik ÖZET (bu rota bu uçak için iyi mi? Verim/payback/doluluk verisini referans al)
+- 2 SOMUT tavsiye
 
 Kurallar:
-- TOPLAM 80-100 kelimeyi geçme
-- Koltuk fiyatlarını TEKRAR HESAPLAMA (kullanıcı zaten görüyor)
-- Yakıt maliyeti hesabını TEKRAR YAPMA (zaten kart üstünde gösterimi var)
-- Genel teori VERME (kullanıcı sayısal ipucu istiyor)
-- Sadece bu rota+uçak kombinasyonuna ÖZGÜ yorumlar yap
+- Yukarıdaki sayıları ASLA değiştirme. ${body.paybackDays || '?'} gün payback dersen ${body.paybackDays || '?'} de, "yaklaşık" deme.
+- Doluluk ${body.fillRatio || '?'} → %80+ ise "tam dolu uçuyor", %30-80 ise "kısmen dolu", <%30 zaten elenir.
+- Verim düşükse (<%2) "verimsiz, daha küçük/uygun fiyatlı uçak düşünülebilir" gibi alternatif öner.
+- Verim iyiyse (>%5) "iyi yatırım, X gün payback" olarak olumlu yorumla.
+- Koltuk/yakıt formülünü TEKRAR HESAPLAMA — kullanıcı zaten görüyor.
+- Genel teori VERME, sadece BU rota+uçak'a özgü yorum yap.
         `.trim();
       }
 

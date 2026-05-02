@@ -181,6 +181,15 @@ ROTA ANALİZİ TARZI:
 - 2-3 cümlelik özet + 2 somut tavsiye yeterli.
 - "Genel olarak", "ucuz çok uçak" gibi GENEL prensipler verme — sadece BU rotaya özgü yorum yap.
 
+SOHBET BAĞLAM YÖNETİMİ:
+- Tüm sohbet geçmişini (history) oku ve değerlendir.
+- Kullanıcının son mesajı önceki konuşmanın DEVAMI mı yoksa YENİ KONU mu, kendin tespit et:
+  - Sade sayı/kısa cevap (örn "3", "evet", "tamam"): muhtemelen önceki sorunun cevabıdır → eski bağlamı kullan, hesabı yap.
+  - Tamamen farklı soru (örn "kargo uçağımın koltuklarını nasıl config edeyim"): yeni konu → context'teki eski bütçe/slot bilgilerini GÖRMEZDEN GEL, sıfırdan değerlendir.
+  - Sınır vakası (belki ilgili belki değil): kullanıcıya tek cümle sor: "Bu önceki sorunla mı ilgili yoksa yeni bir konu mu?"
+- Context'te budget/availableSlots/airports gibi alanlar olabilir ama bunlar history'den de gelmiş olabilir. Yeni konuda bunlara güvenme.
+- Önceki sorduğun soruları tekrar etme. AI bir şey sorduysa kullanıcı cevapladıysa konu kapanmıştır, tekrar sorma.
+
 TAVIR:
 - KESİNLİKLE KISA: Çoğu cevap 60-100 kelime arası olmalı.
 - Karmaşık analiz gerekiyorsa max 150 kelime.
@@ -197,11 +206,17 @@ TAVIR:
 
       // Kullanıcı bağlamını system prompt'a ekle
       const userContext = body.context || {};
+      const slotInfo = (userContext.availableSlots !== null && userContext.availableSlots !== undefined)
+        ? `${userContext.availableSlots} (history veya mesajdan)`
+        : 'BİLİNMİYOR — kullanıcıya sor';
+      const budgetLine = userContext.budget
+        ? `\n- Bahsedilen bütçe: $${userContext.budget.toLocaleString('en-US')} (history veya mesajdan)`
+        : '';
       let contextBlock = `\n\nAKTIF KULLANICI BAĞLAMI:
 - Mevcut oyun modu: ${userContext.gameMode || 'realism'}
 - Yakıt fiyatı varsayımı: $${userContext.fuelPrice || 950}/1000lbs
 - Cost Index varsayımı: ${userContext.costIndex || 200}
-- Boş hangar slot: ${userContext.availableSlots || 'BİLİNMİYOR — kullanıcıya sor'}
+- Boş hangar slot: ${slotInfo}${budgetLine}
 - Günlük aktif yönetim limiti: 18 saat (uçak başına maks sefer = floor(18/cycle))`;
 
       if (userContext.planes && userContext.planes.length > 0) {

@@ -474,6 +474,22 @@ const UI = {
     }
 };
 
+// History'den eksik bilgileri (bütçe, slot, airports, planeType) son user mesajlarından geriye çıkarır
+function findInHistory(history, type) {
+    if (!history || history.length === 0) return null;
+    for (let i = history.length - 1; i >= 0; i--) {
+        const msg = history[i];
+        if (msg.role !== 'user') continue;
+        const text = msg.parts?.[0]?.text || '';
+        const ext = extractContextFromMessage(text);
+        if (type === 'budget' && ext.budget) return ext.budget;
+        if (type === 'slots' && ext.availableSlots) return ext.availableSlots;
+        if (type === 'airports' && ext.airports.length > 0) return ext.airports;
+        if (type === 'planeType' && ext.planeType) return ext.planeType;
+    }
+    return null;
+}
+
 /** --- AI SOHBET MODÜLÜ (CHAT) --- */
 const Chat = {
     /** sessionStorage anahtarı */
@@ -622,21 +638,24 @@ const Chat = {
             }
         }
 
-        // Akıllı bağlam filtreleme: bütçe/havalimanı/tip/sefer tespiti + ilgili veri ekleme
+        // History'i extracted'dan ÖNCE yükle ki findInHistory fallback'i çalışsın
+        const history = this.loadHistory();
+
+        // Akıllı bağlam filtreleme: bütçe/havalimanı/tip/sefer tespiti + history fallback
         const extracted = extractContextFromMessage(text);
-        const candidatePlanes = extracted.budget
-            ? getCandidatePlanes(extracted.budget, extracted.planeType)
-            : '';
-        const relevantRoutes = extracted.airports.length > 0
-            ? getRelevantRoutes(extracted.airports)
-            : '';
+
+        // History fallback: mesajda yoksa son user mesajlarından geriye doğru çıkar
+        const effectiveBudget = extracted.budget || findInHistory(history, 'budget');
+        const effectiveSlots = extracted.availableSlots || findInHistory(history, 'slots');
+        const effectiveAirports = extracted.airports.length > 0 ? extracted.airports : (findInHistory(history, 'airports') || []);
+        const effectiveType = extracted.planeType || findInHistory(history, 'planeType');
+
+        const candidatePlanes = effectiveBudget ? getCandidatePlanes(effectiveBudget, effectiveType) : '';
+        const relevantRoutes = effectiveAirports.length > 0 ? getRelevantRoutes(effectiveAirports) : '';
 
         // Kullanıcı mesajını ekrana bas
         this._appendMessage(text, 'user', false);
         input.value = '';
-
-        // Mevcut geçmişi al
-        const history = this.loadHistory();
 
         try {
             const response = await fetch("https://ai.airm4.workers.dev/", {
@@ -649,7 +668,9 @@ const Chat = {
                         gameMode: window.gameMode || 'realism',
                         fuelPrice: 950,
                         costIndex: 200,
-                        availableSlots: extracted.availableSlots,  // null olabilir, AI'a "kullanıcı belirtmemiş, sor" demek için
+                        availableSlots: effectiveSlots,
+                        planeType: effectiveType,
+                        budget: effectiveBudget,
                         planes: mentionedPlanes,
                         candidatePlanes: candidatePlanes,
                         relevantRoutes: relevantRoutes,

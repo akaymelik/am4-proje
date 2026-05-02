@@ -272,16 +272,17 @@
     // Auto-init: window load'da yükle, splash bekleme yok (background)
     window.addEventListener('load', () => {
         window.dataLoader.load().then(() => {
-            // Smoke test
             const dl = window.dataLoader;
             console.log('[dataLoader] hazır:', dl.airports.length, 'havalimanı,', dl.distances.length.toLocaleString(), 'mesafe');
-            const lhrJfk = dl.getDistance('LHR', 'JFK');
-            const demandLhrJfk = dl.getDemand('LHR', 'JFK');
-            console.log('[dataLoader] LHR→JFK distance:', lhrJfk, 'km');
-            console.log('[dataLoader] LHR→JFK demand:', demandLhrJfk);
-            // Bizim referans rota da test
-            const bzePtp = dl.getDemand('BZE', 'PTP');
-            console.log('[dataLoader] BZE→PTP demand (referans, beklenen y=2414/j=274/f=153):', bzePtp);
+            // Smoke test
+            console.log('[dataLoader] LHR→JFK distance:', dl.getDistance('LHR', 'JFK'), 'km');
+            console.log('[dataLoader] LHR→JFK demand:', dl.getDemand('LHR', 'JFK'));
+            console.log('[dataLoader] BZE→PTP demand (referans, beklenen y=2414/j=274/f=153):', dl.getDemand('BZE', 'PTP'));
+            // Hub autocomplete'ı 3907 havalimanına yükselt (ilk render fallback ile 157'de kalmıştı)
+            if (window.UI && window.UI.populateAirportList) {
+                window.UI.populateAirportList();
+                console.log('[dataLoader] Hub autocomplete 3907 havalimanına genişletildi');
+            }
         });
     });
 })();

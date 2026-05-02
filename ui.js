@@ -259,47 +259,86 @@ const UI = {
     },
 
     /**
-     * Hub autocomplete datalist'ini routes.js'teki tüm havalimanlarıyla doldurur (tek datalist iki input için).
+     * Hub autocomplete datalist'i. Öncelik: dataLoader (3907 havalimanı). Fallback: routes.js (157).
+     * dataLoader hazır olmadan çağrılırsa fallback'e düşer; load() resolve olduktan sonra tekrar çağrılınca tüm 3907'ye yükselir.
      */
     populateAirportList: function() {
         const datalist = document.getElementById('airportList');
-        if (!datalist || typeof popularRoutes === 'undefined') return;
+        if (!datalist) return;
+
+        // Öncelikli kaynak: dataLoader (3907 havalimanı, IST/SAW/ESB/AYT dahil)
+        if (window.dataLoader && window.dataLoader.isReady()) {
+            const fragment = document.createDocumentFragment();
+            for (const a of window.dataLoader.airports) {
+                const opt = document.createElement('option');
+                opt.value = `${a.name} (${a.iata}), ${a.country}`;
+                fragment.appendChild(opt);
+            }
+            datalist.innerHTML = '';
+            datalist.appendChild(fragment);
+            return;
+        }
+
+        // Fallback: routes.js'in popularRoutes'u (dataLoader yüklenene kadar 157 havalimanı)
+        if (typeof popularRoutes === 'undefined') return;
         const airports = new Set();
         popularRoutes.forEach(r => {
             airports.add(r.origin);
             airports.add(r.destination);
         });
-        const sorted = [...airports].sort();
-        datalist.innerHTML = sorted.map(a => `<option value="${a}">`).join('');
+        datalist.innerHTML = [...airports].sort().map(a => `<option value="${a}">`).join('');
     },
 
     /**
-     * Hub input'unu IATA koduna çözer. Sırası: datalist tam string → IATA upper → şehir adı → uzun-içeren → ambiguous.
+     * Hub input'unu IATA koduna çözer.
+     * Sıralama: datalist tam string → IATA upper (KNOWN + dataLoader) → routes.js cityToIata
+     *           → uzun-içeren → ambiguous → dataLoader.airports name match (3907)
      */
     resolveHub: function(input) {
         if (!input || !input.trim()) return null;
         const trimmed = input.trim();
+        const dl = (window.dataLoader && window.dataLoader.isReady()) ? window.dataLoader : null;
 
-        // 0. Datalist tam string match: "London Heathrow intl (LHR), United Kingdom" → LHR
+        // 0. Datalist tam string match: "X (LHR), Y" → LHR. KNOWN_IATA veya dataLoader üyeliği yeterli.
         const datalistMatch = trimmed.match(/\(([A-Z]{3})\)/);
-        if (datalistMatch && KNOWN_IATA.has(datalistMatch[1])) return datalistMatch[1];
+        if (datalistMatch) {
+            const iata = datalistMatch[1];
+            if (KNOWN_IATA.has(iata)) return iata;
+            if (dl && dl.iataToId.has(iata)) return iata;
+        }
 
-        // 1. ALL-CAPS 3-letter direkt IATA
+        // 1. ALL-CAPS 3-letter direkt IATA (KNOWN + dataLoader)
         const upper = trimmed.toUpperCase();
-        if (/^[A-Z]{3}$/.test(upper) && KNOWN_IATA.has(upper)) return upper;
+        if (/^[A-Z]{3}$/.test(upper)) {
+            if (KNOWN_IATA.has(upper)) return upper;
+            if (dl && dl.iataToId.has(upper)) return upper;
+        }
 
-        // 2. Şehir adı (normalize)
+        // 2. routes.js cityToIata — popüler 156 şehir alias'ı (Londra/Pekin/...)
         const norm = normalizeText(trimmed);
         if (cityToIata.has(norm)) return cityToIata.get(norm);
 
-        // 3. İçinde geçen (uzun-önce, en spesifik kazansın)
+        // 3. İçinde geçen (uzun-önce)
         const sorted = [...cityToIata.entries()].sort((a, b) => b[0].length - a[0].length);
         for (const [city, iata] of sorted) {
             if (norm.includes(city)) return iata;
         }
 
-        // 4. Ambiguous şehir (örn. "london" → [LGW, LHR], ilkini al)
+        // 4. Ambiguous şehir
         if (ambiguousCities.has(norm)) return ambiguousCities.get(norm)[0];
+
+        // 5. dataLoader.airports name/fullname/country match — 3907 havalimanı
+        if (dl) {
+            // Önce tam name eşleşme
+            for (const ap of dl.airports) {
+                if (normalizeText(ap.name) === norm) return ap.iata;
+            }
+            // Sonra includes (örn "Istanbul" → "Istanbul Ataturk International")
+            for (const ap of dl.airports) {
+                const apNorm = normalizeText(ap.name);
+                if (apNorm.includes(norm) || (norm.length >= 4 && norm.includes(apNorm))) return ap.iata;
+            }
+        }
 
         return null;
     },

@@ -381,7 +381,6 @@ const UI = {
             return;
         }
 
-        const top = bestPlanes[0];
         const efficiencyLabels = {
             1.0: 'Tam verim — 1-3 uçak, talep dolmuyor',
             0.8: '0.8x — 4-10 uçak, talep biraz paylaşılıyor',
@@ -389,16 +388,9 @@ const UI = {
             0.4: '0.4x — 21-30 uçak, talep tamamen doluyor'
         };
 
-        const summaryCard = `
-            <div class="plane-item" style="border-left:3px solid var(--primary); margin-bottom:12px;">
-                <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:6px;">${availableSlots} boş slot varsayımıyla</div>
-                <div style="color:var(--primary); font-weight:800; margin-bottom:8px;">💡 AI ÖNERİSİ</div>
-                <div style="font-size:0.95rem;">${top.fleetSize} adet <strong>${top.name}</strong> al →
-                    <strong>${top.bestRouteOrigin} ➔ ${top.bestRouteName}</strong> rotasında uçur.</div>
-                <div style="margin-top:6px; color:var(--text-muted); font-size:0.85rem;">
-                    Günlük <strong style="color:var(--success);">${Utils.formatCurrency(Math.round(top.totalDailyProfit))}</strong> kazanırsın.
-                    Bu uçak hem fiyatına göre verimli hem de bu rota filo büyüklüğünde optimal.
-                </div>
+        const slotBanner = `
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px; padding:8px 12px; background:var(--neutral-bg); border-radius:8px;">
+                ${availableSlots} boş slot için sıralı öneri
             </div>`;
 
         const planeCards = bestPlanes.map(p => `
@@ -422,7 +414,7 @@ const UI = {
             </div>
         `).join('');
 
-        resultDiv.innerHTML = summaryCard + planeCards;
+        resultDiv.innerHTML = slotBanner + planeCards;
     },
 
     /**

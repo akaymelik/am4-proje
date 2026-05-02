@@ -369,6 +369,31 @@ button:active {
     box-shadow: var(--shadow-sm);
 }
 
+/* --- BUDGET AI SECTION --- */
+.budget-ai-section {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 2px dashed var(--border);
+}
+.ai-budget-btn {
+    background: linear-gradient(135deg, var(--primary), #6366f1);
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+.ai-budget-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+}
+.ai-budget-btn:active { transform: translateY(0); }
+
 /* --- AI LOADER + animated typing dots --- */
 @keyframes pulseDot {
     0%, 60%, 100% { transform: scale(1); opacity: 0.5; }

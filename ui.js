@@ -688,7 +688,90 @@ const UI = {
             </div>
         `).join('');
 
-        resultDiv.innerHTML = slotBanner + planeCards;
+        const aiSection = `
+            <div class="budget-ai-section">
+                <button class="ai-budget-btn" onclick="UI.askGeminiForBudget('${cat}')">
+                    🤖 AI ile Stratejik Yorum Al
+                </button>
+                <div id="${cat}AiResult"></div>
+            </div>`;
+        resultDiv.innerHTML = slotBanner + planeCards + aiSection;
+    },
+
+    /**
+     * Bütçe sayfası için AI stratejik yorum — top 10 plane listesini Worker'a gönderir,
+     * AI hangi uçaktan kaç adet alınacağı + neden + alternatif yorumlar.
+     */
+    askGeminiForBudget: async function(cat) {
+        const workerUrl = "https://ai.airm4.workers.dev/";
+        const resultArea = document.getElementById(cat + 'AiResult');
+        if (!resultArea) return;
+
+        const budget = Number(document.getElementById(cat + 'BudgetInput')?.value);
+        const slotsInput = document.getElementById(cat + 'SlotsInput');
+        const tripsInput = document.getElementById(cat + 'TripsInput');
+        const slots = slotsInput?.value ? Number(slotsInput.value) : 3;
+        const trips = tripsInput?.value ? Number(tripsInput.value) : null;
+        const planeType = cat === 'pax' ? 'passenger' : 'cargo';
+
+        if (!budget || budget <= 0) {
+            resultArea.innerHTML = '<div class="status-box status-danger">Önce geçerli bir bütçe gir, sonra "Bul" tıkla.</div>';
+            return;
+        }
+
+        const bestPlanes = Logic.getBestPlanesByType(budget, planeType, trips, slots);
+        if (bestPlanes.length === 0) {
+            resultArea.innerHTML = '<div class="status-box status-neutral">Bu bütçeye uygun uçak yok, AI yorumu yapılamadı.</div>';
+            return;
+        }
+
+        // Loader + anında scroll (askGemini ile aynı pattern)
+        resultArea.innerHTML = `
+            <div id="aiLoader">
+                <span>🤖 MENOA Stratejik Analiz Yapıyor</span>
+                <div class="loader-dots"><span></span><span></span><span></span></div>
+            </div>`;
+        requestAnimationFrame(() => {
+            const targetY = resultArea.getBoundingClientRect().top + window.pageYOffset - 90;
+            window.scrollTo({ top: targetY, behavior: 'smooth' });
+        });
+
+        // Top 10 listeyi worker.js'in beklediği pipe formata çevir
+        const candidatesText = bestPlanes.map(p => {
+            const plane = aircraftData[p.name];
+            return `${p.name}|${plane.type}|${plane.capacity}|${plane.cruise_speed}|${plane.fuel_consumption}|${plane.range}|${plane.price}|${Math.round(p.dailyProfit)}`;
+        }).join('\n');
+
+        const userMessage = `Bütçem $${budget.toLocaleString('en-US')}, ${slots} boş slot, ${planeType === 'passenger' ? 'yolcu' : 'kargo'} uçağı arıyorum. Sayfa hesabı bana ADAY UÇAKLAR listesini verdi (top 10, daily_profit'e göre sıralı). Hangi uçaklardan kaç adet alayım, neden? Stratejik analiz yap.`;
+
+        try {
+            const response = await fetch(workerUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatMessage: userMessage,
+                    history: [],
+                    context: {
+                        gameMode: window.gameMode || 'realism',
+                        fuelPrice: window.FUEL_PRICE || 950,
+                        costIndex: (window.COST_INDEX != null) ? window.COST_INDEX : 200,
+                        availableSlots: slots,
+                        planeType: planeType,
+                        budget: budget,
+                        candidatePlanes: candidatesText
+                    }
+                })
+            });
+            const data = await response.json();
+            resultArea.innerHTML = `
+                <div class="ai-report-card">
+                    <h4 style="color:var(--primary); margin-bottom:10px;">🤖 MENOA AI STRATEJİK ANALİZ</h4>
+                    <div id="${cat}TypingArea" style="font-size:0.9rem; line-height:1.6;"></div>
+                </div>`;
+            this.typeEffect(document.getElementById(cat + 'TypingArea'), data.text || 'Yanıt alınamadı.');
+        } catch (error) {
+            resultArea.innerHTML = `<div class="status-box status-danger">Hata: ${error.message}</div>`;
+        }
     },
 
     /**

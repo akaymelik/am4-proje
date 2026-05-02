@@ -88,9 +88,11 @@ const Logic = {
 
     /**
      * Unified rota analizi — tek kaynak: dataLoader.
-     *  - hubIata varsa: o hub'tan tüm 3906 destinasyona scan
-     *  - hubIata yoksa: top 30 hub (market değerine göre) × tüm destinasyonlar
-     * dataLoader hazır değilse boş döner (eski popularRoutes fallback'i kaldırıldı).
+     *  - hubIata varsa: o hub'tan tüm 3906 destinasyona scan (~30ms)
+     *  - hubIata yoksa: top 5 hub × tüm destinasyonlar = ~20K iter/plane
+     * Top 5 hub seçimi: getBestPlanesByType binlerce plane × global scan donduruyordu (32M iter).
+     * 5 hub majör havalimanlarını kapsar, getBestPlanesByType için yeterli; rota analizi
+     * sayfasında kullanıcı zaten hub seçiyor, hub'sız global mod nadir kullanım.
      */
     analyzeTopRoutesForPlane: function(planeName, limit = 10, manualTrips = null, hubIata = null) {
         const plane = aircraftData[planeName];
@@ -108,7 +110,7 @@ const Logic = {
                 this._evalRoute(plane, hub, dest, manualTrips, results);
             }
         } else {
-            const topHubs = dl.getTopHubs(30);
+            const topHubs = dl.getTopHubs(5);
             for (const hubInfo of topHubs) {
                 const hub = dl.airports[hubInfo.pos];
                 for (const dest of dl.airports) {

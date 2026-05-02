@@ -57,14 +57,28 @@ function extractContextFromMessage(text) {
         if (groupedMatch) result.budget = parseInt(groupedMatch[0].replace(/[.,]/g, ''), 10);
     }
 
-    // HAVALIMANI — sadece ALL-CAPS 3-letter token (DEN/TAN/ILE gibi Türkçe kelimeler false positive üretmesin)
-    // Lowercase yazımlar şehir adı whitelist'i ile yakalanır
+    // HAVALIMANI — apostrof split (LHR'den → "LHR" "den") + uppercase + Türkçe ek filtresi.
+    // "LHR'den" yazımında DEN (Denver IATA) false positive olarak yakalanmasın.
+    const TR_SUFFIXES = new Set([
+        'DEN', 'DAN', 'TEN', 'TAN',           // ablative (-den/-dan/-ten/-tan)
+        'NIN', 'NUN', 'NÜN', 'NIN',           // genitive (-nin/-nun)
+        'CAK', 'CEK',                          // future (-cak/-cek)
+        'YOR', 'BIZ', 'SIZ',                   // common Turkish 3-letter tokens
+        'ROP'                                  // reported false positive
+    ]);
     const seen = new Set();
+    // Apostrof'u boşluğa çevir, sonra uppercase'le, sonra 3-harf ALL-CAPS yakala
+    const upperText = text.replace(/[''`]/g, ' ').toUpperCase();
     const tokenRe = /\b[A-Z]{3}\b/g;
     let tm;
-    while ((tm = tokenRe.exec(text)) !== null) {
+    while ((tm = tokenRe.exec(upperText)) !== null) {
         const upper = tm[0];
-        if (KNOWN_IATA.has(upper) && !seen.has(upper)) {
+        if (TR_SUFFIXES.has(upper)) continue;
+        if (seen.has(upper)) continue;
+        // KNOWN_IATA (routes.js eski) veya dataLoader.iataToId (3907) üyeliği şart
+        const inKnown = KNOWN_IATA.has(upper);
+        const inDl = window.dataLoader && window.dataLoader.iataToId && window.dataLoader.iataToId.has(upper);
+        if (inKnown || inDl) {
             seen.add(upper);
             result.airports.push(upper);
         }
@@ -149,9 +163,11 @@ function getHubAnalysisContext(hubIata, planeType, budget, slotsAvailable) {
         const p = aircraftData[name];
         if (planeType && p.type !== planeType) continue;
         if (budget && p.price > budget) continue;
-        const routes = Logic.analyzeTopRoutesForPlane(name, 1, null, hubIata);
+        // Top 5 rota al, ilk ≥500km olanı seç (ATR 42 → STN 66km gibi anlamsız "feeder" rotaları atla)
+        const routes = Logic.analyzeTopRoutesForPlane(name, 5, null, hubIata);
         if (routes.length === 0) continue;
-        const r = routes[0];
+        const r = routes.find(rt => rt.distance >= 500) || routes[0];
+        if (!r) continue;
         const destIataMatch = r.destination.match(/\(([A-Z]{3})\)/);
         candidates.push({
             name,
@@ -180,7 +196,12 @@ function getHubAnalysisContext(hubIata, planeType, budget, slotsAvailable) {
         top = fleet.slice(0, 10);
         headerExtras.push(`bütçe $${(budget/1e6).toFixed(0)}M`, `${slotsAvailable} slot`);
     } else {
-        candidates.sort((a, b) => b.efficiency - a.efficiency);
+        // Genel: günlük kâr (mutlak) öncelik, 50K aralığında verim tie-breaker
+        // (ATR 42 %315 verimle $120K vs DC-10-10 %20 verimle $1.4M → DC-10 üstte)
+        candidates.sort((a, b) => {
+            if (Math.abs(a.dailyProfit - b.dailyProfit) > 50000) return b.dailyProfit - a.dailyProfit;
+            return b.efficiency - a.efficiency;
+        });
         top = candidates.slice(0, 10);
         if (budget) headerExtras.push(`bütçe $${(budget/1e6).toFixed(0)}M`);
     }

@@ -76,8 +76,14 @@ SEFER SAYISI HESABI:
 - Easy modda uçak hızı 4x artar, turnaround sabit kalır — bu nedenle sefer sayısı yaklaşık 3x artar
 
 MALİYET FORMÜLLERİ:
-- Yakıt: ceil(mesafe, 2) x 950 x (200/500 + 0.6) x yakıt_tüketimi / 1000
-  (950 = FUEL_PRICE $/1000lbs varsayılan, 200 = Cost Index varsayılan)
+- Yakıt = ceil(mesafe, 2) x FUEL_PRICE x (CI/500 + 0.6) x yakıt_tüketimi / 1000
+  - mesafe: km cinsinden rota uzunluğu
+  - FUEL_PRICE: $/1000lbs cinsinden yakıt fiyatı (varsayılan 950)
+  - CI: Cost Index (varsayılan 200), formülde: 200/500 + 0.6 = 1.0
+  - yakıt_tüketimi: planes.js sabit değeri, mesafe başına tüketim katsayısı (saatlik DEĞİL)
+  - Sonuç: tek bir sefer için toplam yakıt maliyeti, dolar cinsinden
+  - Örnek: A320-200 (yakıt_tüketimi=11.55) ile 2500km Realism'de:
+    2500 x 950 x 1.0 x 11.55 / 1000 = $27,431
 - Personel (yolcu): (kapasite x 8 + 250) / sefer_sayısı
 - Personel (kargo): (kapasite x 0.012 + 250) / sefer_sayısı
 - Bakım: uçuş_süresi x (uçak_fiyatı x 0.00006) + (uçak_fiyatı x 0.00001)
@@ -105,6 +111,12 @@ STRATEJİK İPUÇLARI:
 - Cost Index düşürmek yakıt maliyetini azaltır ama uçuş süresi uzar ve sefer sayısı düşer
 - 8 saatlik rotalar günde 3 sefer, 12 saatlik rotalar günde 2 sefer için idealdir (gap bırakmaz)
 
+VERİ KULLANIM KURALI (ÇOK ÖNEMLİ):
+- "BAHSEDİLEN UÇAKLARIN VERİSİ" bölümü varsa MUTLAKA o değerleri kullan, asla tahmin etme.
+- Hiçbir zaman "varsayılan olarak X alalım" veya "yaklaşık X" deme — veri verilmişse o veriyi kullan.
+- Uçak verisi yoksa "Bu uçağın verisine sahip değilim, hız/tüketim bilgisini paylaşır mısın?" de.
+- Cost Index ve yakıt fiyatı "AKTİF KULLANICI BAĞLAMI"ndan gelir, kendiliğinden uydurma.
+
 TAVIR:
 - Net, teknik, kısa cevaplar ver.
 - Sayısal hesap istenirse formülü adım adım uygula ve sonucu göster.
@@ -114,10 +126,18 @@ TAVIR:
 
       // Kullanıcı bağlamını system prompt'a ekle
       const userContext = body.context || {};
-      const contextBlock = `\n\nAKTIF KULLANICI BAĞLAMI:
+      let contextBlock = `\n\nAKTIF KULLANICI BAĞLAMI:
 - Mevcut oyun modu: ${userContext.gameMode || 'realism'}
 - Yakıt fiyatı varsayımı: $${userContext.fuelPrice || 950}/1000lbs
 - Cost Index varsayımı: ${userContext.costIndex || 200}`;
+
+      if (userContext.planes && userContext.planes.length > 0) {
+        contextBlock += "\n\nBAHSEDİLEN UÇAKLARIN VERİSİ (kesin değerler, varsayım yapma):";
+        userContext.planes.forEach(p => {
+          contextBlock += `\n- ${p.name}: tip=${p.type}, kapasite=${p.capacity}, hız=${p.cruise_speed} km/h, yakıt_tüketimi=${p.fuel_consumption} (mesafe başına tüketim katsayısı, saatlik DEĞİL), menzil=${p.range} km, fiyat=$${p.price.toLocaleString()}`;
+        });
+      }
+
       const finalSystemInstruction = systemInstruction + contextBlock;
 
       // Sohbet geçmişini al, yoksa boş başlat

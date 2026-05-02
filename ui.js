@@ -344,6 +344,26 @@ const Chat = {
         const text = input?.value.trim();
         if (!text) return;
 
+        // Mesajda geçen uçakları tespit et
+        const mentionedPlanes = [];
+        if (typeof aircraftData !== 'undefined') {
+            for (let name in aircraftData) {
+                const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                if (new RegExp(`\\b${escaped}\\b`, 'i').test(text)) {
+                    const p = aircraftData[name];
+                    mentionedPlanes.push({
+                        name: name,
+                        type: p.type,
+                        capacity: p.capacity,
+                        cruise_speed: p.cruise_speed,
+                        fuel_consumption: p.fuel_consumption,
+                        range: p.range,
+                        price: p.price
+                    });
+                }
+            }
+        }
+
         // Kullanıcı mesajını ekrana bas
         this._appendMessage(text, 'user', false);
         input.value = '';
@@ -361,7 +381,8 @@ const Chat = {
                     context: {
                         gameMode: window.gameMode || 'realism',
                         fuelPrice: 950,
-                        costIndex: 200
+                        costIndex: 200,
+                        planes: mentionedPlanes
                     }
                 })
             });

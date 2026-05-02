@@ -78,7 +78,7 @@ const Logic = {
         return results.sort((a, b) => b.dailyProfit - a.dailyProfit).slice(0, limit);
     },
 
-    getBestPlanesByType: function(budget, type, manualTrips = null) {
+    getBestPlanesByType: function(budget, type, manualTrips = null, availableSlots = MAX_FLEET_SIZE) {
         let candidates = [];
         const budgetNum = Number(budget);
         for (let name in aircraftData) {
@@ -86,7 +86,7 @@ const Logic = {
             if (p.price <= budgetNum && p.type === type) {
                 const topRes = this.analyzeTopRoutesForPlane(name, 1, manualTrips);
                 if (topRes.length > 0) {
-                    const fleetSize = Math.min(Math.floor(budgetNum / p.price), MAX_FLEET_SIZE);
+                    const fleetSize = Math.min(Math.floor(budgetNum / p.price), MAX_FLEET_SIZE, availableSlots);
                     const fleetEfficiency = fleetSize <= 3 ? 1.0 : fleetSize <= 10 ? 0.8 : fleetSize <= 20 ? 0.6 : 0.4;
                     const totalDailyProfit = fleetSize * topRes[0].dailyProfit * fleetEfficiency;
                     candidates.push({

@@ -59,6 +59,8 @@
         <h2>Yolcu: Bütçe Odaklı Öneriler</h2>
         <label>Yatırım Bütçeniz ($):</label>
         <input type="number" id="paxBudgetInput" placeholder="Örn: 50.000.000">
+        <label>Hangar Slot (boş yer sayısı):</label>
+        <input type="number" id="paxSlotsInput" placeholder="Örn: 3" min="1" max="30" value="3">
         <label>Günlük sefer sayısı (boş bırakırsan maksimum kullanılır):</label>
         <input type="number" id="paxTripsInput" placeholder="Örn: 2" min="1">
         <button onclick="UI.renderSuggestions('pax')">En Verimli Uçakları Bul</button>
@@ -91,6 +93,8 @@
         <h2>Kargo: Bütçe Odaklı Öneriler</h2>
         <label>Yatırım Bütçeniz ($):</label>
         <input type="number" id="cargoBudgetInput" placeholder="Örn: 100.000.000">
+        <label>Hangar Slot (boş yer sayısı):</label>
+        <input type="number" id="cargoSlotsInput" placeholder="Örn: 3" min="1" max="30" value="3">
         <label>Günlük sefer sayısı (boş bırakırsan maksimum kullanılır):</label>
         <input type="number" id="cargoTripsInput" placeholder="Örn: 2" min="1">
         <button onclick="UI.renderSuggestions('cargo')">En Verimli Uçakları Bul</button>

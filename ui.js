@@ -364,15 +364,17 @@ const UI = {
     renderSuggestions: function(cat) {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
         const tripsInput = document.getElementById(cat + 'TripsInput');
+        const slotsInput = document.getElementById(cat + 'SlotsInput');
         const budget = Number(budgetInput?.value);
         const manualTrips = tripsInput?.value ? Number(tripsInput.value) : null;
+        const availableSlots = slotsInput?.value ? Number(slotsInput.value) : 3;
         const resultDiv = document.getElementById(cat + 'PlaneResult');
         if (!budget || budget <= 0) {
             if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Lütfen geçerli bir bütçe giriniz.</div>';
             return;
         }
 
-        const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo', manualTrips);
+        const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo', manualTrips, availableSlots);
 
         if (bestPlanes.length === 0) {
             resultDiv.innerHTML = '<div class="status-box status-neutral">Bu bütçeye uygun uçak bulunamadı.</div>';
@@ -389,6 +391,7 @@ const UI = {
 
         const summaryCard = `
             <div class="plane-item" style="border-left:3px solid var(--primary); margin-bottom:12px;">
+                <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:6px;">${availableSlots} boş slot varsayımıyla</div>
                 <div style="color:var(--primary); font-weight:800; margin-bottom:8px;">💡 AI ÖNERİSİ</div>
                 <div style="font-size:0.95rem;">${top.fleetSize} adet <strong>${top.name}</strong> al →
                     <strong>${top.bestRouteOrigin} ➔ ${top.bestRouteName}</strong> rotasında uçur.</div>

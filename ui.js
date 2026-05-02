@@ -649,7 +649,7 @@ const Chat = {
                         gameMode: window.gameMode || 'realism',
                         fuelPrice: 950,
                         costIndex: 200,
-                        availableSlots: extracted.availableSlots || 3,
+                        availableSlots: extracted.availableSlots,  // null olabilir, AI'a "kullanıcı belirtmemiş, sor" demek için
                         planes: mentionedPlanes,
                         candidatePlanes: candidatePlanes,
                         relevantRoutes: relevantRoutes,

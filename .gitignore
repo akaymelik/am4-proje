@@ -1,6 +1,9 @@
 # Parquet cache (~85 MB, abc8747/am4'ten indirilen, deploy'a gerek yok)
 _parquet_cache/
 
+# am4-cc.pages.dev reverse-engineering bundle dump (lokal araştırma artefaktı)
+_am4cc_dump/
+
 # Eski export dizini (artık data/ kullanılıyor)
 data_export/
 

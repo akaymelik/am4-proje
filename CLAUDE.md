@@ -34,7 +34,7 @@ This order is load-order-dependent — later scripts rely on globals defined by 
 ### Data Layer
 
 - **`planes.js`** — ~400 aircraft objects with `type` (pax/cargo), capacity fields, fuel consumption, range, cruise speed, price
-- **`routes.js`** — 150+ route objects with origin, destination, distance, and demand fields (`y`/`j`/`f` for passenger, `c` for cargo). **Note: cargo routes do not have a `demand.c` field — cargo route analysis is currently broken and non-functional.**
+- **`dataLoader.js`** — `dataLoader.getDemand(iata1, iata2)` returns `{y, j, f, l, h}`. Pax demand (`y/j/f`) comes from bit-packed parquet chunks; cargo demand is derived from pax inside `getDemand` itself: `l = round(y/2)*1000` lbs, `h = j*1000` lbs (am4-cc `demand.cpp` formula). There is no separate cargo demand source. (Note: `routes.js` is deprecated and removed; all route data now flows through `dataLoader`.)
 
 ### Business Logic
 
@@ -132,7 +132,6 @@ Formulas sourced from `cathaypacific8747/am4` (formulae.md). Easy and Realism us
 
 - [ ] **AI internet bağlantısı** — kullanıcı bilmediği konu sorduğunda "araştırabilirim ama doğruluğundan emin olamam" desin, onay verirse Google Search tool aktif olsun.
 - [ ] **Kullanıcı CI/fuel_price input'u** — `COST_INDEX` ve `FUEL_PRICE` şu an `logic.js`'de sabit; anasayfaya 2 input eklenmeli.
-- [ ] **Kargo rota demand verisi** — `routes.js`'de kargo rotalarında `demand.c` alanı eksik; kargo analizi şu an çalışmıyor.
 - [ ] **Chat'e "Geçmişi Temizle" butonu** — sessionStorage'taki `menoa_chat_history` anahtarını sıfırlasın.
 - [~] **Talep paylaşımı modeli** — kısmen tamamlandı: filo büyüklüğüne göre verim katsayısı (0.4×–1.0×) eklendi. Açık soru: günlük toplam talebin sefer sayısına bölünmesi doğru mu? Talep her sefer bağımsız mı oluşuyor?
 

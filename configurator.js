@@ -29,16 +29,13 @@ const Configurator = {
     },
 
     /**
-     * Kargo yükünü optimize eder (Ağır yük öncelikli).
-     * İki format desteklenir:
-     *  - Legacy: route.demand.c (toplam) → %30 H / %70 L split
-     *  - Yeni:   route.demand.l ve route.demand.h (am4-cc demand.cpp formülü) → doğrudan kullanılır
+     * Kargo yükünü optimize eder. calculateOptimalSeats'le paralel mantık:
+     * demand.l ve demand.h ayrı kullanılır, sınıf bazlı bağımsız allocation.
+     * Cargo demand dataLoader.getDemand içinde pax y/j'den türetilir
+     * (l = round(y/2)*1000 lbs, h = j*1000 lbs — am4-cc demand.cpp formülü).
      */
     calculateOptimalCargo: function(plane, route, manualTrips = null) {
-        if (!route.demand) return { l: 0, h: 0 };
-        const hasLegacy = !!route.demand.c;
-        const hasNew = !!(route.demand.l || route.demand.h);
-        if (!hasLegacy && !hasNew) return { l: 0, h: 0 };
+        if (!route.demand || (!route.demand.l && !route.demand.h)) return { l: 0, h: 0 };
 
         const airTime = Logic.calculateFlightTime(route.distance, plane.cruise_speed);
         const cycleTime = airTime + 0.5;
@@ -47,17 +44,8 @@ const Configurator = {
 
         if (trips <= 0) return { l: 0, h: 0 };
 
-        let demandH, demandL;
-        if (hasNew) {
-            // dataLoader formülünden geliyor: l ve h ayrı saklı
-            demandL = Math.floor((route.demand.l || 0) / trips);
-            demandH = Math.floor((route.demand.h || 0) / trips);
-        } else {
-            // Legacy: total c, AM4 pazar oranı %30 H / %70 L
-            const perFlightDemand = Math.floor(route.demand.c / trips);
-            demandH = Math.floor(perFlightDemand * 0.3);
-            demandL = perFlightDemand - demandH;
-        }
+        const demandL = Math.floor((route.demand.l || 0) / trips);
+        const demandH = Math.floor((route.demand.h || 0) / trips);
 
         // Kanonik kapasite mekaniği (abc8747 route.cpp `update_cargo_details`):
         //   - Heavy: 1 lbs = 1 slot (baseline, training yok)

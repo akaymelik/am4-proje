@@ -33,8 +33,7 @@ const Logic = {
         let grossRevenue = 0;
 
         if (plane.type === "cargo") {
-            // Cargo demand var mı? Legacy (c) veya yeni (l/h) format
-            const hasCargo = route.demand && (route.demand.c || route.demand.l || route.demand.h);
+            const hasCargo = route.demand && (route.demand.l || route.demand.h);
             if (!hasCargo) return { profitPerFlight: 0 };
             const opt = Configurator.calculateOptimalCargo(plane, route, trips);
             grossRevenue = (opt.l * prices.l) + (opt.h * prices.h);

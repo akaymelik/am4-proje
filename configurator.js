@@ -170,18 +170,19 @@ const Configurator = {
      * Easy/Realism formülleri AM4 formulae.md (cathaypacific8747) kaynaklı.
      * Autoprice multiplier (Y×1.10, J×1.08, F×1.06, L×1.10, H×1.08) community
      * standardı — autoprice taban × optimal çarpan default olarak uygulanır.
+     * Cargo: kanonik form `floor(autoprice * raw) / 100` ($/lbs üretir).
+     * Kaynak: am4-cc.pages.dev `Vt` + abc8747/am4 src/am4/utils/cpp/ticket.cpp.
      */
     getTicketMultipliers: function(distance) {
-        // Yolcu fiyatları kişi başına ($/pax). Easy ve Realism farkı pax katsayılarında.
-        // Kargo fiyatları AM4 formulae.md'de $/1000lbs cinsinden tanımlı.
-        // demand.l/h ve plane.capacity lbs cinsinden olduğundan birim uyumu için 1000'e böl ($/lbs).
+        // Yolcu fiyatları kişi başına ($/pax) — direct. Easy ve Realism farkı pax katsayılarında.
+        // Kargo ham formülü cents/lbs üretir; floor öncesi optimal çarpan, sonra /100 ile $/lbs.
         if (window.gameMode === 'easy') {
             return {
                 y: ((0.4 * distance) + 170) * 1.10,
                 j: ((0.8 * distance) + 560) * 1.08,
                 f: ((1.2 * distance) + 1200) * 1.06,
-                l: (((0.0948283724581252 * distance) + 85.2045432642377) / 1000) * 1.10,
-                h: (((0.0689663577640275 * distance) + 28.2981124272893) / 1000) * 1.08
+                l: Math.floor(1.10 * ((0.0948283724581252 * distance) + 85.2045432642377)) / 100,
+                h: Math.floor(1.08 * ((0.0689663577640275 * distance) + 28.2981124272893)) / 100
             };
         }
         // Realism (varsayılan)
@@ -189,8 +190,8 @@ const Configurator = {
             y: ((0.3 * distance) + 150) * 1.10,
             j: ((0.6 * distance) + 500) * 1.08,
             f: ((0.9 * distance) + 1000) * 1.06,
-            l: (((0.0776321822039374 * distance) + 85.0567600367807) / 1000) * 1.10,
-            h: (((0.0517742799409248 * distance) + 24.6369915396414) / 1000) * 1.08
+            l: Math.floor(1.10 * ((0.0776321822039374 * distance) + 85.0567600367807)) / 100,
+            h: Math.floor(1.08 * ((0.0517742799409248 * distance) + 24.6369915396414)) / 100
         };
     }
 };

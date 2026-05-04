@@ -59,10 +59,16 @@ const Configurator = {
             demandL = perFlightDemand - demandH;
         }
 
+        // Kanonik kapasite mekaniği (abc8747 route.cpp `update_cargo_details`):
+        //   - Heavy: 1 lbs = 1 slot (baseline, training yok)
+        //   - Light: 1 lbs = 1/0.7 slot (yani aynı slot sayısı için L lbs daha az)
+        //   - Constraint: h_lbs + l_lbs / 0.7 <= capacity
+        // Allocation: H önce (slot başına daha çok lbs), L kalan slotlara × 0.7 ile sığar.
+        const L_CAP_FACTOR = 0.7;
         let remCap = plane.capacity;
         let sH = Math.min(demandH, remCap);
         remCap -= sH;
-        let sL = Math.min(demandL, remCap);
+        let sL = Math.min(demandL, Math.floor(remCap * L_CAP_FACTOR));
 
         return { l: sL, h: sH };
     },

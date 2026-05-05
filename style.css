@@ -340,6 +340,15 @@ button:active {
     color: var(--primary);
 }
 
+/* İDEAL altında bilet fiyatı satırı (Configurator.getTicketMultipliers) */
+.ticket-line {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+}
+
 .action-buttons {
     display: flex;
     gap: 8px;

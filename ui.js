@@ -909,6 +909,12 @@ const UI = {
                 ? Configurator.calculateOptimalSeats(plane, r, r.dailyTrips)
                 : Configurator.calculateOptimalCargo(plane, r, r.dailyTrips);
 
+            // Bilet fiyatları (autoprice + Easy/Realism otomatik) — sadece görsel, hesabı etkilemez.
+            const tm = Configurator.getTicketMultipliers(r.distance);
+            const ticketStr = plane.type === 'passenger'
+                ? `BİLET: Y:$${Math.round(tm.y).toLocaleString('en-US')} J:$${Math.round(tm.j).toLocaleString('en-US')} F:$${Math.round(tm.f).toLocaleString('en-US')}`
+                : `BİLET (1 lbs): L:$${tm.l.toFixed(2)} H:$${tm.h.toFixed(2)}`;
+
             card.innerHTML = `
                 <div class="route-header">
                     <div class="route-info">
@@ -930,6 +936,7 @@ const UI = {
                 <div class="suggestion-bar">
                     <div class="ideal-config">
                         İDEAL: ${cat === 'pax' ? `Y:${opt.y} J:${opt.j} F:${opt.f}` : `L:${opt.l} H:${opt.h}`}
+                        <div class="ticket-line">${ticketStr}</div>
                     </div>
                     <div class="action-buttons">
                         <button class="ai-btn-small" onclick="UI.askGemini('${planeName}', ${JSON.stringify(r).replace(/\"/g, '&quot;')})">🤖 AI</button>

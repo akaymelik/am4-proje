@@ -72,13 +72,15 @@ const Logic = {
 
         const ceilDist = Math.ceil(route.distance / 2) * 2;
         const fuelCost = ceilDist * getFuelPrice() * (getCostIndex() / 500 + 0.6) * plane.fuel_consumption / 1000;
-        const staffCost = plane.type === "cargo"
-            ? (plane.capacity * 0.012 + 250) / trips
-            : (plane.capacity * 8 + 250) / trips;
+        // Per-flight staff cost YOK (Fix #5):
+        //  - AM4 oyun gider raporunda uçak/sefer başına staff salary satırı yok (kullanıcı gözlemi).
+        //  - Kanonik kaynaklar (am4-cc, abc8747) staff'ı route profit zincirinde modellemiyor.
+        //  - Şirket geneli personel maaşları (CEO, mekanik, yer hizmetleri, kabin) ayrı konu —
+        //    UI'a açılmıyor (kullanıcı kararı: input yorgunluğu, değişken maliyet, ileride üyelik ile).
         const maintenanceCost = this.calculateMaintenanceCost(plane, route.distance);
-        
+
         return {
-            profitPerFlight: grossRevenue - (fuelCost + staffCost + maintenanceCost),
+            profitPerFlight: grossRevenue - (fuelCost + maintenanceCost),
             appliedTrips: trips,
             duration: airTime
         };

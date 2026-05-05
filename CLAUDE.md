@@ -40,7 +40,7 @@ This order is load-order-dependent — later scripts rely on globals defined by 
 
 - **`logic.js`** — Core profit engine:
   - `calculateFlightTime(distance, speed)` — distance / speed
-  - `calculateProfit(plane, route, config, manualTrips)` — revenue minus fuel/staff/maintenance costs; trips/day = `24 / (flight_time + 0.5)`; `manualTrips` overrides the automatic maximum
+  - `calculateProfit(plane, route, config, manualTrips)` — revenue minus fuel/maintenance costs; trips/day = `24 / (flight_time + 0.5)`; `manualTrips` overrides the automatic maximum
   - `analyzeTopRoutesForPlane(plane, limit, manualTrips)` — ranks all routes by daily profit for a given aircraft
   - `getBestPlanesByType(budget, type, manualTrips)` — filters planes by budget and type, returns top 10 sorted by `totalDailyProfit` (fleet-based ranking)
 
@@ -129,6 +129,7 @@ modeMult           = (Easy ? 1.0 : 2.0)        // Realism A-check 2× pahalı
 ### Sabit Kararlar (formül seçimleri)
 
 - **A-check kanonik formül, repair komponenti hariç.** Maintenance hesabı sadece A-check'i içerir; cpp'deki per-flight repair simülasyonu ekonomik amortizasyon olarak değerlendirilip dışarıda bırakıldı (gerekçe: gerçek oyun mekaniğinde wear A-check'te temizlenir; `formulae.md` "Untested on realism"). Detay: yukarıdaki "Maintenance (A-check)" bölümü.
+- **Per-flight staff cost yok.** Profit formülünde uçak/sefer başına personel maaşı düşülmez. Gerekçe: kullanıcı oyun gözleminde uçak gider raporunda staff satırı yok; kanonik kaynaklar (am4-cc, abc8747) staff'ı route profit zincirinde modellemiyor. Şirket geneli personel (CEO, mekanik, yer hizmetleri, kabin) UI'a açılmıyor — kullanıcı kararı: input yorgunluğu + değişken maliyet, ileride üyelik/profil ile.
 
 ## Sıradaki Yapılacaklar
 

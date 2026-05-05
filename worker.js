@@ -89,8 +89,7 @@ MALİYET FORMÜLLERİ:
   - Sonuç: tek bir sefer için toplam yakıt maliyeti, dolar cinsinden
   - Örnek: A320-200 (yakıt_tüketimi=11.55) ile 2500km Realism'de:
     2500 x 950 x 1.0 x 11.55 / 1000 = $27,431
-- Personel (yolcu): (kapasite x 8 + 250) / sefer_sayısı
-- Personel (kargo): (kapasite x 0.012 + 250) / sefer_sayısı
+- Per-flight personel maliyeti YOK: AM4 oyun gider raporunda uçak/sefer başına staff salary satırı yok; kanonik kaynaklar (am4-cc, abc8747) staff'ı route profit zincirinde modellemiyor. Şirket geneli personel (CEO, mekanik, yer hizmetleri, kabin) ayrı konu, formülde değil.
 - Bakım: uçuş_süresi x (uçak_fiyatı x 0.00006) + (uçak_fiyatı x 0.00001)
   (ilk terim A-check uçuş başına, ikinci terim D-check sabit günlük amortisman)
 

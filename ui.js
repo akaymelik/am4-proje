@@ -903,9 +903,14 @@ const UI = {
                         <small style="color:var(--secondary);">${r.distance} km | ${r.dailyTrips} Sefer / Gün</small>
                     </div>
                     <div class="route-stats">
-                        <div class="profit-val">${Utils.formatCurrency(r.dailyProfit)}/G</div>
                         <div class="efficiency-tag">Yatırım Verimi: ${Utils.formatPercent(r.efficiency)} (~${Math.ceil(100 / r.efficiency)} gün payback)</div>
                     </div>
+                </div>
+                <div class="route-breakdown">
+                    <div class="revenue-line">+ Sefer başı gelir: ${Utils.formatCurrency(r.revenuePerFlight)}</div>
+                    <div class="cost-line">− Sefer başı gider: ${Utils.formatCurrency(r.costPerFlight)}</div>
+                    <div class="revenue-line">+ Günlük gelir: ${Utils.formatCurrency(r.dailyRevenue)}</div>
+                    <div class="cost-line">− Günlük gider: ${Utils.formatCurrency(r.dailyCost)}</div>
                 </div>
                 <div class="suggestion-bar">
                     <div class="ideal-config">

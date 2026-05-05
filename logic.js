@@ -78,9 +78,12 @@ const Logic = {
         //  - Şirket geneli personel maaşları (CEO, mekanik, yer hizmetleri, kabin) ayrı konu —
         //    UI'a açılmıyor (kullanıcı kararı: input yorgunluğu, değişken maliyet, ileride üyelik ile).
         const maintenanceCost = this.calculateMaintenanceCost(plane, route.distance);
+        const totalCosts = fuelCost + maintenanceCost;
 
         return {
-            profitPerFlight: grossRevenue - (fuelCost + maintenanceCost),
+            profitPerFlight: grossRevenue - totalCosts,
+            grossRevenue: grossRevenue,   // sefer başı gelir (UI parçalanması için)
+            totalCosts: totalCosts,       // sefer başı gider (fuel + maintenance)
             appliedTrips: trips,
             duration: airTime
         };
@@ -136,6 +139,10 @@ const Logic = {
         results.push({
             ...route,
             dailyProfit,
+            revenuePerFlight: calc.grossRevenue,
+            costPerFlight: calc.totalCosts,
+            dailyRevenue: calc.grossRevenue * calc.appliedTrips,
+            dailyCost: calc.totalCosts * calc.appliedTrips,
             dailyTrips: calc.appliedTrips,
             duration: calc.duration,
             efficiency: (dailyProfit / plane.price) * 100

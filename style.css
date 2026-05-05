@@ -294,6 +294,24 @@ button:active {
     color: var(--text-muted);
 }
 
+/* Rota Analizi: Sefer/Günlük gelir-gider parçalanması */
+.route-breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+    margin: 10px 0 8px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.revenue-line {
+    color: var(--success);
+}
+
+.cost-line {
+    color: var(--danger);
+}
+
 /* Rota Öneri Alt Çubuğu */
 .suggestion-bar {
     background: var(--primary-light);

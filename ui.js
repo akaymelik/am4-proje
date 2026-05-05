@@ -672,6 +672,48 @@ const UI = {
             const userMessage = `${planeName} uçağı ile ${routeData.origin} → ${routeData.destination} rotası (${routeData.distance} km) analizi`;
             this._persistAiToChatHistory(userMessage, data.text);
 
+            // Cross-context için sessionStorage'a kaydet (Adım 2): chat follow-up'larında
+            // "ÖNCEKİ ANALİZ" bloğu olarak worker prompt'a otomatik enjekte edilecek.
+            // 30 dk expire (sendChatMessage tarafında kontrol).
+            try {
+                const lastAnalysis = {
+                    timestamp: Date.now(),
+                    plane: plane ? {
+                        name: planeName,
+                        type: plane.type,
+                        capacity: plane.capacity,
+                        cruise_speed: plane.cruise_speed,
+                        fuel_consumption: plane.fuel_consumption,
+                        range: plane.range,
+                        price: plane.price,
+                        check_cost: plane.check_cost,
+                        maint: plane.maint,
+                        co2: plane.co2
+                    } : null,
+                    route: {
+                        origin: routeData.origin,
+                        destination: routeData.destination,
+                        distance: routeData.distance
+                    },
+                    demand: routeData.demand || {},
+                    metrics: {
+                        profit: routeData.dailyProfit,
+                        profitPerFlight: profitPerFlight,
+                        dailyTrips: routeData.dailyTrips,
+                        fillRatio: fillRatio + '%',
+                        paybackDays: paybackDays,
+                        efficiency: routeData.efficiency
+                    },
+                    optimalConfig: optConfig || null,
+                    breakdown: breakdown || null,
+                    gameMode: window.gameMode || 'realism',
+                    fuelPrice: window.FUEL_PRICE || 950,
+                    co2Price: window.CO2_PRICE || 150,
+                    costIndex: (window.COST_INDEX != null) ? window.COST_INDEX : 200
+                };
+                sessionStorage.setItem('menoa_last_analysis', JSON.stringify(lastAnalysis));
+            } catch (e) { /* sessionStorage quota / private mode — sessizce geç */ }
+
             resultArea.innerHTML = `
                 <div class="ai-report-card">
                     <h4 style="color:var(--primary); margin-bottom:10px;">🤖 MENOA AI ANALİZİ</h4>
@@ -1165,6 +1207,111 @@ const Chat = {
 
         const candidatePlanes = effectiveBudget ? getCandidatePlanes(effectiveBudget, effectiveType) : '';
         const relevantRoutes = effectiveAirports.length > 0 ? getRelevantRoutes(effectiveAirports) : '';
+
+        // Cross-context (Adım 2): askGemini'den gelen son analiz ve karşılaştırma niyeti
+        let usableLastAnalysis = null;
+        let comparisonRoute = null;
+        let comparisonPlane = null;
+        try {
+            const lastRaw = sessionStorage.getItem('menoa_last_analysis');
+            if (lastRaw) {
+                const la = JSON.parse(lastRaw);
+                const ageMs = Date.now() - (la.timestamp || 0);
+                // 30 dk expire — sabah analiz yapıp öğleden sonra chat yazan kullanıcıyı yanıltmasın
+                if (ageMs <= 30 * 60 * 1000 && la.plane && la.route) {
+                    usableLastAnalysis = la;
+                }
+            }
+        } catch (e) { /* JSON parse / sessionStorage erişim — sessizce geç */ }
+
+        if (usableLastAnalysis) {
+            // Karşılaştırma niyeti tespit (basit keyword match — yanlış pozitif riskini düşürmek için
+            // entity tespiti ile AND'lenir, sadece intent yetmez)
+            const comparisonKeywords = [
+                'karşılaştır', 'kıyasla', 'kiyasla', 'fark',
+                'aynı uçakla', 'aynı rotada', 'alternatif', 'yerine',
+                'ile uçsam', 'ile uçarsa', 'nasıl olur', 'daha kârlı', 'daha karli',
+                'vs', 'arasındaki'
+            ];
+            const lower = text.toLocaleLowerCase('tr');
+            const hasComparisonIntent = comparisonKeywords.some(kw => lower.includes(kw));
+
+            if (hasComparisonIntent) {
+                // lastAnalysis route'unun IATA çiftini çıkar (origin/destination "X (LIM / SPIM), Peru" formatında)
+                const iataRe = /\(([A-Z]{3,4})/;
+                const lastOriginIata = (usableLastAnalysis.route.origin.match(iataRe) || [])[1] || null;
+                const lastDestIata = (usableLastAnalysis.route.destination.match(iataRe) || [])[1] || null;
+
+                // Mesajda yeni airport çifti tespit edildiyse (lastAnalysis rotasından farklı 2 airport)
+                const newAirports = effectiveAirports.filter(a => a !== lastOriginIata && a !== lastDestIata);
+                if (newAirports.length >= 2 && window.dataLoader && window.dataLoader.isReady()) {
+                    const dl = window.dataLoader;
+                    const o = dl.getAirport(newAirports[0]);
+                    const d = dl.getAirport(newAirports[1]);
+                    const dist = dl.getDistance(newAirports[0], newAirports[1]);
+                    if (o && d && dist) {
+                        const newRoute = {
+                            origin: Utils.formatAirportLabel(o),
+                            destination: Utils.formatAirportLabel(d),
+                            distance: dist,
+                            demand: dl.getDemand(newAirports[0], newAirports[1]) || {}
+                        };
+                        const lastPlaneName = usableLastAnalysis.plane.name;
+                        const lastPlane = aircraftData[lastPlaneName];
+                        if (lastPlane) {
+                            const calc = Logic.calculateProfit(lastPlane, newRoute, null, null);
+                            comparisonRoute = {
+                                route: newRoute,
+                                calc: {
+                                    profit: calc.profitPerFlight * (calc.appliedTrips || 0),
+                                    profitPerFlight: calc.profitPerFlight,
+                                    grossRevenue: calc.grossRevenue,
+                                    totalCosts: calc.totalCosts,
+                                    fuelCost: calc.fuelCost,
+                                    maintenanceCost: calc.maintenanceCost,
+                                    co2Cost: calc.co2Cost,
+                                    appliedTrips: calc.appliedTrips
+                                }
+                            };
+                        }
+                    }
+                }
+
+                // Mesajda yeni uçak tespit edildiyse (lastAnalysis.plane.name'den farklı)
+                const lastPlaneName = usableLastAnalysis.plane.name;
+                const newPlane = mentionedPlanes.find(mp => {
+                    const cleanName = mp.name.replace(' (yazım düzeltildi)', '');
+                    return cleanName !== lastPlaneName && aircraftData[cleanName];
+                });
+                if (newPlane) {
+                    const cleanName = newPlane.name.replace(' (yazım düzeltildi)', '');
+                    const planeObj = aircraftData[cleanName];
+                    // Karşılaştırma rotası varsa onu, yoksa lastAnalysis rotasını kullan
+                    const baseRoute = comparisonRoute ? comparisonRoute.route : {
+                        origin: usableLastAnalysis.route.origin,
+                        destination: usableLastAnalysis.route.destination,
+                        distance: usableLastAnalysis.route.distance,
+                        demand: usableLastAnalysis.demand
+                    };
+                    const calc = Logic.calculateProfit(planeObj, baseRoute, null, null);
+                    comparisonPlane = {
+                        name: cleanName,
+                        plane: { ...planeObj, name: cleanName },
+                        route: baseRoute,
+                        calc: {
+                            profit: calc.profitPerFlight * (calc.appliedTrips || 0),
+                            profitPerFlight: calc.profitPerFlight,
+                            grossRevenue: calc.grossRevenue,
+                            totalCosts: calc.totalCosts,
+                            fuelCost: calc.fuelCost,
+                            maintenanceCost: calc.maintenanceCost,
+                            co2Cost: calc.co2Cost,
+                            appliedTrips: calc.appliedTrips
+                        }
+                    };
+                }
+            }
+        }
         // Hub analizi: kullanıcı bir hub belirttiyse o hub'tan TOP 10 uçak/rota gerçek dataLoader analizi
         const hubAnalysis = effectiveAirports.length > 0
             ? getHubAnalysisContext(effectiveAirports[0], effectiveType, effectiveBudget, effectiveSlots)
@@ -1193,7 +1340,11 @@ const Chat = {
                         candidatePlanes: candidatePlanes,
                         relevantRoutes: relevantRoutes,
                         hubAnalysis: hubAnalysis,
-                        extracted: extracted
+                        extracted: extracted,
+                        // Cross-context (Adım 2): askGemini'den gelen son analiz + karşılaştırma hesapları
+                        lastAnalysis: usableLastAnalysis,
+                        comparisonRoute: comparisonRoute,
+                        comparisonPlane: comparisonPlane
                     }
                 })
             });

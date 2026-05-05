@@ -267,6 +267,13 @@ ROTA ANALİZİ TARZI:
 - 2-3 cümlelik özet + 2 somut tavsiye yeterli.
 - "Genel olarak", "ucuz çok uçak" gibi GENEL prensipler verme — sadece BU rotaya özgü yorum yap.
 
+CROSS-CONTEXT (askGemini ↔ chat köprüsü):
+- "ÖNCEKİ ANALİZ" bloğu varsa: kullanıcı az önce AI butonu ile bir uçak+rota incelemiş demektir. Tüm sayısal sorularında ($X gider, $Y kâr gibi) bu bloğa bak — başka uçak/rota varsayma. Önceki analiz uçağını adıyla tekrar belirt ki kullanıcı hangi analizden bahsettiğini görsün.
+- "KARŞILAŞTIRMA ROTASI" bloğu varsa: kullanıcı aynı uçakla farklı rotayı sordu. ÖNCEKİ ANALİZ ile yan yana tablo veya cümle formatında karşılaştır (sefer kârı, günlük kâr, payback farkı). "Hangisi daha kârlı?" sorusunu açıkça yanıtla.
+- "ALTERNATİF UÇAK ANALİZİ" bloğu varsa: kullanıcı aynı rotada farklı uçağı sordu. İki uçağı yan yana karşılaştır (sefer kârı, payback, ilk yatırım farkı, kapasite). Pahalı ama daha kârlı / ucuz ama az kapasiteli gibi trade-off'u açıkla.
+- "ÖNCEKİ ANALİZ" yoksa ama kullanıcı sayısal referans veriyorsa ("$X giderin nedir") "Önceki analiz hatırlamıyorum, AI butonuna tekrar basar mısın?" de — UYDURMA.
+- ÖNCEKİ ANALİZ varken kullanıcı yeni airport çifti veya yeni uçak adı yazarsa karşılaştırma blokları otomatik gelir; gelmediyse kullanıcı sadece bilgi sormuştur, karşılaştırma uydurma.
+
 SOHBET BAĞLAM YÖNETİMİ:
 - Tüm sohbet geçmişini (history) oku ve değerlendir.
 - Kullanıcının son mesajı önceki konuşmanın DEVAMI mı yoksa YENİ KONU mu, kendin tespit et:
@@ -328,6 +335,52 @@ TAVIR:
 
       if (userContext.hubAnalysis && userContext.hubAnalysis.trim().length > 0) {
         contextBlock += `\n\n=== GERÇEK HUB ANALİZ VERİSİ (dataLoader hesabı, varsayım/örnek değil — direkt kullan): ===${userContext.hubAnalysis}`;
+      }
+
+      // Cross-context blokları (Adım 2): askGemini'den gelen son analiz + opsiyonel karşılaştırmalar
+      if (userContext.lastAnalysis) {
+        const la = userContext.lastAnalysis;
+        const fmt = n => n != null ? '$' + Math.round(Number(n)).toLocaleString('en-US') : '?';
+        const cfg = la.optimalConfig
+          ? (la.plane?.type === 'cargo'
+              ? `L:${la.optimalConfig.l} H:${la.optimalConfig.h}`
+              : `Y:${la.optimalConfig.y} J:${la.optimalConfig.j} F:${la.optimalConfig.f}`)
+          : '?';
+        const dem = la.demand || {};
+        contextBlock += `\n\nÖNCEKİ ANALİZ (kullanıcı az önce AI butonuyla incelemişti, KESİN sayılarla — başka uçak/rota varsayma):
+- Uçak: ${la.plane?.name} (tip: ${la.plane?.type}, fiyat: ${fmt(la.plane?.price)}, co2: ${la.plane?.co2}, check_cost: ${fmt(la.plane?.check_cost)}, maint: ${la.plane?.maint}h)
+- Rota: ${la.route?.origin} → ${la.route?.destination} (${la.route?.distance} km)
+- Talep: y=${dem.y || 0} j=${dem.j || 0} f=${dem.f || 0} l=${dem.l || 0} h=${dem.h || 0}
+- Sefer başı kâr: ${fmt(la.metrics?.profitPerFlight)}, günlük sefer: ${la.metrics?.dailyTrips}, günlük kâr: ${fmt(la.metrics?.profit)}
+- Yatırım verimi: ${la.metrics?.efficiency != null ? '%'+Number(la.metrics.efficiency).toFixed(2) : '?'}, payback: ${la.metrics?.paybackDays} gün
+- Doluluk: ${la.metrics?.fillRatio}, ideal config: ${cfg}
+- Sefer başı gider breakdown: yakıt ${fmt(la.breakdown?.fuelCost)}, bakım ${fmt(la.breakdown?.maintenanceCost)}, CO₂ ${fmt(la.breakdown?.co2Cost)}
+- Aktif ekonomi: gameMode=${la.gameMode}, fuel_price=$${la.fuelPrice}, co2_price=$${la.co2Price}, CI=${la.costIndex}
+
+KURAL: Kullanıcı sayısal soru sorarsa (örn "$X giderin yapısı", "neden bu kadar düşük") BU ANALİZE bak — başka bir uçak/rota varsayma. Önceki analiz uçağını adıyla tekrar belirt.`;
+
+        if (userContext.comparisonRoute && userContext.comparisonRoute.route) {
+          const cr = userContext.comparisonRoute;
+          contextBlock += `\n\nKARŞILAŞTIRMA ROTASI (kullanıcının follow-up sorusu — aynı uçakla farklı rota):
+- Uçak: ${la.plane?.name} (önceki analizdeki aynı uçak)
+- Yeni rota: ${cr.route.origin} → ${cr.route.destination} (${cr.route.distance} km)
+- Talep: y=${cr.route.demand?.y || 0} j=${cr.route.demand?.j || 0} f=${cr.route.demand?.f || 0} l=${cr.route.demand?.l || 0} h=${cr.route.demand?.h || 0}
+- Sefer başı kâr: ${fmt(cr.calc?.profitPerFlight)}, günlük sefer: ${cr.calc?.appliedTrips}, günlük kâr: ${fmt(cr.calc?.profit)}
+- Sefer başı gider: yakıt ${fmt(cr.calc?.fuelCost)}, bakım ${fmt(cr.calc?.maintenanceCost)}, CO₂ ${fmt(cr.calc?.co2Cost)}
+
+KURAL: ÖNCEKİ ANALİZ rotası vs BU ROTA = side-by-side karşılaştırma yap (sefer kârı, günlük kâr, payback farkı). Hangisi daha kârlı, açıkla.`;
+        }
+
+        if (userContext.comparisonPlane && userContext.comparisonPlane.plane) {
+          const cp = userContext.comparisonPlane;
+          contextBlock += `\n\nALTERNATİF UÇAK ANALİZİ (kullanıcının follow-up sorusu — aynı rotada farklı uçak):
+- Yeni uçak: ${cp.name} (tip: ${cp.plane.type}, fiyat: ${fmt(cp.plane.price)}, co2: ${cp.plane.co2})
+- Rota: ${cp.route?.origin} → ${cp.route?.destination} (${cp.route?.distance} km)
+- Sefer başı kâr: ${fmt(cp.calc?.profitPerFlight)}, günlük sefer: ${cp.calc?.appliedTrips}, günlük kâr: ${fmt(cp.calc?.profit)}
+- Sefer başı gider: yakıt ${fmt(cp.calc?.fuelCost)}, bakım ${fmt(cp.calc?.maintenanceCost)}, CO₂ ${fmt(cp.calc?.co2Cost)}
+
+KURAL: ÖNCEKİ ANALİZ uçağı (${la.plane?.name}) vs BU UÇAK (${cp.name}) = side-by-side uçak karşılaştırması yap (sefer kârı, payback, ilk yatırım farkı). Hangisi daha mantıklı, açıkla.`;
+        }
       }
 
       const finalSystemInstruction = systemInstruction + contextBlock;

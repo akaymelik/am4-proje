@@ -611,7 +611,10 @@ const UI = {
             cruise_speed: plane.cruise_speed,
             fuel_consumption: plane.fuel_consumption,
             range: plane.range,
-            price: plane.price
+            price: plane.price,
+            check_cost: plane.check_cost,  // Fix #3 — A-check sabit maliyet
+            maint: plane.maint,            // Fix #3 — A-check arası saat
+            co2: plane.co2                 // Fix #7 — CO₂ emisyon katsayısı
         }] : [];
 
         // Tam bağlam — AI "yaklaşık bin gün" gibi belirsiz konuşmasın diye kesin sayılar
@@ -625,6 +628,18 @@ const UI = {
         const paybackDays = (plane && routeData.dailyProfit > 0) ? Math.ceil(plane.price / routeData.dailyProfit) : 9999;
         const optimalConfigStr = !optConfig ? ''
             : (plane.type === 'cargo' ? `L:${optConfig.l} H:${optConfig.h}` : `Y:${optConfig.y} J:${optConfig.j} F:${optConfig.f}`);
+
+        // Sefer başı gider breakdown'ı yeniden hesapla (fuel + maintenance + co2 ayrı kalemler).
+        // r.costPerFlight / r.revenuePerFlight Logic._evalRoute'tan gelir ama fuel/maintenance/co2
+        // ayrımı yok; calculateProfit doğrudan çağırıp breakdown field'larını alıyoruz.
+        const calcBreakdown = plane
+            ? Logic.calculateProfit(plane, routeData, null, routeData.dailyTrips)
+            : null;
+        const breakdown = calcBreakdown ? {
+            fuelCost: calcBreakdown.fuelCost,
+            maintenanceCost: calcBreakdown.maintenanceCost,
+            co2Cost: calcBreakdown.co2Cost
+        } : null;
 
         try {
             const response = await fetch(workerUrl, {
@@ -643,9 +658,11 @@ const UI = {
                     paybackDays: paybackDays,
                     optimalConfig: optimalConfigStr,
                     planePrice: plane ? Utils.formatCurrency(plane.price) : '',
+                    breakdown: breakdown,  // Fix #7 — sefer başı fuel/maintenance/co2 ayrı kalemler
                     context: {
                         gameMode: window.gameMode || 'realism',
                         fuelPrice: window.FUEL_PRICE || 950,
+                        co2Price: window.CO2_PRICE || 150,  // Fix #7 — AI prompt'a co2 fiyatı enjekte
                         costIndex: (window.COST_INDEX != null) ? window.COST_INDEX : 200,
                         planes: planeData
                     }
@@ -820,6 +837,7 @@ const UI = {
                     context: {
                         gameMode: window.gameMode || 'realism',
                         fuelPrice: window.FUEL_PRICE || 950,
+                        co2Price: window.CO2_PRICE || 150,  // Fix #7 — AI prompt'a co2 fiyatı enjekte
                         costIndex: (window.COST_INDEX != null) ? window.COST_INDEX : 200,
                         availableSlots: slots,
                         planeType: planeType,
@@ -1166,6 +1184,7 @@ const Chat = {
                     context: {
                         gameMode: window.gameMode || 'realism',
                         fuelPrice: window.FUEL_PRICE || 950,
+                        co2Price: window.CO2_PRICE || 150,  // Fix #7 — AI prompt'a co2 fiyatı enjekte
                         costIndex: (window.COST_INDEX != null) ? window.COST_INDEX : 200,
                         availableSlots: effectiveSlots,
                         planeType: effectiveType,

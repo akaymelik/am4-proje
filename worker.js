@@ -81,7 +81,8 @@ SEFER SAYISI HESABI:
 - Easy modda uçak hızı 4x artar, turnaround sabit kalır — sefer sayısı yaklaşık 3x artar ama yine 18 saat kısıtı içinde
 
 MALİYET FORMÜLLERİ:
-- Yakıt = ceil(mesafe, 2) x FUEL_PRICE x (CI/500 + 0.6) x yakıt_tüketimi / 1000
+- Yakıt = ceil(mesafe × 100) / 100 x FUEL_PRICE x (CI/500 + 0.6) x yakıt_tüketimi / 1000
+  - ceil semantic: 0.01 km hassasiyetinde yukarı yuvarlama (kanonik: abc8747 route.cpp:463 + formulae.md:479). Tam-sayı km girdilerinde etkisiz (no-op).
   - mesafe: km cinsinden rota uzunluğu
   - FUEL_PRICE: $/1000lbs cinsinden yakıt fiyatı (varsayılan 950)
   - CI: Cost Index (varsayılan 200), formülde: 200/500 + 0.6 = 1.0

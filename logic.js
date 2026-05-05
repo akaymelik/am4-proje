@@ -96,7 +96,12 @@ const Logic = {
             grossRevenue = (opt.y * prices.y) + (opt.j * prices.j) + (opt.f * prices.f);
         }
 
-        const ceilDist = Math.ceil(route.distance / 2) * 2;
+        // Kanonik fuel ceil (abc8747 route.cpp:463 + formulae.md:479): ceil(d × 100) / 100,
+        // yani 0.01 km hassasiyetinde yukarı yuvarlama. Tam-sayı km girdilerinde (distances.bin
+        // Uint16Array) etkisiz no-op; fraksiyonel distance'larda 0.01 km'ye yuvarlar.
+        // Eski ceil(d/2)*2 kanonik kaynakta dayanaksızdı; tek-km distance'lerde fuel'i
+        // ~%0.05 abartıyordu (Fix #6, Tier 1+2 kanıtla düzeltildi).
+        const ceilDist = Math.ceil(route.distance * 100) / 100;
         const fuelCost = ceilDist * getFuelPrice() * (getCostIndex() / 500 + 0.6) * plane.fuel_consumption / 1000;
         // Per-flight staff cost YOK (Fix #5):
         //  - AM4 oyun gider raporunda uçak/sefer başına staff salary satırı yok (kullanıcı gözlemi).

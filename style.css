@@ -294,10 +294,10 @@ button:active {
     color: var(--text-muted);
 }
 
-/* Rota Analizi: Sefer/Günlük gelir-gider parçalanması */
+/* Rota Analizi: 3 sütunlu gelir-gider-net parçalanması (sefer + günlük) */
 .route-breakdown {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 4px 16px;
     margin: 10px 0 8px 0;
     font-size: 0.9rem;
@@ -310,6 +310,17 @@ button:active {
 
 .cost-line {
     color: var(--danger);
+}
+
+.net-line {
+    color: #007bff;
+}
+
+/* Dar ekranda 3 sütun yerine tek sütun (her satır altta) */
+@media (max-width: 600px) {
+    .route-breakdown {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Rota Öneri Alt Çubuğu */

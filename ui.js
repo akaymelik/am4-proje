@@ -909,8 +909,10 @@ const UI = {
                 <div class="route-breakdown">
                     <div class="revenue-line">+ Sefer başı gelir: ${Utils.formatCurrency(r.revenuePerFlight)}</div>
                     <div class="cost-line">− Sefer başı gider: ${Utils.formatCurrency(r.costPerFlight)}</div>
+                    <div class="net-line">Sefer net: ${Utils.formatCurrency(r.dailyTrips ? r.dailyProfit / r.dailyTrips : 0)}</div>
                     <div class="revenue-line">+ Günlük gelir: ${Utils.formatCurrency(r.dailyRevenue)}</div>
                     <div class="cost-line">− Günlük gider: ${Utils.formatCurrency(r.dailyCost)}</div>
+                    <div class="net-line">Günlük net: ${Utils.formatCurrency(r.dailyProfit)}</div>
                 </div>
                 <div class="suggestion-bar">
                     <div class="ideal-config">

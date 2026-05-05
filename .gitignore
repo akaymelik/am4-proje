@@ -13,6 +13,7 @@ _verify_formula.py
 _verify_distribution.py
 _test_k_hypothesis.py
 _export_data.py
+_migration_maintenance.py
 
 # Claude Code config (kişisel, paylaşılmaz)
 .claude/
@@ -20,3 +21,5 @@ _export_data.py
 # Geçici test çıktıları
 _verify/
 *.tmp
+_apply_patch.py
+planes_patch.json

@@ -90,8 +90,15 @@ MALİYET FORMÜLLERİ:
   - Örnek: A320-200 (yakıt_tüketimi=11.55) ile 2500km Realism'de:
     2500 x 950 x 1.0 x 11.55 / 1000 = $27,431
 - Per-flight personel maliyeti YOK: AM4 oyun gider raporunda uçak/sefer başına staff salary satırı yok; kanonik kaynaklar (am4-cc, abc8747) staff'ı route profit zincirinde modellemiyor. Şirket geneli personel (CEO, mekanik, yer hizmetleri, kabin) ayrı konu, formülde değil.
-- Bakım: uçuş_süresi x (uçak_fiyatı x 0.00006) + (uçak_fiyatı x 0.00001)
-  (ilk terim A-check uçuş başına, ikinci terim D-check sabit günlük amortisman)
+- Bakım (A-check): A-check_ücreti x mod_çarpanı x ceil(mod_bağımsız_uçuş_süresi) / A-check_aralığı
+  - A-check_ücreti (check_cost): uçak başına sabit dolar değeri, planes.js'ten gelir (kanonik kaynak: abc8747/am4 aircrafts.csv)
+  - A-check_aralığı (maint): uçak başına sabit saat değeri, planes.js'ten gelir
+  - mod_çarpanı: Easy=1.0, Realism=2.0 (Realism A-check 2x pahalı)
+  - mod_bağımsız_uçuş_süresi: distance / cruise_speed (base speed kullanılır; Easy mode hız avantajı maintenance'a yansımaz — kanonik matematik hilesi, wear gerçek mesafeye dayalı)
+  - Örnek: A330-200F (check_cost=5,454,000, maint=400) ile 2933km Realism'de:
+    5,454,000 x 2 x ceil(2933/915) x (1/400) = 5,454,000 x 2 x 4 x 0.0025 = $109,080 sefer başına
+- Per-flight repair komponenti YOK: gerçek AM4 mekaniğinde wear A-check zamanında tek seferde temizlenir, sefer başına repair gideri yok (kanonik kaynak abc8747 cpp'de var ama ekonomik simülasyon olarak; oyun mekaniğine yansımıyor)
+- D-check kanonik kaynakta modellenmiyor, formüle dahil değil
 
 UÇAK ÖNERİSİ MANTIĞI (community standardı):
 - Pahalı tek uçak yerine ucuz çok uçak genellikle daha kârlıdır

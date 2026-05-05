@@ -178,7 +178,8 @@ function getHubAnalysisContext(hubIata, planeType, budget, slotsAvailable) {
         if (routes.length === 0) continue;
         const r = routes.find(rt => rt.distance >= 500) || routes[0];
         if (!r) continue;
-        const destIataMatch = r.destination.match(/\(([A-Z]{3})\)/);
+        // Dual-code uyumlu regex: "(LIM / SPIM)" → LIM, "(LHR)" → LHR, "(EGMD)" → EGMD (iata=icao istisnası).
+        const destIataMatch = r.destination.match(/\(([A-Z]{3,4})/);
         candidates.push({
             name,
             price: p.price,
@@ -221,7 +222,7 @@ function getHubAnalysisContext(hubIata, planeType, budget, slotsAvailable) {
         return `${p.name}|$${(p.price/1e6).toFixed(2)}M|→${p.destIata}|${p.distance}km|${p.dailyTrips}sefer|$${Math.round(p.dailyProfit/1e3)}K/g|%${p.efficiency.toFixed(1)}|${p.paybackDays}gün${fleetCol}`;
     });
 
-    const headerStr = `${hub.iata} ${hub.name}, ${planeType || 'tüm'} uçaklar` + (headerExtras.length ? `, ${headerExtras.join(', ')}` : '');
+    const headerStr = `${Utils.formatAirportCode(hub)} ${hub.name}, ${planeType || 'tüm'} uçaklar` + (headerExtras.length ? `, ${headerExtras.join(', ')}` : '');
     const colHeader = `Uçak|Fiyat|Hedef|Mesafe|Sefer|GünlükKâr|Verim|Payback${('fleetSize' in top[0]) ? '|FiloKâr' : ''}`;
     return `\nHUB ANALİZİ (${headerStr}):\n${colHeader}\n${lines.join('\n')}`;
 }
@@ -246,8 +247,8 @@ function getRelevantRoutes(airports) {
             if (!demand) continue;
             const total = demand.y + demand.j + demand.f;
             candidates.push({
-                origin: `${hub.name} (${hub.iata}), ${hub.country}`,
-                destination: `${dest.name} (${dest.iata}), ${dest.country}`,
+                origin: Utils.formatAirportLabel(hub),
+                destination: Utils.formatAirportLabel(dest),
                 distance: dist,
                 demand,
                 total
@@ -383,7 +384,10 @@ const UI = {
         const fragment = document.createDocumentFragment();
         for (const a of window.dataLoader.airports) {
             const opt = document.createElement('option');
-            opt.value = `${a.name} (${a.iata}), ${a.country}`;
+            // Dual-code: "Lima (LIM / SPIM), Perú" — substring match hem IATA hem ICAO'yu yakalar.
+            // (Native datalist iki-satır custom HTML desteklemediği için tek satır içerikli format
+            //  kullanıyoruz; gerçek iki-satır am4-cc paraleli için custom dropdown gerekir — ileride.)
+            opt.value = Utils.formatAirportLabel(a);
             fragment.appendChild(opt);
         }
         datalist.innerHTML = '';
@@ -467,21 +471,28 @@ const UI = {
         const trimmed = input.trim();
         const dl = (window.dataLoader && window.dataLoader.isReady()) ? window.dataLoader : null;
 
-        // 0. Datalist tam string match: "X (LHR), Y" → LHR. KNOWN_IATA veya dataLoader üyeliği yeterli.
-        const datalistMatch = trimmed.match(/\(([A-Z]{3})\)/);
+        // 0. Datalist tam string match: "X (LIM / SPIM), Y" veya "X (LHR), Y" veya "X (EGMD), Y" → IATA.
+        //    Dual-code: ilk grup IATA-tercih (3 harf), ikinci grup ICAO (varsa 4 harf, slash ile ayrılı).
+        //    iata=icao istisnası (Lydd EGMD, Charlotte Amalie TIST): tek 4-harf grup; resolveIata ICAO fallback ile çözer.
+        const datalistMatch = trimmed.match(/\(([A-Z]{3,4})(?:\s*\/\s*([A-Z]{3,4}))?\)/);
         if (datalistMatch) {
-            const iata = datalistMatch[1];
-            if (KNOWN_IATA.has(iata)) return iata;
-            if (dl && dl.iataToId.has(iata)) return iata;
+            const code = datalistMatch[1];
+            if (KNOWN_IATA.has(code)) return code;
+            if (dl && dl.iataToId.has(code)) return code;
+            // 4-harf code (Lydd vb): resolveIata ile ICAO-fallback dene
+            if (dl && dl.resolveIata) {
+                const resolved = dl.resolveIata(code);
+                if (resolved) return resolved;
+            }
         }
 
-        // 1. ALL-CAPS 3-letter direkt IATA (KNOWN + dataLoader + alias resolver)
+        // 1. ALL-CAPS 3-4 letter direkt kod (IATA tercih, ICAO fallback resolveIata içinde)
         const upper = trimmed.toUpperCase();
-        if (/^[A-Z]{3}$/.test(upper)) {
+        if (/^[A-Z]{3,4}$/.test(upper)) {
             if (KNOWN_IATA.has(upper)) return upper;
             if (dl) {
                 if (dl.iataToId.has(upper)) return upper;
-                // Eski/yeni IATA alias (IST→ISL, TXL→BER, SXF→BER)
+                // Eski/yeni IATA alias (IST→ISL, TXL→BER, SXF→BER) + ICAO fallback (SPIM→LIM, KILN→ILN)
                 if (dl.resolveIata) {
                     const aliased = dl.resolveIata(upper);
                     if (aliased) return aliased;

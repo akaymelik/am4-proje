@@ -66,6 +66,7 @@
         constructor() {
             this.airports = null;       // Array<airport>
             this.iataToId = new Map();  // iata → 0-based position
+            this.icaoToId = new Map();  // icao → 0-based position (dual-code support; iata=icao olanlarda iataToId ile çakışır, sorun değil)
             this.distances = null;      // Uint16Array
             this.demands = [];          // [Uint32Array × 6]
             this.overflow = new Map();  // routeIdx → uint16 yd_full
@@ -108,15 +109,21 @@
         }
 
         // ---------- Public API ----------
-        // IATA çözümleyici: doğrudan varsa input, yoksa IATA_ALIASES'tan eşdeğer (örn IST→ISL).
-        // Bilinmeyen IATA için null döner. Bu sayede getAirport/getDistance/getDemand
-        // veride olmayan yeni IATA'larda (IST, TXL...) eski koda fallback yapar.
+        // IATA çözümleyici: doğrudan varsa input, yoksa IATA_ALIASES'tan eşdeğer (örn IST→ISL),
+        // yoksa ICAO eşdeğeri (örn SPIM → LIM).
+        // Bilinmeyen kod için null döner. Internal lookup'lar (parquet id, distance, demand,
+        // am4-cc revenue zinciri) hep iata key üzerinden devam eder; ICAO sadece girdi tarafında
+        // tanınır ve iata'ya çevrilir.
         resolveIata(iata) {
             if (!iata) return null;
             const upper = String(iata).toUpperCase();
             if (this.iataToId.has(upper)) return upper;
             const aliased = IATA_ALIASES[upper];
             if (aliased && this.iataToId.has(aliased)) return aliased;
+            // ICAO fallback (dual-code support)
+            if (this.icaoToId.has(upper)) {
+                return this.airports[this.icaoToId.get(upper)].iata;
+            }
             return null;
         }
 
@@ -197,6 +204,7 @@
             for (const ap of this.airports) {
                 if (matches.length >= limit) break;
                 if (ap.iata.toLowerCase().includes(q) ||
+                    (ap.icao && ap.icao.toLowerCase().includes(q)) ||
                     ap.name.toLowerCase().includes(q) ||
                     (ap.fullname && ap.fullname.toLowerCase().includes(q)) ||
                     (ap.country && ap.country.toLowerCase().includes(q))) {
@@ -295,8 +303,11 @@
             // airports
             this.airports = p.airports;
             this.iataToId.clear();
+            this.icaoToId.clear();
             for (let i = 0; i < this.airports.length; i++) {
-                this.iataToId.set(this.airports[i].iata, i);
+                const ap = this.airports[i];
+                this.iataToId.set(ap.iata, i);
+                if (ap.icao) this.icaoToId.set(ap.icao, i);
             }
 
             // distances (uint16 LE — TypedArray native endianness, modern devices = LE)

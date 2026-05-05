@@ -32,15 +32,35 @@ const Utils = {
      */
     formatDuration: function(decimalHours) {
         if (isNaN(decimalHours) || decimalHours <= 0) return "0sa 0dk";
-        
+
         const hours = Math.floor(decimalHours);
         const minutes = Math.round((decimalHours - hours) * 60);
-        
+
         // Eğer yuvarlama sonucu 60 dakika çıkarsa, saati artır
         if (minutes === 60) {
             return `${hours + 1}sa 0dk`;
         }
-        
+
         return `${hours}sa ${minutes}dk`;
+    },
+
+    /**
+     * Airport kodunu dual-format basar: "IATA / ICAO" veya tek kod (iata===icao olduğu durumda).
+     * iata=icao istisnası: data/airports.json'da sadece Lydd (EGMD) ve Charlotte Amalie (TIST) —
+     * gerçekten IATA'sı olmayan ICAO-only airport'lar.
+     * @param {object} ap - airport objesi (iata + icao field'ları zorunlu)
+     */
+    formatAirportCode: function(ap) {
+        if (!ap || !ap.iata) return '';
+        if (!ap.icao || ap.icao === ap.iata) return ap.iata;
+        return `${ap.iata} / ${ap.icao}`;
+    },
+
+    /**
+     * Tam airport label: "Şehir (IATA / ICAO), Ülke" — am4-cc paraleli dual gösterim.
+     */
+    formatAirportLabel: function(ap) {
+        if (!ap) return '';
+        return `${ap.name} (${Utils.formatAirportCode(ap)}), ${ap.country}`;
     }
 };

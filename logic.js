@@ -105,8 +105,8 @@ const Logic = {
         if (plane.type === 'cargo' && !demand.l && !demand.h) return;
 
         const route = {
-            origin: `${hub.name} (${hub.iata}), ${hub.country}`,
-            destination: `${dest.name} (${dest.iata}), ${dest.country}`,
+            origin: Utils.formatAirportLabel(hub),
+            destination: Utils.formatAirportLabel(dest),
             distance: dist,
             demand: { y: demand.y, j: demand.j, f: demand.f, l: demand.l, h: demand.h }
         };

@@ -288,34 +288,41 @@ const UI = {
     },
 
     /**
-     * Yakıt fiyatı + Cost Index input'larını okur, window globaline yazar, localStorage'a kaydeder.
-     * logic.js getFuelPrice/getCostIndex'i bu globalleri okur — input değişince hesaplar anlık güncellenir.
+     * Yakıt + CO₂ + Cost Index input'larını okur, window globaline yazar, localStorage'a kaydeder.
+     * logic.js getFuelPrice/getCO2Price/getCostIndex'i bu globalleri okur.
      */
     applyEconomySettings: function() {
         const fuelInput = document.getElementById('fuelPriceInput');
+        const co2Input = document.getElementById('co2PriceInput');
         const ciInput = document.getElementById('costIndexInput');
         const fuelStr = fuelInput?.value?.trim();
+        const co2Str = co2Input?.value?.trim();
         const ciStr = ciInput?.value?.trim();
         const fuelRaw = Number(fuelStr);
+        const co2Raw = Number(co2Str);
         const ciRaw = Number(ciStr);
         // Boş string ('') falsy → default'a düşer. Number('') === 0 olduğu için sadece range check yetmez.
         const fuel = (fuelStr && fuelRaw > 0 && fuelRaw < 5000) ? fuelRaw : 950;
+        const co2 = (co2Str && co2Raw > 0 && co2Raw < 1000) ? co2Raw : 150;
         const ci = (ciStr && ciRaw >= 0 && ciRaw <= 500) ? ciRaw : 200;
         window.FUEL_PRICE = fuel;
+        window.CO2_PRICE = co2;
         window.COST_INDEX = ci;
         try {
             if (fuelInput?.value) localStorage.setItem('menoa_fuel_price', fuel);
             else localStorage.removeItem('menoa_fuel_price');
+            if (co2Input?.value) localStorage.setItem('menoa_co2_price', co2);
+            else localStorage.removeItem('menoa_co2_price');
             if (ciInput?.value !== '') localStorage.setItem('menoa_cost_index', ci);
             else localStorage.removeItem('menoa_cost_index');
         } catch (e) { /* private mode */ }
 
         const hint = document.getElementById('economyHint');
         if (hint) {
-            const isDefault = (fuel === 950 && ci === 200);
+            const isDefault = (fuel === 950 && co2 === 150 && ci === 200);
             hint.textContent = isDefault
-                ? 'Boş bırakırsan varsayılan: Yakıt $950/1000lbs, CI 200. Oyundaki "Fuel" sayfasından anlık değerleri kopyala.'
-                : `Aktif: Yakıt $${fuel}/1000lbs, CI ${ci}. Hesaplamalar bu değerlerle yapılır.`;
+                ? 'Boş bırakırsan varsayılan: Yakıt $950/1000lbs, CO₂ $150/1000kg, CI 200. Oyundaki "Fuel" sayfasından anlık değerleri kopyala.'
+                : `Aktif: Yakıt $${fuel}/1000lbs, CO₂ $${co2}/1000kg, CI ${ci}. Hesaplamalar bu değerlerle yapılır.`;
             hint.className = isDefault ? 'status-box status-neutral' : 'status-box status-success';
         }
     },

@@ -7,6 +7,7 @@
 // Default: $950/1000lbs ve CI 200. Kullanıcı anasayfadan değiştirir → localStorage'a yazılır → her hesapta etkili.
 const MAX_FLEET_SIZE = 30;
 function getFuelPrice() { return (typeof window !== 'undefined' && window.FUEL_PRICE) || 950; }
+function getCO2Price()  { return (typeof window !== 'undefined' && window.CO2_PRICE)  || 150; }
 function getCostIndex() { return (typeof window !== 'undefined' && window.COST_INDEX != null) ? window.COST_INDEX : 200; }
 const DAILY_AVAILABLE_HOURS = 18; // kullanıcı uyku/iş için günde max 18 saat aktif olabilir (manuel kaldırma şart)
 
@@ -59,11 +60,11 @@ const Logic = {
 
         const prices = Configurator.getTicketMultipliers(route.distance);
         let grossRevenue = 0;
+        let opt;  // CO₂ hesabı için branching dışına çıkarıldı (pax: {y,j,f}, cargo: {l,h})
 
         if (plane.type === "cargo") {
             const hasCargo = route.demand && (route.demand.l || route.demand.h);
             if (!hasCargo) return { profitPerFlight: 0 };
-            let opt;
             // Manuel config geçilmişse onu kullan (talep ile sınırlı: talep dolmazsa boş kalır).
             // Geriye dönük: config=null/undefined ise mevcut optimal allocation davranışı korunur.
             // NOT: Manuel cargo config'te kapasite kontrolü YAPILMAZ — kullanıcının verdiği değerler
@@ -80,7 +81,6 @@ const Logic = {
             }
             grossRevenue = (opt.l * prices.l) + (opt.h * prices.h);
         } else {
-            let opt;
             // Manuel config geçilmişse onu kullan (talep ile sınırlı).
             // Geriye dönük: config=null/undefined ise optimal F-first allocation.
             if (config && (config.y !== undefined || config.j !== undefined || config.f !== undefined)) {
@@ -109,12 +109,39 @@ const Logic = {
         //  - Şirket geneli personel maaşları (CEO, mekanik, yer hizmetleri, kabin) ayrı konu —
         //    UI'a açılmıyor (kullanıcı kararı: input yorgunluğu, değişken maliyet, ileride üyelik ile).
         const maintenanceCost = this.calculateMaintenanceCost(plane, route.distance);
-        const totalCosts = fuelCost + maintenanceCost;
+
+        // CO₂ kalemi (Fix #7, kanonik cpp formülü route.cpp:472-490).
+        // Pax:   co2_kg = [ceil(d,2) × ac.co2 × (y+2j+3f) + (y+j+f)] × (CI/2000+0.9)
+        // Cargo: co2_kg = [ceil(d,2) × ac.co2 × (L/1000 + H/500) + (L+H)] × (CI/2000+0.9)
+        // Bizim varsayımlar: co2_training=0 (Reputation paralel: kanıtsız mekanizma yok),
+        // ac_load=1.0 (R=100 örtük varsayım, optimal/max potansiyel gösterimi).
+        // co2 cost = co2_kg / 1000 × co2_price (default 150 $/1000kg, am4-cc Tier 2).
+        // plane.co2 null/missing ise (legacy fallback, normalde tetiklenmez — tüm 329 uçak migrasyon ile var) → 0.
+        let co2Cost = 0;
+        if (plane.co2 != null) {
+            const ciFactor = getCostIndex() / 2000 + 0.9;
+            let co2Kg;
+            if (plane.type === "cargo") {
+                const distanceTerm = ceilDist * plane.co2 * ((opt.l || 0) / 1000 + (opt.h || 0) / 500);
+                const constTerm = (opt.l || 0) + (opt.h || 0);
+                co2Kg = (distanceTerm + constTerm) * ciFactor;
+            } else {
+                const distanceTerm = ceilDist * plane.co2 * ((opt.y || 0) + 2 * (opt.j || 0) + 3 * (opt.f || 0));
+                const constTerm = (opt.y || 0) + (opt.j || 0) + (opt.f || 0);
+                co2Kg = (distanceTerm + constTerm) * ciFactor;
+            }
+            co2Cost = co2Kg / 1000 * getCO2Price();
+        }
+
+        const totalCosts = fuelCost + maintenanceCost + co2Cost;
 
         return {
             profitPerFlight: grossRevenue - totalCosts,
             grossRevenue: grossRevenue,   // sefer başı gelir (UI parçalanması için)
-            totalCosts: totalCosts,       // sefer başı gider (fuel + maintenance)
+            totalCosts: totalCosts,       // sefer başı gider toplam (fuel + maintenance + co2)
+            fuelCost: fuelCost,           // breakdown — UI / debug için ayrı kalemler
+            maintenanceCost: maintenanceCost,
+            co2Cost: co2Cost,
             appliedTrips: trips,
             duration: airTime
         };

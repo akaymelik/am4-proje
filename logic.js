@@ -17,8 +17,36 @@ const Logic = {
         return (distance / effectiveSpeed);
     },
 
-    calculateMaintenanceCost: function(plane, airTime) {
-        return airTime * (plane.price * 0.00006) + (plane.price * 0.00001);
+    /**
+     * Kanonik A-check formülü (abc8747/am4 route.cpp:321-322).
+     *   acheck_cost = check_cost × modeMult × ceil(realismFlightTime) / maint
+     *
+     * realismFlightTime = distance / cruise_speed (mod-bağımsız, base speed).
+     * Cpp'deki matematik hilesi: ceil(flight_time × game_mode_speed_multiplier)
+     * her iki modda da ceil(distance/baseSpeed) verir — Easy mode'un hız avantajı
+     * maintenance'a yansımaz (wear gerçek mesafeye dayalı). Bizim calculateFlightTime
+     * Easy'de speed×4 kullandığı için A-check için ayrı realismFlightTime hesaplıyoruz;
+     * aksi halde ceil() içinde double-discount olurdu.
+     *
+     * modeMult: Easy=1, Realism=2 (cpp route.cpp:321 — Realism A-check 2× pahalı).
+     *
+     * repair_cost komponenti DAHİL DEĞİL: cpp formülü `0.001 × price × E[wear]`
+     * per-flight repair maliyetini ekonomik simülasyon olarak amortize ediyor;
+     * gerçek AM4 mekaniğinde wear A-check'te tek seferde temizlenir, per-flight
+     * repair gideri yok. formulae.md de "Untested on realism" notuyla bu hipotezi
+     * destekliyor (kullanıcı kararı: Fix #3 brainstorm).
+     *
+     * Eşleşmeyen uçaklar için legacy lineer fallback (geçici güvenlik ağı, normalde
+     * tetiklenmez — tüm 329 uçak aircrafts.csv ile eşleşti).
+     */
+    calculateMaintenanceCost: function(plane, distance) {
+        if (plane.check_cost == null || plane.maint == null) {
+            const airTime = (plane.cruise_speed > 0) ? (distance / plane.cruise_speed) : 0;
+            return airTime * (plane.price * 0.00006) + (plane.price * 0.00001);
+        }
+        const realismFlightTime = distance / plane.cruise_speed;
+        const modeMult = (window.gameMode === 'easy') ? 1.0 : 2.0;
+        return plane.check_cost * modeMult * Math.ceil(realismFlightTime) / plane.maint;
     },
 
     calculateProfit: function(plane, route, config = null, manualTrips = null) {
@@ -47,7 +75,7 @@ const Logic = {
         const staffCost = plane.type === "cargo"
             ? (plane.capacity * 0.012 + 250) / trips
             : (plane.capacity * 8 + 250) / trips;
-        const maintenanceCost = this.calculateMaintenanceCost(plane, airTime);
+        const maintenanceCost = this.calculateMaintenanceCost(plane, route.distance);
         
         return {
             profitPerFlight: grossRevenue - (fuelCost + staffCost + maintenanceCost),

@@ -33,7 +33,7 @@ This order is load-order-dependent — later scripts rely on globals defined by 
 
 ### Data Layer
 
-- **`planes.js`** — ~400 aircraft objects with `type` (pax/cargo), capacity fields, fuel consumption, range, cruise speed, price
+- **`planes.js`** — 329 aircraft objects with `type` (pax/cargo), capacity fields, fuel consumption, range, cruise speed, price, `check_cost` (A-check fee, $) and `maint` (A-check interval, hours). `check_cost` ve `maint` `abc8747/am4` `aircrafts.csv`'den birebir kopyalandı (Fix #3, kanonik kaynak).
 - **`dataLoader.js`** — `dataLoader.getDemand(iata1, iata2)` returns `{y, j, f, l, h}`. Pax demand (`y/j/f`) comes from bit-packed parquet chunks; cargo demand is derived from pax inside `getDemand` itself: `l = round(y/2)*1000` lbs, `h = j*1000` lbs (am4-cc `demand.cpp` formula). There is no separate cargo demand source. (Note: `routes.js` is deprecated and removed; all route data now flows through `dataLoader`.)
 
 ### Business Logic
@@ -97,6 +97,24 @@ Formulas sourced from `cathaypacific8747/am4` (formulae.md). Easy and Realism us
 | Cargo Light (L) | `0.07 × distance + 50` |
 | Cargo Heavy (H) | `0.11 × distance + 150` |
 
+### Maintenance (A-check)
+
+Kanonik formül `abc8747/am4` `route.cpp:321-322`:
+
+```
+acheckCost = check_cost × modeMult × ceil(realismFlightTime) / maint
+realismFlightTime = distance / cruise_speed   // mod-bağımsız, base speed
+modeMult           = (Easy ? 1.0 : 2.0)        // Realism A-check 2× pahalı
+```
+
+`check_cost` ve `maint` her uçak için `planes.js`'te sabit, `aircrafts.csv`'den kopyalandı.
+
+**Mode-independent flight time:** Cpp formülü `ceil(flight_time × game_mode_speed_multiplier)` kullanıyor; her iki modda da `ceil(distance / baseSpeed)` verir (matematik hilesi). Easy mode'un hız avantajı maintenance'a yansımaz — wear gerçek mesafe (base speed) ile hesaplanır. `calculateFlightTime` Easy'de `speed × 4` kullandığı için A-check için ayrı `realismFlightTime` lokal değişken üretilir; aksi halde `ceil()` içinde double-discount olurdu.
+
+**Repair komponenti DAHİL DEĞİL:** Cpp formülünün ikinci komponenti `repair_cost = price × 0.0075 / 1000` per-flight repair maliyetini ekonomik simülasyon olarak amortize ediyor (E[wear] = 0.75% sabit). Gerçek AM4 mekaniğinde wear A-check'te tek seferde temizlenir, per-flight repair gideri yok. `formulae.md` de "Untested on realism" notuyla bu hipotezi destekliyor. Kullanıcı kararı (Fix #3): repair komponenti çıkarıldı, sadece A-check.
+
+**`repair_training` parametresi:** Default 0, hard-coded (`(1 - 2×t_r/100)` çarpanı 1'e indirgenir). UI'a açık değil; ileride üyelik/profil ile.
+
 ### Easy mode mechanics (implemented)
 
 - **4× aircraft speed** — `calculateFlightTime` applies `speed × 4` in Easy mode, resulting in ~2.7× more daily flights (turnaround time is fixed at 0.5h).
@@ -107,6 +125,10 @@ Formulas sourced from `cathaypacific8747/am4` (formulae.md). Easy and Realism us
 
 - **Günlük aktif yönetim limiti: 18 saat.** Kullanıcı uyku/iş için günde max 18 saat oyuna girebilir, uçağı manuel kaldırması şart. Bu yüzden günlük max sefer = `floor(18 / cycleTime)`, 24 değil. `logic.js`'te `DAILY_AVAILABLE_HOURS = 18` sabiti, `configurator.js` aynı sabiti kullanır, AI prompt'u (`worker.js`) da aynı kuralı bilir.
 - **Default boş hangar slot: 3.** Kullanıcı belirtmediyse AI ve UI 3 boş slot varsayar. AI cevabın başında bu varsayımı bildirir. `extractContextFromMessage` "5 slot var" / "3 boş slot" / "4 hangar" ifadelerini yakalar; aksi halde fallback değer 3.
+
+### Sabit Kararlar (formül seçimleri)
+
+- **A-check kanonik formül, repair komponenti hariç.** Maintenance hesabı sadece A-check'i içerir; cpp'deki per-flight repair simülasyonu ekonomik amortizasyon olarak değerlendirilip dışarıda bırakıldı (gerekçe: gerçek oyun mekaniğinde wear A-check'te temizlenir; `formulae.md` "Untested on realism"). Detay: yukarıdaki "Maintenance (A-check)" bölümü.
 
 ## Sıradaki Yapılacaklar
 

@@ -37,7 +37,13 @@ const ambiguousCities = new Map();
 
 // Mesajdan bağlam çıkar: bütçe, havalimanı, uçak tipi, sefer sayısı
 function extractContextFromMessage(text) {
-    const result = { budget: null, airports: [], planeType: null, manualTrips: null, availableSlots: null };
+    const result = {
+        budget: null, airports: [], planeType: null, manualTrips: null, availableSlots: null,
+        // Adım 4a NLU genişletme — opsiyonel uyarı/düzeltme alanları
+        ambiguousAirportNotice: null,      // { iata, city, alternatives:[iata,...] }
+        levenshteinAirportCorrection: null, // { typed, corrected:iata, city }
+        ambiguousCountry: null              // { country, candidates:[iata,...] }
+    };
     const lowerTr = text.toLocaleLowerCase('tr');
 
     // BÜTÇE — suffix'li (kelime/letter sınırı + plane variant koruma)
@@ -92,7 +98,8 @@ function extractContextFromMessage(text) {
         // Escape regex metakarakterleri
         const esc = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         // Sınır: başta string-başı veya boşluk, sonda string-sonu veya boşluk/noktalama/apostrof/Türkçe ek başlangıcı
-        const re = new RegExp(`(?:^|[\\s])${esc}(?:$|[\\s.,!?;:'‘’“”])`, 'i');
+        // (Adım 4a) Öncesi de virgül/noktalama/tire/slash kabul. "bulgaria,burgas" → "burgas" tespit.
+        const re = new RegExp(`(?:^|[\\s.,!?;:'‘’“”\\-/])${esc}(?:$|[\\s.,!?;:'‘’“”\\-/])`, 'i');
         return re.test(lowerNorm);
     };
     const sortedCities = [...cityToIata.entries()].sort((a, b) => b[0].length - a[0].length);
@@ -105,11 +112,30 @@ function extractContextFromMessage(text) {
 
     // Şehir adı taraması (2): ambiguous tek-kelime → IATA'lardan biri zaten seen'daysa atla
     // (örn. "London Heathrow" zaten LHR'yi ekledi → "london" tek-kelime LGW'yi tetiklemesin)
+    // Adım 4a: market'e göre EN BÜYÜĞÜNÜ seç + alternatives uyarısı (Seçenek C hibrit)
+    const dl = window.dataLoader && window.dataLoader.isReady() ? window.dataLoader : null;
     for (const [word, iatas] of ambiguousCities) {
         if (!wordBoundaryMatch(word)) continue;
         if (iatas.some(i => seen.has(i))) continue;
-        seen.add(iatas[0]);
-        result.airports.push(iatas[0]);
+        // Market DESC sırala (en büyük airport ilk)
+        const sorted = dl
+            ? [...iatas].sort((a, b) => {
+                const apA = dl.getAirport(a);
+                const apB = dl.getAirport(b);
+                return ((apB && apB.market) || 0) - ((apA && apA.market) || 0);
+            })
+            : iatas;
+        const chosen = sorted[0];
+        seen.add(chosen);
+        result.airports.push(chosen);
+        // İlk uyarıyı sakla (birden fazla ambiguous şehir varsa sadece ilki — AI mesajı uzun olmasın)
+        if (!result.ambiguousAirportNotice && sorted.length > 1) {
+            result.ambiguousAirportNotice = {
+                iata: chosen,
+                city: word,
+                alternatives: sorted.slice(1)
+            };
+        }
     }
 
     // TİP
@@ -126,6 +152,44 @@ function extractContextFromMessage(text) {
     let slotsM = text.match(/(\d+)\s*(?:bo[şs]\s+)?(?:slot|yer|hangar)/i);
     if (!slotsM) slotsM = text.match(/(\d+)\s*u[çc]ak\s+(?:yeri|kapasitesi|slotu)/i);
     if (slotsM) result.availableSlots = parseInt(slotsM[1], 10);
+
+    // Adım 4a NLU fallback: hâlâ airport yoksa, dataLoader.findAirportsByCity ile Levenshtein + ülke tespit
+    if (result.airports.length === 0 && dl) {
+        // Mesajdaki >=4 harfli kelimeleri çıkar (sayı kombinasyonu hariç — uçak adı parçaları)
+        const wordTokens = lowerNorm
+            .split(/[\s.,!?;:'‘’“”\-/]+/)
+            .filter(w => w.length >= 4 && !/\d/.test(w));
+        for (const w of wordTokens) {
+            const found = dl.findAirportsByCity(w, { limit: 3, levenshtein: true });
+            if (found.airports.length > 0) {
+                const top = found.airports[0];
+                result.airports.push(top.iata);
+                if (found.levenshteinUsed) {
+                    result.levenshteinAirportCorrection = {
+                        typed: w, corrected: top.iata, city: top.name
+                    };
+                }
+                if (found.airports.length > 1 && !result.ambiguousAirportNotice) {
+                    result.ambiguousAirportNotice = {
+                        iata: top.iata, city: top.name,
+                        alternatives: found.airports.slice(1).map(a => a.iata)
+                    };
+                }
+                break;  // ilk tespit yeterli
+            }
+        }
+
+        // Ülke tespiti (sadece airport hâlâ yoksa) — Bulgaria, Türkiye, Germany vb.
+        if (result.airports.length === 0) {
+            const countryMatch = dl.findAirportsByCountry(text, { limit: 8 });
+            if (countryMatch.country && countryMatch.airports.length > 0) {
+                result.ambiguousCountry = {
+                    country: countryMatch.country,
+                    candidates: countryMatch.airports.map(a => a.iata)
+                };
+            }
+        }
+    }
 
     return result;
 }
@@ -1344,7 +1408,11 @@ const Chat = {
                         // Cross-context (Adım 2): askGemini'den gelen son analiz + karşılaştırma hesapları
                         lastAnalysis: usableLastAnalysis,
                         comparisonRoute: comparisonRoute,
-                        comparisonPlane: comparisonPlane
+                        comparisonPlane: comparisonPlane,
+                        // Adım 4a NLU uyarıları (şehir/ülke tespit + Levenshtein düzeltme)
+                        ambiguousAirportNotice: extracted.ambiguousAirportNotice,
+                        levenshteinAirportCorrection: extracted.levenshteinAirportCorrection,
+                        ambiguousCountry: extracted.ambiguousCountry
                     }
                 })
             });

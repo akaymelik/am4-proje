@@ -33,6 +33,30 @@
     const STORE = 'files';
     const KEYS = ['airports', 'distances', 'demands_0', 'demands_1', 'demands_2', 'demands_3', 'demands_4', 'demands_5', 'overflow'];
 
+    // ---------- NLU helpers (Adım 4a: şehir/ülke tespit, Levenshtein fallback) ----------
+    // Türkçe + diakritik normalize (ui.js normalizeText paraleli, dataLoader bağımsız olsun diye inline)
+    function _norm(s) {
+        if (!s) return '';
+        return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/ı/g, 'i');
+    }
+
+    // Levenshtein (kelime-kelime mesafe; ui.js paraleli, NLU fallback için)
+    function _levenshtein(a, b) {
+        if (a.length === 0) return b.length;
+        if (b.length === 0) return a.length;
+        const matrix = [];
+        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+        for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                matrix[i][j] = b.charAt(i - 1) === a.charAt(j - 1)
+                    ? matrix[i - 1][j - 1]
+                    : Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+            }
+        }
+        return matrix[b.length][a.length];
+    }
+
     // ---------- IndexedDB helpers ----------
     function openDB() {
         return new Promise((resolve, reject) => {
@@ -212,6 +236,82 @@
                 }
             }
             return matches;
+        }
+
+        // Şehir adı → airport(lar). Önce exact (Türkçe normalize), bulamazsa Levenshtein eşik 2.
+        // Dönüş: { airports: [...], levenshteinUsed: bool, exactMatch: bool }. Çoklu sonuç market DESC.
+        // (Adım 4a NLU genişletme — ui.js extractContextFromMessage'dan tetiklenir)
+        findAirportsByCity(query, options = {}) {
+            const limit = options.limit || 10;
+            const allowLevenshtein = options.levenshtein !== false;
+            const result = { airports: [], levenshteinUsed: false, exactMatch: false };
+            if (!this.ready || !query) return result;
+            const qNorm = _norm(query);
+            if (qNorm.length < 3) return result;  // 1-2 harfli sorgular gürültü
+
+            // 1. Exact match (name field, normalize)
+            const exact = this.airports.filter(ap => _norm(ap.name) === qNorm);
+            if (exact.length > 0) {
+                result.exactMatch = true;
+                result.airports = exact
+                    .sort((a, b) => (b.market || 0) - (a.market || 0))
+                    .slice(0, limit);
+                return result;
+            }
+
+            // 2. Levenshtein (eşik 2) — sadece exact yoksa
+            if (!allowLevenshtein) return result;
+            const cands = [];
+            for (const ap of this.airports) {
+                const apNorm = _norm(ap.name);
+                if (Math.abs(apNorm.length - qNorm.length) > 2) continue;  // hızlı eleme
+                const dist = _levenshtein(qNorm, apNorm);
+                if (dist > 0 && dist <= 2) {
+                    cands.push({ ap, dist });
+                }
+            }
+            if (cands.length === 0) return result;
+            // Önce en küçük mesafe, sonra market DESC
+            cands.sort((a, b) => (a.dist - b.dist) || ((b.ap.market || 0) - (a.ap.market || 0)));
+            result.levenshteinUsed = true;
+            result.airports = cands.slice(0, limit).map(c => c.ap);
+            return result;
+        }
+
+        // Ülke adı tespiti: mesaj metninde whole-word ülke eşleşmesi.
+        // Dönüş: { country: 'Bulgaria', airports: [...], } veya { country: null, airports: [] }.
+        // (Adım 4a NLU genişletme — sonsuz seçenekli, AI'a sordurulur)
+        findAirportsByCountry(text, options = {}) {
+            const limit = options.limit || 20;
+            const result = { country: null, airports: [] };
+            if (!this.ready || !text) return result;
+            const textNorm = _norm(text);
+
+            // Unique country listesi (lazy cache)
+            if (!this._countryListCached) {
+                const seen = new Set();
+                this._countryListCached = [];
+                for (const ap of this.airports) {
+                    if (!ap.country || seen.has(ap.country)) continue;
+                    seen.add(ap.country);
+                    this._countryListCached.push(ap.country);
+                }
+            }
+            // Whole-word match (uzun-önce — "United Kingdom" "United States"ten önce)
+            const sorted = [...this._countryListCached].sort((a, b) => b.length - a.length);
+            for (const country of sorted) {
+                const cn = _norm(country).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const re = new RegExp(`(?:^|[\\s.,!?;:'\\-/])${cn}(?:$|[\\s.,!?;:'\\-/])`, 'i');
+                if (re.test(textNorm)) {
+                    result.country = country;
+                    result.airports = this.airports
+                        .filter(ap => ap.country === country)
+                        .sort((a, b) => (b.market || 0) - (a.market || 0))
+                        .slice(0, limit);
+                    return result;
+                }
+            }
+            return result;
         }
 
         isReady() { return this.ready; }

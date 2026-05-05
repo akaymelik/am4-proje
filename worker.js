@@ -267,6 +267,11 @@ ROTA ANALİZİ TARZI:
 - 2-3 cümlelik özet + 2 somut tavsiye yeterli.
 - "Genel olarak", "ucuz çok uçak" gibi GENEL prensipler verme — sadece BU rotaya özgü yorum yap.
 
+ŞEHİR/ÜLKE NLU UYARILARI (Adım 4a):
+- AMBIGUOUS_AIRPORT_NOTICE bloğu varsa: Kullanıcı çoklu havalimanı olan şehir yazdı (örn "Istanbul"). Sistem en büyüğünü (market'e göre, örn IST) varsaydı. Cevabında ÖNCE belirt: "İstanbul için IST varsaydım — Sabiha Gökçen (SAW) için sorarsan IATA kodunu yaz." Sonra spesifik analiz IST verisi üzerinden yap.
+- LEVENSHTEIN_AIRPORT_CORRECTION bloğu varsa: Kullanıcı yazım hatası yaptı (örn "burgaz" → "BOJ Burgas"). Cevabında belirt: "Burgas (BOJ) varsaydım, yazımını düzelttim." Sonra rotalar/analiz ver.
+- AMBIGUOUS_COUNTRY bloğu varsa: Kullanıcı sadece ülke adı yazdı (örn "Bulgaria"), spesifik şehir yok. Hangi havalimanını sorduğunu sor — UYDURMA: "Bulgaria'da BOJ (Burgas), SOF (Sofia), VAR (Varna), PDV (Plovdiv), GOZ (Gorna). Hangisinden uçmak istiyorsun?" Spesifik rota/sayı verme, kullanıcı netleşene kadar bekle.
+
 CROSS-CONTEXT (askGemini ↔ chat köprüsü):
 - "ÖNCEKİ ANALİZ" bloğu varsa: kullanıcı az önce AI butonu ile bir uçak+rota incelemiş demektir. Tüm sayısal sorularında ($X gider, $Y kâr gibi) bu bloğa bak — başka uçak/rota varsayma. Önceki analiz uçağını adıyla tekrar belirt ki kullanıcı hangi analizden bahsettiğini görsün.
 - "KARŞILAŞTIRMA ROTASI" bloğu varsa: kullanıcı aynı uçakla farklı rotayı sordu. ÖNCEKİ ANALİZ ile yan yana tablo veya cümle formatında karşılaştır (sefer kârı, günlük kâr, payback farkı). "Hangisi daha kârlı?" sorusunu açıkça yanıtla.
@@ -335,6 +340,20 @@ TAVIR:
 
       if (userContext.hubAnalysis && userContext.hubAnalysis.trim().length > 0) {
         contextBlock += `\n\n=== GERÇEK HUB ANALİZ VERİSİ (dataLoader hesabı, varsayım/örnek değil — direkt kullan): ===${userContext.hubAnalysis}`;
+      }
+
+      // NLU uyarıları (Adım 4a): şehir/ülke tespit + Levenshtein düzeltme — AI cevabında belirtmeli
+      if (userContext.ambiguousAirportNotice) {
+        const n = userContext.ambiguousAirportNotice;
+        contextBlock += `\n\n⚠️ AMBIGUOUS_AIRPORT_NOTICE: Kullanıcı '${n.city}' yazdı, çoklu havalimanı var. Sistem '${n.iata}' varsaydı (en büyük market). Alternatifler: ${(n.alternatives || []).join(', ')}. Cevabında bu varsayımı belirt, analize başla.`;
+      }
+      if (userContext.levenshteinAirportCorrection) {
+        const c = userContext.levenshteinAirportCorrection;
+        contextBlock += `\n\n✏️ LEVENSHTEIN_AIRPORT_CORRECTION: Kullanıcı '${c.typed}' yazdı (yazım hatası); sistem '${c.corrected}' (${c.city}) olarak düzeltti. Cevabında düzeltmeyi belirt, sonra analize başla.`;
+      }
+      if (userContext.ambiguousCountry) {
+        const cu = userContext.ambiguousCountry;
+        contextBlock += `\n\n⚠️ AMBIGUOUS_COUNTRY: Kullanıcı sadece '${cu.country}' ülke adı yazdı, spesifik havalimanı belirtmedi. Adaylar: ${(cu.candidates || []).join(', ')}. KULLANICIYA SOR — hangi havalimanından uçmak istediğini netleştir, spesifik rota/sayı UYDURMA.`;
       }
 
       // Cross-context blokları (Adım 2): askGemini'den gelen son analiz + opsiyonel karşılaştırmalar

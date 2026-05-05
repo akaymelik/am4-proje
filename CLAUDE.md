@@ -130,6 +130,7 @@ modeMult           = (Easy ? 1.0 : 2.0)        // Realism A-check 2× pahalı
 
 - **A-check kanonik formül, repair komponenti hariç.** Maintenance hesabı sadece A-check'i içerir; cpp'deki per-flight repair simülasyonu ekonomik amortizasyon olarak değerlendirilip dışarıda bırakıldı (gerekçe: gerçek oyun mekaniğinde wear A-check'te temizlenir; `formulae.md` "Untested on realism"). Detay: yukarıdaki "Maintenance (A-check)" bölümü.
 - **Per-flight staff cost yok.** Profit formülünde uçak/sefer başına personel maaşı düşülmez. Gerekçe: kullanıcı oyun gözleminde uçak gider raporunda staff satırı yok; kanonik kaynaklar (am4-cc, abc8747) staff'ı route profit zincirinde modellemiyor. Şirket geneli personel (CEO, mekanik, yer hizmetleri, kabin) UI'a açılmıyor — kullanıcı kararı: input yorgunluğu + değişken maliyet, ileride üyelik/profil ile.
+- **Cargo allocation L-first (yolcu F-first paralelliği).** `calculateOptimalCargo` L'yi (Light) önce yerleştirir, talep dolu kadar L sığdırır, kalan slotlara H (Heavy) gelir. Gerekçe: L slot başına en kârlı (Realism d=2933'te L≈$2.41/slot vs H≈$1.90/slot) — yolcu `F > J > Y` hiyerarşisi ile aynı revenue-maksimize prensibi. am4-cc oyun teyidi ile birebir hizalar (kullanıcı CKC-VVZ A400M karşılaştırması). UI render'ı `Configurator.calculateOptimalCargo(plane, r, r.dailyTrips)` ile çağrılır; trip parametresi geçmek logic ile UI gösterimi arasında allocation tutarlılığı sağlar.
 
 ## Sıradaki Yapılacaklar
 

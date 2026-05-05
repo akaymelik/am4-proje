@@ -892,9 +892,11 @@ const UI = {
             card.className = 'route-card';
             
             const plane = aircraftData[planeName];
-            const opt = plane.type === 'passenger' 
-                ? Configurator.calculateOptimalSeats(plane, r)
-                : Configurator.calculateOptimalCargo(plane, r);
+            // r.dailyTrips Logic._evalRoute'tan gelir; geçmemek UI gösterimi ile profit hesabı
+            // arasında trip sayısı farkına yol açıyordu (Fix #2.7 senkron düzeltmesi).
+            const opt = plane.type === 'passenger'
+                ? Configurator.calculateOptimalSeats(plane, r, r.dailyTrips)
+                : Configurator.calculateOptimalCargo(plane, r, r.dailyTrips);
 
             card.innerHTML = `
                 <div class="route-header">

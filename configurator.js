@@ -51,12 +51,19 @@ const Configurator = {
         //   - Heavy: 1 lbs = 1 slot (baseline, training yok)
         //   - Light: 1 lbs = 1/0.7 slot (yani aynı slot sayısı için L lbs daha az)
         //   - Constraint: h_lbs + l_lbs / 0.7 <= capacity
-        // Allocation: H önce (slot başına daha çok lbs), L kalan slotlara × 0.7 ile sığar.
+        // Allocation: L önce (slot başına en kârlı, yolcu F-first paralelliği).
+        // Revenue-maksimize: L lbs başına H'den daha pahalı, slot başına da daha pahalı
+        // (Realism d=2933'te L=$2.41/slot vs H=$1.90/slot). am4-cc Priority: L > H ile
+        // birebir hizalar (kullanıcı CKC-VVZ A400M oyun doğrulaması — Fix #2.7).
         const L_CAP_FACTOR = 0.7;
         let remCap = plane.capacity;
-        let sH = Math.min(demandH, remCap);
-        remCap -= sH;
+
+        // L ÖNCE — talep dolu kadar, max L_lbs = floor(remCap × 0.7)
         let sL = Math.min(demandL, Math.floor(remCap * L_CAP_FACTOR));
+        remCap -= Math.ceil(sL / L_CAP_FACTOR);  // L'nin tükettiği slot (ceil: kapasite aşmamak için)
+
+        // H SONRA — kalan slotlara, 1 lbs = 1 slot
+        let sH = Math.min(demandH, Math.max(0, remCap));
 
         return { l: sL, h: sH };
     },

@@ -63,10 +63,36 @@ const Logic = {
         if (plane.type === "cargo") {
             const hasCargo = route.demand && (route.demand.l || route.demand.h);
             if (!hasCargo) return { profitPerFlight: 0 };
-            const opt = Configurator.calculateOptimalCargo(plane, route, trips);
+            let opt;
+            // Manuel config geçilmişse onu kullan (talep ile sınırlı: talep dolmazsa boş kalır).
+            // Geriye dönük: config=null/undefined ise mevcut optimal allocation davranışı korunur.
+            // NOT: Manuel cargo config'te kapasite kontrolü YAPILMAZ — kullanıcının verdiği değerler
+            // talep ile sınırlı, kapasite aşımı kullanıcının sorumluluğu (UI'daki
+            // Configurator.updateCapacityCheck zaten kapasite uyarısı gösterir).
+            if (config && (config.l !== undefined || config.h !== undefined)) {
+                const demand = route.demand || {};
+                opt = {
+                    l: Math.min(config.l || 0, Math.floor((demand.l || 0) / trips)),
+                    h: Math.min(config.h || 0, Math.floor((demand.h || 0) / trips))
+                };
+            } else {
+                opt = Configurator.calculateOptimalCargo(plane, route, trips);
+            }
             grossRevenue = (opt.l * prices.l) + (opt.h * prices.h);
         } else {
-            const opt = Configurator.calculateOptimalSeats(plane, route, trips);
+            let opt;
+            // Manuel config geçilmişse onu kullan (talep ile sınırlı).
+            // Geriye dönük: config=null/undefined ise optimal F-first allocation.
+            if (config && (config.y !== undefined || config.j !== undefined || config.f !== undefined)) {
+                const demand = route.demand || {};
+                opt = {
+                    y: Math.min(config.y || 0, Math.floor((demand.y || 0) / trips)),
+                    j: Math.min(config.j || 0, Math.floor((demand.j || 0) / trips)),
+                    f: Math.min(config.f || 0, Math.floor((demand.f || 0) / trips))
+                };
+            } else {
+                opt = Configurator.calculateOptimalSeats(plane, route, trips);
+            }
             grossRevenue = (opt.y * prices.y) + (opt.j * prices.j) + (opt.f * prices.f);
         }
 

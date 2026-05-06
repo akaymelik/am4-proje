@@ -258,6 +258,7 @@ HALÜSİNASYON YASAĞI (MUTLAK):
 - Bağlamı history'den varsayma. Eğer önceki mesajlarda liste vardı ama mevcut mesajda yok, eski liste GEÇERSİZ — yeniden iste.
 - KÖTÜ ÖRNEK: "HUB ANALİZİ verilerine göre listenin 10. sırasında MD-11C ile 31 gün payback" (liste yokken sıra/payback uydurma)
 - İYİ ÖRNEK: "En verimli uçağı önerebilmem için bütçenizi söyler misiniz? Bütçe Önerileri sayfasında 'AI ile Stratejik Yorum Al' butonuna basarsanız hesaplı liste üzerinden spesifik öneri yapabilirim."
+- Eğer "UÇAK ROTA ÖNERİLERİ" listesi context'te YOKSA ve kullanıcı bir uçak için spesifik rota/günlük kâr/payback soruyorsa, ASLA spesifik rota adı/sayı uydurma. Bunun yerine: "X uçağı için rota analizi yapabilirim. Hub belirtirsen (örn LHR) o hub'tan top rotaları çıkarırım, ya da Bütçe Önerileri sayfasındaki AI butonu ile başla" yönlendirmesi yap. (BOJ hub vakası paraleli — eğitim verisinden tahmin yasak.)
 - CO₂ değeri context'te yoksa ($body.co2Cost veya breakdown.co2Cost yok), spesifik co2 maliyeti UYDURMA. "co2_cost gönderilmediği için sayı veremem, sayfayı yenile veya AI butonuna tekrar bas" de.
 - plane.co2 field'ı yoksa formülü uygulamayı reddet — varsayılan 0.18 gibi rakam UYDURMA.
 
@@ -278,6 +279,14 @@ CROSS-CONTEXT (askGemini ↔ chat köprüsü):
 - "ALTERNATİF UÇAK ANALİZİ" bloğu varsa: kullanıcı aynı rotada farklı uçağı sordu. İki uçağı yan yana karşılaştır (sefer kârı, payback, ilk yatırım farkı, kapasite). Pahalı ama daha kârlı / ucuz ama az kapasiteli gibi trade-off'u açıkla.
 - "ÖNCEKİ ANALİZ" yoksa ama kullanıcı sayısal referans veriyorsa ("$X giderin nedir") "Önceki analiz hatırlamıyorum, AI butonuna tekrar basar mısın?" de — UYDURMA.
 - ÖNCEKİ ANALİZ varken kullanıcı yeni airport çifti veya yeni uçak adı yazarsa karşılaştırma blokları otomatik gelir; gelmediyse kullanıcı sadece bilgi sormuştur, karşılaştırma uydurma.
+
+UÇAK ROTA ANALİZİ (Adım 4b):
+- "UÇAK ROTA ÖNERİLERİ" bloğu varsa: kullanıcı bir uçak için rota sordu, sistem o uçağa uygun gerçek rotaları (dataLoader hesabı, parquet bazlı) çıkardı.
+- Format: header'da uçak adı + fiyat + tip + hub bilgisi; her satır: Rota|Mesafe|Sefer|GünlükKâr|Verim|Payback (6 kolon, uçak sabit olduğu için HUB ANALİZ'den 2 kolon eksik).
+- Bu liste GERÇEKtir — uydurma, varsayım yapma. Top 2-3 rotayı seç, neden seçtiğini açıkla (mesafe/kâr/payback trade-off).
+- Hub "top 5 hub global" ise: liste majör havalimanlarındaki rotaları gösterir; cevabında "farklı hublarda farklı rotalar uygundur, tercih ettiğin hub'ı belirtirsen daha hedefli analiz yaparım" diyebilirsin.
+- ÖNCEKİ ANALİZ rotası varsa ve aynı uçak için: "Şu an top rota X→Y, ama önceki analiz X→Z idi" gibi bağ kur — kullanıcı bağlamı kaybetmesin.
+- Liste YOKSA ama kullanıcı uçak için rota soruyorsa: HALÜSİNASYON YASAĞI kuralı geçerli — hub iste veya sayfa butonuna yönlendir.
 
 SOHBET BAĞLAM YÖNETİMİ:
 - Tüm sohbet geçmişini (history) oku ve değerlendir.
@@ -340,6 +349,10 @@ TAVIR:
 
       if (userContext.hubAnalysis && userContext.hubAnalysis.trim().length > 0) {
         contextBlock += `\n\n=== GERÇEK HUB ANALİZ VERİSİ (dataLoader hesabı, varsayım/örnek değil — direkt kullan): ===${userContext.hubAnalysis}`;
+      }
+
+      if (userContext.planeRoutes && userContext.planeRoutes.trim().length > 0) {
+        contextBlock += `\n\n=== GERÇEK UÇAK ROTA VERİSİ (dataLoader hesabı, kullanıcının sorduğu uçak için top 10 rota — direkt kullan): ===${userContext.planeRoutes}`;
       }
 
       // NLU uyarıları (Adım 4a): şehir/ülke tespit + Levenshtein düzeltme — AI cevabında belirtmeli

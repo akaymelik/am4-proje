@@ -1446,13 +1446,23 @@ const Chat = {
                 const m = usableLastAnalysis.route.origin.match(/\(([A-Z]{3})/);
                 if (m) crossContextHubIata = m[1];
             }
-            const planeRouteHub = crossContextHubIata || effectiveAirports[0] || null;
+            // Adım 4a Levenshtein düzeltmesi yan etkisi: geniş routeIntent listesi
+            // ("uçar", "kar", "hat" vb.) bazen şehir adlarına eşik-2 Levenshtein ile
+            // düzeltiliyor (örn "uçar" → "Ufa"). Bu IATA'yı hub olarak güvenme.
+            // cityToIata explicit match'i (Londra→LHR) ve KNOWN_IATA token match'i
+            // (JFK gibi) güvenilirliğini korur — sadece Levenshtein düzeltmeleri dışlanır.
+            const isLevSideEffect = extracted.levenshteinAirportCorrection &&
+                                    effectiveAirports.length > 0 &&
+                                    extracted.levenshteinAirportCorrection.corrected === effectiveAirports[0];
+            const trustedAirportHub = isLevSideEffect ? null : (effectiveAirports[0] || null);
+            const planeRouteHub = crossContextHubIata || trustedAirportHub || null;
             planeRoutes = getPlaneRouteContext(mentionedPlanes[0].name, planeRouteHub);
             // GEÇİCİ debug — Dokunuş 4 sonrası SİL
             _adim4bDebug = {
                 mentionedPlanes: mentionedPlanes.map(p => p.name),
                 routeIntent: extracted.routeIntent,
                 crossContextHubIata,
+                levSideEffectFiltered: isLevSideEffect ? effectiveAirports[0] : null,
                 planeRouteHub,
                 planeRoutesLen: planeRoutes.length
             };

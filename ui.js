@@ -347,6 +347,42 @@ function getRelevantRoutes(airports) {
         .join('\n');
 }
 
+/**
+ * Belirli bir uçak için TOP 10 rotayı pipe formatında AI'a verir (Adım 4b).
+ *  - planeName: uçak adı (typoCorrection suffix'i otomatik temizlenir)
+ *  - hubIata: cross-context'ten (Adım 2) veya effectiveAirports'tan; null ise top 5 hub global mod
+ * Format: header (uçak fiyat type + hub) + 6 kolon × ≤10 satır.
+ * Boş liste durumunda '' döner — worker.js halüsinasyon yasağı kuralı tetiklenir.
+ */
+function getPlaneRouteContext(planeName, hubIata) {
+    if (!planeName || typeof aircraftData === 'undefined') return '';
+    if (typeof Logic === 'undefined') return '';
+    const dl = window.dataLoader;
+    if (!dl || !dl.isReady()) return '';
+
+    // Typo suffix temizliği (mentionedPlanes pattern'i, sendChatMessage line 1347 paraleli)
+    const cleanName = planeName.replace(' (yazım düzeltildi)', '');
+    const plane = aircraftData[cleanName];
+    if (!plane) return '';
+
+    const routes = Logic.analyzeTopRoutesForPlane(cleanName, 10, null, hubIata);
+    if (routes.length === 0) return '';
+
+    const lines = routes.map(r => {
+        // origin/destination Utils.formatAirportLabel → "Heathrow Airport (LHR / EGLL), United Kingdom"
+        // IATA çıkar (Adım 2 line 1305 regex'i ile aynı)
+        const originIata = (r.origin.match(/\(([A-Z]{3})/) || [])[1] || '?';
+        const destIata = (r.destination.match(/\(([A-Z]{3})/) || [])[1] || '?';
+        const paybackDays = r.dailyProfit > 0 ? Math.ceil(plane.price / r.dailyProfit) : 9999;
+        return `${originIata}→${destIata}|${r.distance}km|${r.dailyTrips}sefer|$${Math.round(r.dailyProfit/1e3)}K/g|%${r.efficiency.toFixed(2)}|${paybackDays}gün`;
+    });
+
+    const hubInfo = hubIata ? `hub: ${hubIata}` : 'top 5 hub global';
+    const header = `${cleanName} ($${(plane.price/1e6).toFixed(2)}M, ${plane.type}), ${hubInfo}`;
+    const colHeader = `Rota|Mesafe|Sefer|GünlükKâr|Verim|Payback`;
+    return `\nUÇAK ROTA ÖNERİLERİ (${header}):\n${colHeader}\n${lines.join('\n')}`;
+}
+
 const UI = {
     /**
      * AI yanıtını sohbet history'sine kaydeder. Bütçe/rota AI butonlarından sonra çağrılır.

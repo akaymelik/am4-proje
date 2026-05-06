@@ -403,6 +403,40 @@ function getPlaneRouteContext(planeName, hubIata) {
     return `\nUÇAK ROTA ÖNERİLERİ (${header}):\n${colHeader}\n${lines.join('\n')}`;
 }
 
+/**
+ * Hub-on-page-cache (Post-Adım-4b iş #1): kullanıcı sayfada manuel hub
+ * seçince sessionStorage'a kaydet. sendChatMessage Adım 4b hub fallback
+ * chain'inde lastAnalysis ile timestamp karşılaştırılarak kullanılır.
+ * Format: { iata: string, ts: number }
+ * TTL yok — sessionStorage zaten tab-scoped, sayfa kapanınca gider.
+ */
+function saveLastHub(iata) {
+    if (!iata) return;
+    try {
+        sessionStorage.setItem('menoa_last_hub', JSON.stringify({ iata, ts: Date.now() }));
+    } catch (e) {
+        console.warn('[saveLastHub] sessionStorage yazılamadı:', e);
+    }
+}
+
+function loadLastHub() {
+    try {
+        const raw = sessionStorage.getItem('menoa_last_hub');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.iata || typeof parsed.ts !== 'number') return null;
+        return parsed;
+    } catch (e) {
+        return null;
+    }
+}
+
+function clearLastHub() {
+    try {
+        sessionStorage.removeItem('menoa_last_hub');
+    } catch (e) {}
+}
+
 const UI = {
     /**
      * AI yanıtını sohbet history'sine kaydeder. Bütçe/rota AI butonlarından sonra çağrılır.

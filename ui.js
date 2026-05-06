@@ -35,6 +35,18 @@ const KNOWN_IATA = new Set();
 const cityToIata = new Map();
 const ambiguousCities = new Map();
 
+// Adım 4b yan etkisi düzeltmesi (Dokunuş 4.7): uçak adı parçaları (caravelle, boeing,
+// concorde gibi ≥4 harfli alfa kısımları) Adım 4a Levenshtein fallback'inde şehir adlarına
+// yanlışlıkla düzeltilmesin. aircraftData planes.js'ten gelir, ui.js yüklendiğinde dolu.
+const PLANE_NAME_PARTS = new Set();
+if (typeof aircraftData !== 'undefined') {
+    for (let name in aircraftData) {
+        const nameNorm = name.toLowerCase().replace(/[\s\-_]/g, '');
+        // Sayılarla parçala, sadece ≥4 harfli alfa parçalarını al ("caravelle11r" → ["caravelle"])
+        nameNorm.split(/\d+/).filter(p => p.length >= 4).forEach(p => PLANE_NAME_PARTS.add(p));
+    }
+}
+
 // Mesajdan bağlam çıkar: bütçe, havalimanı, uçak tipi, sefer sayısı
 function extractContextFromMessage(text) {
     const result = {
@@ -189,6 +201,7 @@ function extractContextFromMessage(text) {
         const isRouteIntentToken = (token) => ROUTE_INTENT_PATTERNS.some(re => re.test(token));
         for (const w of wordTokens) {
             if (isRouteIntentToken(w)) continue; // Adım 4b yan etkisi: intent kelimesini Levenshtein'a verme
+            if (PLANE_NAME_PARTS.has(w)) continue; // Adım 4b yan etkisi: uçak adı parçasını Levenshtein'a verme
             const found = dl.findAirportsByCity(w, { limit: 3, levenshtein: true });
             if (found.airports.length > 0) {
                 const top = found.airports[0];

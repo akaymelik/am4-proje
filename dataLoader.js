@@ -259,14 +259,18 @@
                 return result;
             }
 
-            // 2. Levenshtein (eşik 2) — sadece exact yoksa
+            // 2. Levenshtein (eşik 1) — sadece exact yoksa
+            // Post-Adım-4b iş: eşik 2 → 1. Eşik 2 ile yan etkiler vardı:
+            //   "uçar" → Ufa (distance 2), "caravelle" → Caravelas (distance 2).
+            // Eşik 1 typo düzeltmesinin doğal kapsamı; "burgaz" → Burgas (distance 1) hâlâ çalışır.
+            // Whitelist (ROUTE_INTENT_PATTERNS, PLANE_NAME_PARTS) hâlâ aktif → çift güvenlik ağı.
             if (!allowLevenshtein) return result;
             const cands = [];
             for (const ap of this.airports) {
                 const apNorm = _norm(ap.name);
-                if (Math.abs(apNorm.length - qNorm.length) > 2) continue;  // hızlı eleme
+                if (Math.abs(apNorm.length - qNorm.length) > 1) continue;  // hızlı eleme (eşik 1)
                 const dist = _levenshtein(qNorm, apNorm);
-                if (dist > 0 && dist <= 2) {
+                if (dist > 0 && dist <= 1) {
                     cands.push({ ap, dist });
                 }
             }

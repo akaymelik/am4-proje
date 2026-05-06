@@ -39,6 +39,8 @@ const ambiguousCities = new Map();
 function extractContextFromMessage(text) {
     const result = {
         budget: null, airports: [], planeType: null, manualTrips: null, availableSlots: null,
+        // Adım 4b — uçak entity ile AND'lenecek route intent flag
+        routeIntent: false,
         // Adım 4a NLU genişletme — opsiyonel uyarı/düzeltme alanları
         ambiguousAirportNotice: null,      // { iata, city, alternatives:[iata,...] }
         levenshteinAirportCorrection: null, // { typed, corrected:iata, city }
@@ -152,6 +154,26 @@ function extractContextFromMessage(text) {
     let slotsM = text.match(/(\d+)\s*(?:bo[şs]\s+)?(?:slot|yer|hangar)/i);
     if (!slotsM) slotsM = text.match(/(\d+)\s*u[çc]ak\s+(?:yeri|kapasitesi|slotu)/i);
     if (slotsM) result.availableSlots = parseInt(slotsM[1], 10);
+
+    // Adım 4b — uçak için rota niyet tespiti (geniş kelime listesi, Türkçe morfoloji toleranslı)
+    // Stratejik dengeler:
+    //  - "uça" stem'inde yalnızca uçar/uçabilir/uçacak whitelist'i — "uçak" sözlük çakışmasını filtre
+    //  - "kar" prefix'i normalize edilmiş metinde de yakalanır (kâr→kar)
+    //  - "hat" → "hata" yanlış pozitifi kabul edilebilir (AND koşulu söndürür çoğunu)
+    const ROUTE_INTENT_PATTERNS = [
+        /\brota[a-zçğıöşü]*\b/i,            // rota, rotası, rotalar, rotada
+        /\bk[âa]rl?[ıi]?\b/i,               // kâr, kar, karlı, karli
+        /\bkazan[a-zçğıöşü]*\b/i,           // kazan, kazanç, kazanır
+        /\bu[çc]a(?:r|bilir|cak)\b/i,       // uçar, uçabilir, uçacak (uçak HARİÇ)
+        /\bnere(?:ye|den|de|ler)?\b/i,      // nereye, nereden, nerede
+        /\b[öo]ner[a-zçğıöşü]*\b/i,         // öner, önerir, önerebilir
+        /\btavsiye[a-zçğıöşü]*\b/i,
+        /\bverim[a-zçğıöşü]*\b/i,           // verim, verimli, verimi
+        /\bhat(?:t[ıaeu])?[a-zçğıöşü]*\b/i, // hat, hattı, hatta
+        /\bkullan[a-zçğıöşü]*\b/i,          // kullan, kullanır, kullanılır
+        /\balabilir\s+miyim\b/i,
+    ];
+    result.routeIntent = ROUTE_INTENT_PATTERNS.some(re => re.test(text));
 
     // Adım 4a NLU fallback: hâlâ airport yoksa, dataLoader.findAirportsByCity ile Levenshtein + ülke tespit
     if (result.airports.length === 0 && dl) {

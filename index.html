@@ -99,7 +99,7 @@
         <input type="text" id="paxHubInput" list="airportList" placeholder="Yazmaya başlayın... (örn: London, Paris, LHR)" autocomplete="off">
         <div id="paxHubInfo" style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;"></div>
         <label>Uçak Seçiniz:</label>
-        <select id="paxRouteSelect" onchange="Configurator.updateCapacityCheck()"></select>
+        <input type="text" id="paxRouteSelect" list="paxPlaneList" onchange="Configurator.updateCapacityCheck()" placeholder="Uçak adı yazın veya seçin... (örn: B737-100)" autocomplete="off">
         
         <div class="config-panel">
             <h4>Koltuk Yapılandırması</h4>
@@ -136,7 +136,7 @@
         <input type="text" id="cargoHubInput" list="airportList" placeholder="Yazmaya başlayın... (örn: London, Paris, LHR)" autocomplete="off">
         <div id="cargoHubInfo" style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;"></div>
         <label>Uçak Seçiniz:</label>
-        <select id="cargoRouteSelect" onchange="Configurator.updateCapacityCheck()"></select>
+        <input type="text" id="cargoRouteSelect" list="cargoPlaneList" onchange="Configurator.updateCapacityCheck()" placeholder="Uçak adı yazın veya seçin... (örn: A330-200F)" autocomplete="off">
         
         <div class="config-panel">
             <h4>Kargo Yapılandırması</h4>
@@ -185,6 +185,8 @@
 <script src="ui.js"></script>
 
 <datalist id="airportList"></datalist>
+<datalist id="paxPlaneList"></datalist>
+<datalist id="cargoPlaneList"></datalist>
 
 <script>
     window.addEventListener('load', () => {

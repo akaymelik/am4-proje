@@ -716,20 +716,31 @@ const UI = {
      * Uçak seçim kutularını verilerle doldurur.
      */
     fillSelects: function() {
-        const paxSelect = document.getElementById('paxRouteSelect');
-        const cargoSelect = document.getElementById('cargoRouteSelect');
-        
-        if (paxSelect) {
-            paxSelect.innerHTML = '<option value="">-- Uçak Seçiniz --</option>';
+        // Uçak autocomplete: paxRouteSelect/cargoRouteSelect artık <input list="..."> formatında.
+        // Datalist'leri (paxPlaneList, cargoPlaneList) aircraftData ile dolduruyoruz.
+        // Native HTML5 datalist filtreleme — kullanıcı yazınca browser otomatik filter yapar.
+        const paxList = document.getElementById('paxPlaneList');
+        const cargoList = document.getElementById('cargoPlaneList');
+
+        if (paxList) {
+            paxList.innerHTML = '';
             for (let name in aircraftData) {
-                if (aircraftData[name].type === "passenger") paxSelect.add(new Option(name, name));
+                if (aircraftData[name].type === "passenger") {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    paxList.appendChild(opt);
+                }
             }
         }
-        
-        if (cargoSelect) {
-            cargoSelect.innerHTML = '<option value="">-- Uçak Seçiniz --</option>';
+
+        if (cargoList) {
+            cargoList.innerHTML = '';
             for (let name in aircraftData) {
-                if (aircraftData[name].type === "cargo") cargoSelect.add(new Option(name, name));
+                if (aircraftData[name].type === "cargo") {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    cargoList.appendChild(opt);
+                }
             }
         }
     },

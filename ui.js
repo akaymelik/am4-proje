@@ -1439,7 +1439,6 @@ const Chat = {
         // Hub kaynağı 3 katmanlı fallback: cross-context (Adım 2) → mesaj/history → null (top-5 hub global)
         // v1: tek uçak (mentionedPlanes[0]); çoklu uçak Adım 2 comparisonPlane akışına bırakılır
         let planeRoutes = '';
-        let _adim4bDebug = null; // GEÇİCİ — Dokunuş 4 sonrası SİLİNECEK
         if (mentionedPlanes.length > 0 && extracted.routeIntent) {
             let crossContextHubIata = null;
             if (usableLastAnalysis?.route?.origin) {
@@ -1457,16 +1456,6 @@ const Chat = {
             const trustedAirportHub = isLevSideEffect ? null : (effectiveAirports[0] || null);
             const planeRouteHub = crossContextHubIata || trustedAirportHub || null;
             planeRoutes = getPlaneRouteContext(mentionedPlanes[0].name, planeRouteHub);
-            // GEÇİCİ debug — Dokunuş 4 sonrası SİL
-            _adim4bDebug = {
-                mentionedPlanes: mentionedPlanes.map(p => p.name),
-                routeIntent: extracted.routeIntent,
-                crossContextHubIata,
-                levSideEffectFiltered: isLevSideEffect ? effectiveAirports[0] : null,
-                planeRouteHub,
-                planeRoutesLen: planeRoutes.length
-            };
-            console.log('[Adım 4b debug]', _adim4bDebug);
         }
 
         // Hub analizi: kullanıcı bir hub belirttiyse o hub'tan TOP 10 uçak/rota gerçek dataLoader analizi
@@ -1497,6 +1486,7 @@ const Chat = {
                         candidatePlanes: candidatePlanes,
                         relevantRoutes: relevantRoutes,
                         hubAnalysis: hubAnalysis,
+                        planeRoutes: planeRoutes,
                         extracted: extracted,
                         // Cross-context (Adım 2): askGemini'den gelen son analiz + karşılaştırma hesapları
                         lastAnalysis: usableLastAnalysis,

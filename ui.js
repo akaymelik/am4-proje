@@ -1508,14 +1508,34 @@ const Chat = {
         }
 
         // Adım 4b — uçak entity + route intent AND koşulu: o uçak için top 10 rotayı çıkar
-        // Hub kaynağı 3 katmanlı fallback: cross-context (Adım 2) → mesaj/history → null (top-5 hub global)
+        // Hub kaynağı 4 katmanlı fallback (Post-Adım-4b iş #1):
+        //   1. winnerHub: lastAnalysis (askGemini) VS lastHub (sayfa hub seçimi) timestamp karşılaştırma
+        //   2. effectiveAirports[0] (mesaj/history)
+        //   3. null (top-5 hub global)
+        // Q2 kuralı: ikisi de doluysa ts daha yeni olan kazanır (en son aksiyon = en güçlü sinyal).
         // v1: tek uçak (mentionedPlanes[0]); çoklu uçak Adım 2 comparisonPlane akışına bırakılır
         let planeRoutes = '';
         if (mentionedPlanes.length > 0 && extracted.routeIntent) {
-            let crossContextHubIata = null;
+            // Katman 1a: askGemini cross-context (lastAnalysis.route.origin)
+            let analysisHubIata = null;
+            let analysisTs = 0;
             if (usableLastAnalysis?.route?.origin) {
                 const m = usableLastAnalysis.route.origin.match(/\(([A-Z]{3})/);
-                if (m) crossContextHubIata = m[1];
+                if (m) {
+                    analysisHubIata = m[1];
+                    analysisTs = usableLastAnalysis.timestamp || 0;
+                }
+            }
+            // Katman 1b: sayfada manuel hub seçimi (Post-Adım-4b iş #1)
+            const lastHubObj = loadLastHub();
+            const lastHubIata = lastHubObj?.iata || null;
+            const lastHubTs = lastHubObj?.ts || 0;
+            // Q2 timestamp karşılaştırma: ts daha yeni olan kazanır
+            let winnerHub = null;
+            if (analysisHubIata && lastHubIata) {
+                winnerHub = (analysisTs >= lastHubTs) ? analysisHubIata : lastHubIata;
+            } else {
+                winnerHub = analysisHubIata || lastHubIata;
             }
             // Adım 4a Levenshtein düzeltmesi yan etkisi: geniş routeIntent listesi
             // ("uçar", "kar", "hat" vb.) bazen şehir adlarına eşik-2 Levenshtein ile
@@ -1526,7 +1546,7 @@ const Chat = {
                                     effectiveAirports.length > 0 &&
                                     extracted.levenshteinAirportCorrection.corrected === effectiveAirports[0];
             const trustedAirportHub = isLevSideEffect ? null : (effectiveAirports[0] || null);
-            const planeRouteHub = crossContextHubIata || trustedAirportHub || null;
+            const planeRouteHub = winnerHub || trustedAirportHub || null;
             planeRoutes = getPlaneRouteContext(mentionedPlanes[0].name, planeRouteHub);
         }
 

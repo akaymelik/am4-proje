@@ -1324,7 +1324,20 @@ const Chat = {
         // History fallback: mesajda yoksa son user mesajlarından geriye doğru çıkar
         const effectiveBudget = extracted.budget || findInHistory(history, 'budget');
         const effectiveSlots = extracted.availableSlots || findInHistory(history, 'slots');
-        const effectiveAirports = extracted.airports.length > 0 ? extracted.airports : (findInHistory(history, 'airports') || []);
+
+        // Adım 4a Levenshtein yan etkisi global filtre: geniş routeIntent kelime listesi
+        // ("uçar", "kar", "hat" vb.) bazen şehir adlarına eşik-2 Levenshtein ile düzeltiliyor
+        // (örn "uçar" → "UFA"). Bu durum hem hubAnalysis hem getRelevantRoutes hem Adım 4b'yi
+        // bozuyor (AI Ufa hub analizi okuyup Ufa cevabı veriyor).
+        // Kriter: routeIntent: true + Levenshtein düzeltmesi → yan etki, IATA filtrelenir.
+        // "burgaz → BOJ" gibi legitim yazım düzeltmeleri (routeIntent: false) korunur.
+        const isLevSideEffect = (iata) =>
+            extracted.routeIntent &&
+            extracted.levenshteinAirportCorrection?.corrected === iata;
+        const filteredExtractedAirports = extracted.airports.filter(iata => !isLevSideEffect(iata));
+        const effectiveAirports = filteredExtractedAirports.length > 0
+            ? filteredExtractedAirports
+            : (findInHistory(history, 'airports') || []);
         const effectiveType = extracted.planeType || findInHistory(history, 'planeType');
 
         const candidatePlanes = effectiveBudget ? getCandidatePlanes(effectiveBudget, effectiveType) : '';

@@ -1122,11 +1122,16 @@ const UI = {
         if (hubText && hubText.trim()) {
             if (hubIata) {
                 if (hubInfoDiv) hubInfoDiv.innerHTML = `✅ Hub: <strong>${hubIata}</strong> — sadece bu havalimanından kalkan rotalar gösteriliyor`;
+                // Hub-on-page-cache (Post-Adım-4b iş #1): geçerli IATA çözüldü → cache'e yaz
+                saveLastHub(hubIata);
             } else {
                 if (hubInfoDiv) hubInfoDiv.innerHTML = `⚠️ "${hubText}" veritabanında yok — tüm rotalar gösteriliyor`;
+                // resolveHub başarısız: cache'e dokunma (önceki geçerli hub varsa korunsun)
             }
         } else {
             if (hubInfoDiv) hubInfoDiv.innerHTML = '';
+            // Input boşaldı: kullanıcı niyeti hub kaldır → cache temizle
+            clearLastHub();
         }
 
         resultDiv.innerHTML = `<div id="aiResultArea"></div><h3 style="margin: 20px 0 15px 0;">Kârlı Rota Seçenekleri</h3>`;

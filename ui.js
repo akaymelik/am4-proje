@@ -176,12 +176,19 @@ function extractContextFromMessage(text) {
     result.routeIntent = ROUTE_INTENT_PATTERNS.some(re => re.test(text));
 
     // Adım 4a NLU fallback: hâlâ airport yoksa, dataLoader.findAirportsByCity ile Levenshtein + ülke tespit
+    // DİKKAT: Adım 4b geniş routeIntent listesi nedeniyle "uçar", "rota", "kar", "hat" gibi
+    // intent kelimeleri Levenshtein eşik 2 ile yanlışlıkla şehir adlarına düzeltiliyordu
+    // (örn "uçar" → "Ufa", 4 harf 2 fark). Bu yüzden routeIntent kelimelerini Levenshtein
+    // aramasından önce skip ediyoruz. "burgaz → BOJ" gibi legitim yazım düzeltmeleri çalışır
+    // (routeIntent kelimesi değiller, skip edilmezler).
     if (result.airports.length === 0 && dl) {
         // Mesajdaki >=4 harfli kelimeleri çıkar (sayı kombinasyonu hariç — uçak adı parçaları)
         const wordTokens = lowerNorm
             .split(/[\s.,!?;:'‘’“”\-/]+/)
             .filter(w => w.length >= 4 && !/\d/.test(w));
+        const isRouteIntentToken = (token) => ROUTE_INTENT_PATTERNS.some(re => re.test(token));
         for (const w of wordTokens) {
+            if (isRouteIntentToken(w)) continue; // Adım 4b yan etkisi: intent kelimesini Levenshtein'a verme
             const found = dl.findAirportsByCity(w, { limit: 3, levenshtein: true });
             if (found.airports.length > 0) {
                 const top = found.airports[0];

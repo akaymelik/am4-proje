@@ -29,6 +29,47 @@ Bu dosya, projeye eklenmiş Claude Code Routines'larının ne yaptığını, nas
 
 **Maliyet:** Haftada 1 run, Pro plan günlük 5 routine limitinde rahat sığar.
 
+### V2: Haftalık AM4 Sistematik Audit
+
+**Amaç:** AM4 Tools projesinin tüm sistematiğini (formüller, hesaplamalar, AI mantığı) community ve resmi olmayan documentation kaynaklarıyla karşılaştır. Eksik feature, hatalı yaklaşım veya onaylama bulgularını rapor et.
+
+**V1'den farkı:**
+- V1: Delta detection (kanonik tek kaynak, abc8747/am4)
+- V2: Research audit (dağınık community kaynakları, eksik/hatalı arama)
+
+**Tetik:** Haftalık (önerilen: Çarşamba 12:00 GMT+3 — V1 ile çakışmasın diye haftanın ortası)
+
+**Kapsam (7 bileşen):**
+1. Yolcu ekonomisi (revenue, demand, autoprice, calculateOptimalSeats)
+2. Kargo ekonomisi (L-first, demand türetimi, calculateOptimalCargo)
+3. Maliyetler (yakıt, CO₂, bakım, A-check, salary)
+4. Uçak verisi (planes.js — 308 yolcu + 21 kargo)
+5. Hub & rota stratejisi (logic.js analyzeTopRoutesForPlane)
+6. AI bağlamı (worker.js sistem promptu kuralları)
+7. Sabitler (18h DAILY_AVAILABLE_HOURS, 0.5h turnaround, L_CAP_FACTOR=0.7, CI 200)
+
+**Kaynak Tier sistemi (yanlış pozitif filtresi):**
+- **Tier 1** (ağırlık 3x): am4-cc.pages.dev, abc8747/am4 docs
+- **Tier 2** (ağırlık 2x): Reddit r/AirlineManager4 son 90 gün >10 upvote
+- **Tier 3** (ağırlık 1x — sadece corroboration): Steam guides, YouTube transcripts, Discord/forum
+
+**Güven seviyeleri:**
+- **Yüksek**: Tier 1 + en az bir Tier 2 corroboration
+- **Orta**: Tier 1 tek başına veya 2× Tier 2
+- **Düşük**: Tek Tier 2 veya Tier 3 → manuel kontrol önerilir
+
+**Çıktı:** `routines/reports/weekly-system-audit-YYYY-MM-DD.md`
+
+**Maliyet:** Haftalık 1 run, web search yoğun. V1 + V2 = haftada 2 run, ayda ~8. Pro plan günlük 5 limit içinde rahat. Token kullanımı V1'den yüksek (web search yoğun), fatura monitör edilmeli.
+
+## V2 Kurulum
+
+V1 ile aynı adımlar (claude.ai/code → New Routine), farklılıklar:
+- **Trigger:** Schedule → Weekly → **Çarşamba** 12:00 GMT+3 (V1 Pazar ile çakışmasın)
+- **Prompt:** `routines/weekly-system-audit-prompt.md` içeriği
+- **Tool access:** V1 ile aynı (web fetch + file system + git ops, "Allow unrestricted git push" açık)
+- **Repository:** akaymelik/am4-proje
+
 ## Kurulum
 
 1. https://claude.ai/code adresine git

@@ -111,26 +111,29 @@ const Logic = {
         const maintenanceCost = this.calculateMaintenanceCost(plane, route.distance);
 
         // CO₂ kalemi (Fix #7, kanonik cpp formülü route.cpp:472-490).
-        // Pax:   co2_kg = [ceil(d,2) × ac.co2 × (y+2j+3f) + (y+j+f)] × (CI/2000+0.9)
-        // Cargo: co2_kg = [ceil(d,2) × ac.co2 × (L/1000 + H/500) + (L+H)] × (CI/2000+0.9)
+        // Pax:   co2_lbs = [ceil(d,2) × ac.co2 × (y+2j+3f) + (y+j+f)] × (CI/2000+0.9)
+        // Cargo: co2_lbs = [ceil(d,2) × ac.co2 × (L/1000 + H/500) + (L+H)] × (CI/2000+0.9)
         // Bizim varsayımlar: co2_training=0 (Reputation paralel: kanıtsız mekanizma yok),
         // ac_load=1.0 (R=100 örtük varsayım, optimal/max potansiyel gösterimi).
-        // co2 cost = co2_kg / 1000 × co2_price (default 150 $/1000kg, am4-cc Tier 2).
+        // co2 cost = co2_lbs / 1000 × co2_price (default 150 $/1000lbs).
+        // Birim notu: oyun CO₂'yi "kotalar" olarak gösterir, fiziksel birim lbs (depo genişletme
+        // ekranında lbs yazıyor). Oyun B737-800 F=40 LTFD-ZUNZ testi: oyun 88,434 vs sistem
+        // 88,412.8 (fark %0.024, V2 audit doğrulaması).
         // plane.co2 null/missing ise (legacy fallback, normalde tetiklenmez — tüm 329 uçak migrasyon ile var) → 0.
         let co2Cost = 0;
         if (plane.co2 != null) {
             const ciFactor = getCostIndex() / 2000 + 0.9;
-            let co2Kg;
+            let co2Lbs;
             if (plane.type === "cargo") {
                 const distanceTerm = ceilDist * plane.co2 * ((opt.l || 0) / 1000 + (opt.h || 0) / 500);
                 const constTerm = (opt.l || 0) + (opt.h || 0);
-                co2Kg = (distanceTerm + constTerm) * ciFactor;
+                co2Lbs = (distanceTerm + constTerm) * ciFactor;
             } else {
                 const distanceTerm = ceilDist * plane.co2 * ((opt.y || 0) + 2 * (opt.j || 0) + 3 * (opt.f || 0));
                 const constTerm = (opt.y || 0) + (opt.j || 0) + (opt.f || 0);
-                co2Kg = (distanceTerm + constTerm) * ciFactor;
+                co2Lbs = (distanceTerm + constTerm) * ciFactor;
             }
-            co2Cost = co2Kg / 1000 * getCO2Price();
+            co2Cost = co2Lbs / 1000 * getCO2Price();
         }
 
         const totalCosts = fuelCost + maintenanceCost + co2Cost;

@@ -111,15 +111,15 @@ BAKIM A-CHECK (Fix #3 + #5.1 senkron):
 - D-check kanonik kaynakta modellenmiyor, formüle dahil değil.
 
 CO₂ MALİYETİ (Fix #7, kanonik abc8747 route.cpp:472-490 + formulae.md:498/513):
-- Pax:   co2_kg = [ceil(d × 100)/100 × ac.co2 × (y + 2j + 3f) + (y + j + f)] × (CI/2000 + 0.9)
-- Cargo: co2_kg = [ceil(d × 100)/100 × ac.co2 × (L/1000 + H/500) + (L + H)] × (CI/2000 + 0.9)
+- Pax:   co2_lbs = [ceil(d × 100)/100 × ac.co2 × (y + 2j + 3f) + (y + j + f)] × (CI/2000 + 0.9)
+- Cargo: co2_lbs = [ceil(d × 100)/100 × ac.co2 × (L/1000 + H/500) + (L + H)] × (CI/2000 + 0.9)
   Burada L ve H lbs cinsinden bizim sistemde optimal allocation çıktısı (Configurator.calculateOptimalCargo).
-- co2_cost = co2_kg / 1000 × co2_price
+- co2_cost = co2_lbs / 1000 × co2_price
 - ac.co2: planes.js co2 field (range 0.05–0.35, abc8747 aircrafts.csv kaynaklı).
 - co2_price: $/1000 (varsayılan 150, am4-cc Tier 2 paralel; kullanıcı UI'dan değiştirebilir).
 - co2_training=0 ve ac_load=1.0 örtük (R=100% varsayım, optimal/max gösterim).
 - Örnek: B777-300ER (ac.co2=0.24) ile 1768km, ~228 koltuk dolu Realism:
-  co2_kg ≈ (1768 × 0.24 × ~340 + ~228) × 1.0 ≈ 144,500 kg → co2_cost ≈ $21,675
+  co2_lbs ≈ (1768 × 0.24 × ~340 + ~228) × 1.0 ≈ 144,500 lbs → co2_cost ≈ $21,675
 
 PERSONEL MALİYETİ YOK (Fix #5):
 - AM4 oyun gider raporunda uçak/sefer başına staff salary satırı yok (kullanıcı oyun gözlemi).

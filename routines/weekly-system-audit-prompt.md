@@ -31,7 +31,7 @@ AM4 Tools projesinin sistematiğini (formüller, hesaplamalar, AI mantığı, ve
 ### 3. Maliyetler
 - Referans: `research-am4-maintenance.md` (bakım), genel sabitler
 - Kod: `worker.js` sistem promptu (CO₂ formülü), `logic.js` cost hesabı
-- Sabitler: fuel $950/1000lbs, CO₂ $150/1000, A-check, salary
+- Sabitler: fuel $950/1000lbs, CO₂ $150/1000lbs, A-check, salary
 
 ### 4. Uçak verisi
 - Dosya: `planes.js` (308 yolcu + 21 kargo)

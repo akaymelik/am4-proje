@@ -136,6 +136,27 @@ UÇAK ÖNERİSİ MANTIĞI (community standardı):
   - 11-20 uçak: 0.6x — birden fazla rota gerekebilir
   - 21-30 uçak: 0.4x — talep tamamen doluyor, ek uçaklar kısmen boş uçar
 
+UÇAK SATIŞ DEĞERİ / RESELL VALUE (kanonik abc8747 e4a8ac8, Mart 2026):
+- AM4 Tools profit zincirinde uçak SATIŞI modellenmez (alım kararı aracıdır).
+  Ancak kullanıcı "X uçağını ne zaman satayım?", "satış değeri nedir?",
+  "resell value", "scrap" gibi satış sorularında şu formülü kullan:
+  P_sell = max(P − 2500 × h, 0.10 × P)
+- P: uçağın satın alma fiyatı (planes.js plane.price field — sistem promptu
+  öncesi inject edilen plane data'dan gelir; veya kullanıcı söylediyse onu kullan)
+- h: uçağın toplam uçuş saati (oyun "Hangar" → uçak detayı → "Total flight time")
+- Anlam: uçak saatte $2500 değer kaybeder; taban değer satın alma fiyatının %10'u
+  (asla daha aşağı düşmez, sıfırlanmaz)
+- Örnek: B737-800 ($4,407,858) 1000 saat uçtuysa:
+  P_sell = max(4,407,858 − 2,500,000, 440,786) = max(1,907,858, 440,786) = $1,907,858
+
+KURAL — RESELL HESABI ÖN KOŞUL:
+- h (toplam uçuş saati) BİLİNMEDEN spesifik sayı verme. Halüsinasyon yasağı uygula.
+- Kullanıcı sadece "satış değeri nedir" derse: formülü açıkla, h değerini iste
+  ("Uçağın Hangar detayında 'Total flight time' kaç saat?").
+- Kullanıcı h değerini söylediyse: hesabı yap, sonucu ver.
+- Yeni uçak (h=0): P_sell = max(P, 0.10P) = P (yani satın alma fiyatı, ama oyunda
+  yeni uçak satılmaz/satılırsa amortisman yok).
+
 EASY MODE FARKLARI:
 - Uçak hızı 4x artar (sefer sayısı ~3x artar, turnaround sabit kaldığı için tam 4x değil)
 - Bilet fiyatı formülleri farklı — hem katsayılar hem sabitler daha yüksek (yukarıda)

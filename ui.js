@@ -497,8 +497,8 @@ const UI = {
         if (hint) {
             const isDefault = (fuel === 950 && co2 === 150 && ci === 200);
             hint.textContent = isDefault
-                ? 'Boş bırakırsan varsayılan: Yakıt $950/1000lbs, CO₂ $150/1000, CI 200. Ortalama olarak satın alımda kullandığınız değerleri girin.'
-                : `Aktif: Yakıt $${fuel}/1000lbs, CO₂ $${co2}/1000, CI ${ci}. Hesaplamalar bu değerlerle yapılır.`;
+                ? 'Boş bırakırsan varsayılan: Yakıt $950/1000lbs, CO₂ $150/1000lbs, CI 200. Ortalama olarak satın alımda kullandığınız değerleri girin.'
+                : `Aktif: Yakıt $${fuel}/1000lbs, CO₂ $${co2}/1000lbs, CI ${ci}. Hesaplamalar bu değerlerle yapılır.`;
             hint.className = isDefault ? 'status-box status-neutral' : 'status-box status-success';
         }
     },

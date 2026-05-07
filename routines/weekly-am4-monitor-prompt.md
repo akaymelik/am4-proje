@@ -75,9 +75,9 @@ abc8747'deki yeni değişiklikler bu kanonik referanslarla **çelişiyor mu?**
 - Mevcut uçağın parametresi değişmiş: planes.js güncelleme adayı — rapor et
 - Sadece tipo/refactor: notu geç — kritik değil
 
-### 5. Markdown rapor üret
+### 5. Markdown rapor üret (DOĞRUDAN OUTPUT)
 
-Şu şablonu kullanarak `routines/reports/weekly-am4-update-YYYY-MM-DD.md` dosyası oluştur (YYYY-MM-DD = bugünün tarihi):
+Aşağıdaki şablonda markdown raporu **doğrudan output olarak ekrana yaz**. Dosya yazma veya git ops YAPMA — Routines push permission bug'ı nedeniyle manuel mod kullanıyoruz. Kullanıcı bu output'u Routines dashboard'dan okuyacak.
 
 ```markdown
 # AM4 Repo Haftalık İzleme Raporu — YYYY-MM-DD
@@ -145,12 +145,9 @@ GitHub API erişilemezse (rate limit, network hatası vb.):
 https://github.com/abc8747/am4/commits/main
 ```
 
-### 8. Git commit + push
+### 8. Git ops YAPMA — manuel mod
 
-- `routines/reports/` klasörü yoksa oluştur
-- Yeni dosyayı `git add`
-- Commit mesajı: `Routines: weekly am4 update YYYY-MM-DD`
-- `git push origin main`
+Routines push permission bug nedeniyle git commit + push **DEVRE DIŞI**. Sadece raporu output olarak yaz, dosya yazma veya commit yapma. Kullanıcı manuel olarak Routines dashboard'dan kopyalar.
 
 ## Dikkat Edilecekler
 
@@ -163,4 +160,4 @@ https://github.com/abc8747/am4/commits/main
 
 - ✅ Web fetch (GitHub API + raw dosya içerikleri)
 - ✅ File system (rapor yazma + mevcut research dosyalarını okuma)
-- ✅ Git operations (add, commit, push)
+- ❌ Git operations DEVRE DIŞI (manuel mod, push permission bug)

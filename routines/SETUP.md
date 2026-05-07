@@ -19,7 +19,7 @@ Bu dosya, projeye eklenmiş Claude Code Routines'larının ne yaptığını, nas
   - Havalimanı verisi (`res/airports.json` veya benzeri)
 - AM4 Tools kanonik referanslarla (`research-am4-formulas.md`, `research-am4cc-cargo-formula.md`, `planes.js`) çelişki kontrolü yapılır
 
-**Çıktı:** `routines/reports/weekly-am4-update-YYYY-MM-DD.md` markdown raporu, repo'ya commit edilir.
+**Çıktı:** Routine sonucunda **doğrudan output** olarak markdown rapor üretilir. Routines dashboard'dan run detayına girip okuma + kopyala-yapıştır yapılır. (Routines push permission bug nedeniyle git commit + push devre dışı.)
 
 **Nedir, ne değildir:**
 - ✅ Bilgi (monitoring + rapor)
@@ -58,7 +58,7 @@ Bu dosya, projeye eklenmiş Claude Code Routines'larının ne yaptığını, nas
 - **Orta**: Tier 1 tek başına veya 2× Tier 2
 - **Düşük**: Tek Tier 2 veya Tier 3 → manuel kontrol önerilir
 
-**Çıktı:** `routines/reports/weekly-system-audit-YYYY-MM-DD.md`
+**Çıktı:** Routine sonucunda **doğrudan output** olarak markdown rapor üretilir (manuel okuma). (Routines push permission bug nedeniyle git commit + push devre dışı.)
 
 **Maliyet:** Haftalık 1 run, web search yoğun. V1 + V2 = haftada 2 run, ayda ~8. Pro plan günlük 5 limit içinde rahat. Token kullanımı V1'den yüksek (web search yoğun), fatura monitör edilmeli.
 

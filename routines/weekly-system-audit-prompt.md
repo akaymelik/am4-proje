@@ -133,9 +133,9 @@ Her bulguyu işaretlerken:
 - Birden fazla bağımsız Tier 3 kaynaktan gelen ama Tier 1/2 yokken işaretlenen iddialar
 - "Manuel kontrol önerilir" notuyla
 
-### 7. Markdown rapor üret
+### 7. Markdown rapor (DOĞRUDAN OUTPUT)
 
-`routines/reports/weekly-system-audit-YYYY-MM-DD.md` dosyası oluştur:
+Aşağıdaki şablonu **output olarak ekrana yaz**. Dosya yazma veya commit YAPMA — Routines push permission bug'ı nedeniyle manuel mod. Kullanıcı output'u dashboard'dan okuyacak.
 
 ```markdown
 # AM4 Tools Haftalık Sistematik Audit — YYYY-MM-DD
@@ -214,12 +214,9 @@ Web search erişilemezse veya tool limit aşılırsa:
 **HATA:** [hata mesajı]. Bu hafta otomatik audit kısmen veya tamamen yapılamadı. Tarayabildiğimiz kategoriler: [liste]. Erişilemeyen: [liste]. Manuel inceleme önerisi.
 ```
 
-### 10. Git commit + push
+### 10. Git ops YAPMA — manuel mod
 
-- `routines/reports/` klasörü yoksa oluştur
-- Yeni dosyayı `git add`
-- Commit mesajı: `Routines V2: weekly system audit YYYY-MM-DD`
-- `git push origin main`
+Routines push permission bug nedeniyle git commit + push **DEVRE DIŞI**. Sadece markdown raporu output olarak yaz. Kullanıcı dashboard'dan kopyalayacak.
 
 ## Dikkat Edilecekler
 
@@ -235,4 +232,4 @@ Web search erişilemezse veya tool limit aşılırsa:
 - ✅ Web search (Reddit, am4-cc, AM4 wiki, vb.)
 - ✅ Web fetch (URL'lerden detay çekme)
 - ✅ File system (research dosyalarını + önceki raporları okuma + yeni rapor yazma)
-- ✅ Git operations (add, commit, push)
+- ❌ Git operations DEVRE DIŞI (manuel mod, push permission bug)

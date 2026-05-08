@@ -22,6 +22,7 @@ AM4 Tools projesinin sistematiğini (formüller, hesaplamalar, AI mantığı, ve
 - Referans: `research-am4-formulas.md`
 - Kod: `configurator.js` calculateOptimalSeats, `dataLoader.js` demand türetimi
 - Sabitler: autoprice Y×1.10 / J×1.08 / F×1.06, Easy/Realism katsayıları, L_CAP_FACTOR=0.7
+- [v1.0.5] Bilet fiyatları kontrolü: AI cevaplarında autoprice multiplier (Y×1.10, J×1.08, F×1.06) DAHİL mi yoksa BASE değer mi? Test örneği: CDG-ERI B737-800 Realism, AI Y:$2,198 J:$4,533 F:$6,939 demeli (BASE değil). Eğer BASE çıkarsa v1.0.5 kuralları regression — `worker.js` autoprice bölümünü (satır 69-73) ve halüsinasyon yasağını (satır 291-293) kontrol et.
 
 ### 2. Kargo ekonomisi
 - Referans: `research-am4cc-cargo-formula.md`
@@ -44,6 +45,7 @@ AM4 Tools projesinin sistematiğini (formüller, hesaplamalar, AI mantığı, ve
 ### 6. AI bağlamı
 - Kod: `worker.js` sistem promptu kuralları (halüsinasyon yasağı, hub değişimi kuralı, cargo L-first kuralı)
 - Karşılaştır: AM4 community'de yaygın AI kullanım pattern'leri (kullanıcı pratikleri varsa)
+- [v1.0.5] Halüsinasyon yasağı çalışması: Bilet fiyatı sorulduğunda payload'da `ticketPrices` YOKKEN AI BASE × autoprice multiplier hesabı yapıyor mu, yoksa sadece BASE mi söylüyor? Test: chat balonundan "Y class fiyatı ne 6000km'de?" sor; AI 0.3×6000+150 = 1950 (BASE) demek yerine 1950×1.10 = 2145 (autoprice) demeli. BASE çıkarsa worker prompt halüsinasyon yasağı madde 3 ihlali.
 
 ### 7. Sabitler ve oyun mekaniği
 - 18h DAILY_AVAILABLE_HOURS (insan limiti, oyunda 24h değil)

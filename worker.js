@@ -66,6 +66,12 @@ Her iki modda kargo:
 - Cargo Light (L) = 0.07 x mesafe + 50
 - Cargo Heavy (H) = 0.11 x mesafe + 150
 
+AUTOPRICE PRATİK FİYATLARI (oyuncuların gördüğü, autoprice multiplier dahil):
+- Yolcu: Y_practical = Y_base × 1.10, J_practical = J_base × 1.08, F_practical = F_base × 1.06
+- Kargo: L_practical = L_base × 1.10, H_practical = H_base × 1.08
+- Bu çarpanlar oyunda autoprice butonu kullanıldığında uygulanır — talep dolduğu sürece doluluğu düşürmeden max kâr noktasıdır.
+- Mod farkı SADECE BASE formülde (Easy vs Realism katsayı/sabit). Autoprice çarpanları her iki modda da aynıdır.
+
 KOLTUK MEKANİĞİ (Yolcu — F-first):
 - 1F koltuğu = 3 birim kapasite tüketir
 - 1J koltuğu = 2 birim kapasite tüketir
@@ -282,6 +288,9 @@ HALÜSİNASYON YASAĞI (MUTLAK):
 - Eğer "UÇAK ROTA ÖNERİLERİ" listesi context'te YOKSA ve kullanıcı bir uçak için spesifik rota/günlük kâr/payback soruyorsa, ASLA spesifik rota adı/sayı uydurma. Bunun yerine: "X uçağı için rota analizi yapabilirim. Hub belirtirsen (örn LHR) o hub'tan top rotaları çıkarırım, ya da Bütçe Önerileri sayfasındaki AI butonu ile başla" yönlendirmesi yap. (BOJ hub vakası paraleli — eğitim verisinden tahmin yasak.)
 - CO₂ değeri context'te yoksa ($body.co2Cost veya breakdown.co2Cost yok), spesifik co2 maliyeti UYDURMA. "co2_cost gönderilmediği için sayı veremem, sayfayı yenile veya AI butonuna tekrar bas" de.
 - plane.co2 field'ı yoksa formülü uygulamayı reddet — varsayılan 0.18 gibi rakam UYDURMA.
+- Bilet fiyatı sorulduğunda: payload'da "ticketPrices" varsa O DEĞERLERİ BİREBİR kullan (round veya floor formatla göster — örn $2,198). Kendi hesaplamayı yapma.
+- Payload'da ticketPrices YOKSA: BASE formül × autoprice multiplier hesabı yap. Realism Y örneği: (0.3 × mesafe + 150) × 1.10. Sonucu round/floor formatla. ASLA SADECE BASE FİYATI SÖYLEME — autoprice çarpımı ZORUNLUDUR.
+- Halüsinasyon yasağı: kullanıcıya "Y: 1998, J: 4197, F: 6545" gibi BASE değerlerini söylemek YANLIŞTIR. Bu sayılar oyun içi referans tabanıdır, oyuncu bu fiyatla biletleri SATAMAZ. Daima autoprice çarpılmış değer söyle.
 
 ROTA ANALİZİ TARZI:
 - Rota analizi istendiğinde 80-100 kelimeyi GEÇME.
@@ -454,6 +463,12 @@ KURAL: ÖNCEKİ ANALİZ uçağı (${la.plane?.name}) vs BU UÇAK (${cp.name}) = 
         const breakdownLine = (breakdown.fuelCost != null || breakdown.maintenanceCost != null || breakdown.co2Cost != null)
           ? `\n- Sefer başı GİDER kalemleri: fuel=$${Math.round(breakdown.fuelCost || 0).toLocaleString()}, maintenance=$${Math.round(breakdown.maintenanceCost || 0).toLocaleString()}, co2=$${Math.round(breakdown.co2Cost || 0).toLocaleString()}`
           : '';
+        const tp = body.ticketPrices || null;
+        const ticketLine = tp
+          ? (tp.l != null
+              ? `\n- BİLET FİYATLARI (autoprice dahil, BİREBİR KULLAN — kendi hesaplamayı YAPMA): L=$${tp.l.toFixed(2)}/lbs, H=$${tp.h.toFixed(2)}/lbs`
+              : `\n- BİLET FİYATLARI (autoprice dahil, BİREBİR KULLAN — kendi hesaplamayı YAPMA): Y=$${Math.round(tp.y).toLocaleString()}, J=$${Math.round(tp.j).toLocaleString()}, F=$${Math.round(tp.f).toLocaleString()}`)
+          : '';
         userText = `
 ROTA ANALİZ VERİSİ (sayfa hesabı, KESİN değerler):
 - Uçak: ${body.plane} (fiyat: ${body.planePrice || '?'})
@@ -465,7 +480,7 @@ ROTA ANALİZ VERİSİ (sayfa hesabı, KESİN değerler):
 - Yatırım verimi: ${body.efficiency}
 - Payback süresi: ${body.paybackDays || '?'} gün
 - Doluluk: ${body.fillRatio || '?'}
-- İdeal yapılandırma: ${body.optimalConfig || '?'}${breakdownLine}
+- İdeal yapılandırma: ${body.optimalConfig || '?'}${breakdownLine}${ticketLine}
 
 GÖREV: Bu KESİN sayıları kullanarak 80-100 kelimelik analiz yap.
 

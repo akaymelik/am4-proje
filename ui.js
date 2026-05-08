@@ -828,6 +828,18 @@ const UI = {
             co2Cost: calcBreakdown.co2Cost
         } : null;
 
+        // Bilet fiyatları (Configurator.getTicketMultipliers — autoprice multiplier dahil).
+        // AI bu değerleri birebir kullanmalı, kendi hesaplamamalı.
+        // Yolcu uçağı: y/j/f. Kargo uçağı: l/h. plane null ise ticketPrices null.
+        const ticketPrices = (plane && routeData.distance)
+            ? (function () {
+                const tc = Configurator.getTicketMultipliers(routeData.distance);
+                return plane.type === 'cargo'
+                    ? { l: tc.l, h: tc.h }
+                    : { y: tc.y, j: tc.j, f: tc.f };
+              })()
+            : null;
+
         try {
             const response = await fetch(workerUrl, {
                 method: 'POST',
@@ -846,6 +858,7 @@ const UI = {
                     optimalConfig: optimalConfigStr,
                     planePrice: plane ? Utils.formatCurrency(plane.price) : '',
                     breakdown: breakdown,  // Fix #7 — sefer başı fuel/maintenance/co2 ayrı kalemler
+                    ticketPrices: ticketPrices,  // v1.0.5 — autoprice multiplier dahil bilet fiyatları
                     context: {
                         gameMode: window.gameMode || 'realism',
                         fuelPrice: window.FUEL_PRICE || 950,

@@ -41,11 +41,13 @@ AM4 Tools projesinin sistematiğini (formüller, hesaplamalar, AI mantığı, ve
 ### 5. Hub & rota stratejisi
 - Kod: `logic.js` analyzeTopRoutesForPlane (top-10 rota seçim mantığı)
 - Mantık: 18h DAILY_AVAILABLE_HOURS, 0.5h turnaround, fuel/seat efficiency
+- [v1.0.6] Bütçe sayfası hub filter çalışması: `paxBudgetHubInput` ve `cargoBudgetHubInput` input alanları `index.html`'de mevcut mu? `UI.resolveHub` ile parse ediliyor mu (datalist full label, IATA, şehir, alias, Levenshtein hepsi)? Test örneği: bütçe 100M + LHR autocomplete seç + Bul → tüm sonuçların En Karlı Rota başlangıcı LHR olmalı, banner "LHR hub'ından" yazmalı. Hub boş bırakılınca top-5 hub global mod korunmalı (regression). Geçersiz IATA için kırmızı uyarı görünmeli. Eğer regression varsa `Logic.getBestPlanesByType` 5-param iletim (`logic.js` satır 247) ve `UI.resolveHub` kullanım (`renderSuggestions` ve `askGeminiForBudget`) kontrol et.
 
 ### 6. AI bağlamı
 - Kod: `worker.js` sistem promptu kuralları (halüsinasyon yasağı, hub değişimi kuralı, cargo L-first kuralı)
 - Karşılaştır: AM4 community'de yaygın AI kullanım pattern'leri (kullanıcı pratikleri varsa)
 - [v1.0.5] Halüsinasyon yasağı çalışması: Bilet fiyatı sorulduğunda payload'da `ticketPrices` YOKKEN AI BASE × autoprice multiplier hesabı yapıyor mu, yoksa sadece BASE mi söylüyor? Test: chat balonundan "Y class fiyatı ne 6000km'de?" sor; AI 0.3×6000+150 = 1950 (BASE) demek yerine 1950×1.10 = 2145 (autoprice) demeli. BASE çıkarsa worker prompt halüsinasyon yasağı madde 3 ihlali.
+- [v1.0.6] Bütçe AI hub awareness: `askGeminiForBudget` payload'da `budgetHub` field var mı (`ui.js` satır 1111 civarı)? Worker prompt BÜTÇE SORULARI bloğunda HUB FİLTRELİ ANALİZ kuralı var mı (`worker.js` satır 212-216)? Test: bütçe sayfası + LHR hub + AI butonu → AI cevabı "LHR hub'ı için..." vurgusu yapmalı, alternatif hub ASLA önermemeli (alternatifler listedeki başka uçaklar olmalı). Hub boş ise AI hub'a değinmemeli (regression). Eğer AI hub'ı görmezden geliyorsa Cloudflare Workers manuel deploy unutuldu mu kontrol et. Halüsinasyon yasağı ihlali (alternatif hub önerme) varsa worker prompt madde 4 (HALÜSİNASYON YASAĞI: alternatif hub önerme) gözden geçirilsin.
 
 ### 7. Sabitler ve oyun mekaniği
 - 18h DAILY_AVAILABLE_HOURS (insan limiti, oyunda 24h değil)

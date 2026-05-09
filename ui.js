@@ -958,15 +958,28 @@ const UI = {
         const budgetInput = document.getElementById(cat + 'BudgetInput');
         const tripsInput = document.getElementById(cat + 'TripsInput');
         const slotsInput = document.getElementById(cat + 'SlotsInput');
+        const hubInput = document.getElementById(cat + 'BudgetHubInput');
         const budget = Number(budgetInput?.value);
         const manualTrips = tripsInput?.value ? Number(tripsInput.value) : null;
         const availableSlots = slotsInput?.value ? Number(slotsInput.value) : 3;
+
+        let hubIata = null;
+        const hubRaw = hubInput?.value?.trim()?.toUpperCase() || '';
+        if (hubRaw) {
+            const dl = window.dataLoader;
+            if (!dl || !dl.isReady() || !dl.getAirport(hubRaw)) {
+                if (resultDiv) resultDiv.innerHTML = `<div class="status-box status-danger">Geçersiz havalimanı kodu: ${hubRaw}. Listedeki bir havalimanı seç veya boş bırak.</div>`;
+                return;
+            }
+            hubIata = hubRaw;
+        }
+
         if (!budget || budget <= 0) {
             if (resultDiv) resultDiv.innerHTML = '<div class="status-box status-danger">Lütfen geçerli bir bütçe giriniz.</div>';
             return;
         }
 
-        const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo', manualTrips, availableSlots);
+        const bestPlanes = Logic.getBestPlanesByType(budget, cat === 'pax' ? 'passenger' : 'cargo', manualTrips, availableSlots, hubIata);
 
         if (bestPlanes.length === 0) {
             resultDiv.innerHTML = '<div class="status-box status-neutral">Bu bütçeye uygun uçak bulunamadı.</div>';
@@ -980,9 +993,10 @@ const UI = {
             0.4: '0.4x — 21-30 uçak, talep tamamen doluyor'
         };
 
+        const hubBannerText = hubIata ? `${hubIata} hub'ından — ` : '';
         const slotBanner = `
             <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px; padding:8px 12px; background:var(--neutral-bg); border-radius:8px;">
-                ${availableSlots} boş slot için sıralı öneri
+                ${hubBannerText}${availableSlots} boş slot için sıralı öneri
             </div>`;
 
         const planeCards = bestPlanes.map(p => `

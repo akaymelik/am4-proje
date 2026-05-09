@@ -88,6 +88,13 @@
         <input type="number" id="paxSlotsInput" placeholder="Örn: 3" min="1" max="30" value="3">
         <label>Günlük sefer sayısı (boş bırakırsan maksimum kullanılır):</label>
         <input type="number" id="paxTripsInput" placeholder="Örn: 2" min="1">
+        <label for="paxBudgetHubInput" style="display:block; margin-top:12px;">
+            Hub (opsiyonel — boş bırakırsan top-5 hub'da arar):
+        </label>
+        <input type="text" id="paxBudgetHubInput" list="airportList"
+               placeholder="örn LHR, JFK, DXB"
+               style="text-transform:uppercase;"
+               autocomplete="off">
         <button onclick="UI.renderSuggestions('pax')">En Verimli Uçakları Bul</button>
         <div id="paxPlaneResult"></div>
     </div>
@@ -125,6 +132,13 @@
         <input type="number" id="cargoSlotsInput" placeholder="Örn: 3" min="1" max="30" value="3">
         <label>Günlük sefer sayısı (boş bırakırsan maksimum kullanılır):</label>
         <input type="number" id="cargoTripsInput" placeholder="Örn: 2" min="1">
+        <label for="cargoBudgetHubInput" style="display:block; margin-top:12px;">
+            Hub (opsiyonel — boş bırakırsan top-5 hub'da arar):
+        </label>
+        <input type="text" id="cargoBudgetHubInput" list="airportList"
+               placeholder="örn LHR, JFK, DXB"
+               style="text-transform:uppercase;"
+               autocomplete="off">
         <button onclick="UI.renderSuggestions('cargo')">En Verimli Uçakları Bul</button>
         <div id="cargoPlaneResult"></div>
     </div>

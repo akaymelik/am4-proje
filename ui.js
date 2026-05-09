@@ -964,14 +964,13 @@ const UI = {
         const availableSlots = slotsInput?.value ? Number(slotsInput.value) : 3;
 
         let hubIata = null;
-        const hubRaw = hubInput?.value?.trim()?.toUpperCase() || '';
+        const hubRaw = hubInput?.value?.trim() || '';
         if (hubRaw) {
-            const dl = window.dataLoader;
-            if (!dl || !dl.isReady() || !dl.getAirport(hubRaw)) {
-                if (resultDiv) resultDiv.innerHTML = `<div class="status-box status-danger">Geçersiz havalimanı kodu: ${hubRaw}. Listedeki bir havalimanı seç veya boş bırak.</div>`;
+            hubIata = this.resolveHub(hubRaw);
+            if (!hubIata) {
+                if (resultDiv) resultDiv.innerHTML = `<div class="status-box status-danger">Havalimanı tanınmadı: "${hubRaw}". Listeden bir havalimanı seç veya boş bırak.</div>`;
                 return;
             }
-            hubIata = hubRaw;
         }
 
         if (!budget || budget <= 0) {

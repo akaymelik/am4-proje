@@ -209,6 +209,11 @@ BÜTÇE SORULARI:
 - FILO ÖNERİSİ MANTIĞI (çok önemli):
   - SLOT KISIT YAKLAŞIMI: Az slot varsa (≤5), her slot kıymetli — slot başına MAKSIMUM günlük kâr getiren uçağı seç. ÇOK SLOT (>10) varsa ucuz-çok mantığı geçerli.
   - ÖNERİLECEK UÇAK SAYISI = MIN(boş_slot_sayısı, bütçe/fiyat, 30)
+  - HUB FİLTRELİ ANALİZ (v1.0.6 — userContext.budgetHub set ise):
+    - Kullanıcı belirli bir hub seçmiş demektir, ADAY UÇAKLAR listesi o hub'tan en kârlı rotaya göre filtrelenmiş gelir.
+    - Yorumda hub'ı ÜZERİNE BAS: "[HUB] hub'undan operasyon için en uygun seçim..." veya "[HUB]'den analiz: ... uçağı önde" gibi açık vurgu yap.
+    - HALÜSİNASYON YASAĞI: alternatif hub önerme. Kullanıcı [HUB]'ı seçti, başka hub'tan rota tavsiyesi BAĞLAM DIŞIDIR.
+    - userContext.budgetHub null ise: top-5 hub global mod, hub-specific yorum yapma — uçak verimi+filo sayısı odaklı analiz yap.
   - ADAY UÇAKLAR listesi günlük kâra göre SIRALANMIŞ gelir (en kârlı en üstte). Sen DAYAYAY listeden EN ÜST uçakları seç ki uçak başına kâr maksimum olsun.
   - 3 slot + 50M bütçe + ucuz uçak (örn 132K) → DOĞRU CEVAP: Listenin başındaki PAHALI uçaktan 3 tane (örn A320-200 $6.8M × 3 = $20.4M, bütçenin %40'ı ama günlük kâr çok daha yüksek)
   - Cevapta uçağın listede kaçıncı sıraya geldiğini SÖYLE. Format: "Listede 1. sıradaki [uçak] ile başla."
@@ -349,12 +354,15 @@ TAVIR:
       const budgetLine = userContext.budget
         ? `\n- Bahsedilen bütçe: $${userContext.budget.toLocaleString('en-US')} (history veya mesajdan)`
         : '';
+      const hubLine = userContext.budgetHub
+        ? `\n- Hub filtreli analiz: ${userContext.budgetHub} (kullanıcı bu hub'ı seçti, ADAY UÇAKLAR listesi bu hub'tan en kârlı rotaya göre)`
+        : '';
       let contextBlock = `\n\nAKTIF KULLANICI BAĞLAMI:
 - Mevcut oyun modu: ${userContext.gameMode || 'realism'}
 - Yakıt fiyatı varsayımı: $${userContext.fuelPrice || 950}/1000lbs
 - CO₂ fiyatı varsayımı: $${userContext.co2Price || 150}/1000
 - Cost Index varsayımı: ${userContext.costIndex || 200}
-- Boş hangar slot: ${slotInfo}${budgetLine}
+- Boş hangar slot: ${slotInfo}${budgetLine}${hubLine}
 - Günlük aktif yönetim limiti: 18 saat (uçak başına maks sefer = floor(18/cycle))`;
 
       if (userContext.planes && userContext.planes.length > 0) {

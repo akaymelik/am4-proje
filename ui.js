@@ -1052,12 +1052,23 @@ const UI = {
         const trips = tripsInput?.value ? Number(tripsInput.value) : null;
         const planeType = cat === 'pax' ? 'passenger' : 'cargo';
 
+        const hubInput = document.getElementById(cat + 'BudgetHubInput');
+        let hubIata = null;
+        const hubRaw = hubInput?.value?.trim() || '';
+        if (hubRaw) {
+            hubIata = this.resolveHub(hubRaw);
+            if (!hubIata) {
+                resultArea.innerHTML = `<div class="status-box status-danger">Havalimanı tanınmadı: "${hubRaw}". Listeden bir havalimanı seç veya boş bırak, sonra tekrar dene.</div>`;
+                return;
+            }
+        }
+
         if (!budget || budget <= 0) {
             resultArea.innerHTML = '<div class="status-box status-danger">Önce geçerli bir bütçe gir, sonra "Bul" tıkla.</div>';
             return;
         }
 
-        const bestPlanes = Logic.getBestPlanesByType(budget, planeType, trips, slots);
+        const bestPlanes = Logic.getBestPlanesByType(budget, planeType, trips, slots, hubIata);
         if (bestPlanes.length === 0) {
             resultArea.innerHTML = '<div class="status-box status-neutral">Bu bütçeye uygun uçak yok, AI yorumu yapılamadı.</div>';
             return;
@@ -1097,6 +1108,7 @@ const UI = {
                         availableSlots: slots,
                         planeType: planeType,
                         budget: budget,
+                        budgetHub: hubIata,
                         candidatePlanes: candidatesText
                     }
                 })
